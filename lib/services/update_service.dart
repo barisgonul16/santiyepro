@@ -21,26 +21,47 @@ class UpdateService {
     try {
       // 1. Mevcut uygulama versiyonunu al
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      Version currentVersion = Version.parse(packageInfo.version);
+      String currentVersionStr = packageInfo.version;
+      String currentBuildStr = packageInfo.buildNumber;
       
-      print("LOG: Mevcut Versiyon: $currentVersion");
+      print("LOG: Mevcut Versiyon: $currentVersionStr+$currentBuildStr");
 
       // 2. İnternetteki versiyon bilgisini çek
       final response = await http.get(Uri.parse(_versionJsonUrl));
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        String latestVersionStr = data['version'];
-        Version latestVersion = Version.parse(latestVersionStr);
+        String latestVersionFull = data['version'];
         String releaseNotes = data['notes'] ?? 'Hata düzeltmeleri ve iyileştirmeler.';
 
-        print("LOG: Son Versiyon: $latestVersion");
+        // Parse version and build number (format: "1.0.2+5")
+        String latestVersionStr = latestVersionFull;
+        int latestBuildNum = 0;
+        if (latestVersionFull.contains('+')) {
+          final parts = latestVersionFull.split('+');
+          latestVersionStr = parts[0];
+          latestBuildNum = int.tryParse(parts[1]) ?? 0;
+        }
+        
+        int currentBuildNum = int.tryParse(currentBuildStr) ?? 0;
+        
+        print("LOG: Son Versiyon: $latestVersionStr+$latestBuildNum");
 
-        // 3. Karşılaştırma
+        // 3. Karşılaştırma - önce semantic version, sonra build number
+        Version currentVersion = Version.parse(currentVersionStr);
+        Version latestVersion = Version.parse(latestVersionStr);
+        
+        bool needsUpdate = false;
         if (latestVersion > currentVersion) {
+          needsUpdate = true;
+        } else if (latestVersion == currentVersion && latestBuildNum > currentBuildNum) {
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
           // Yeni versiyon var!
           if (context.mounted) {
-            _showUpdateDialog(context, latestVersion.toString(), releaseNotes, currentVersion);
+            _showUpdateDialog(context, latestVersionFull, releaseNotes, currentVersion);
           }
         } else {
           print("LOG: Uygulama güncel.");

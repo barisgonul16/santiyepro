@@ -12,6 +12,8 @@ Eğer terminalden `git` komutlarını çalıştırdığınızda hata alıyorsan�
 git init
 git remote add origin https://github.com/barisgonul16/santiyepro.git
 git branch -m main
+# Eğer yukarıdaki adımlardan sonra 'push' yaparken hata alırsanız şu komutu çalıştırın:
+git pull origin main --allow-unrelated-histories
 ```
 
 Bundan sonra aşağıdaki adımlara geçebilirsiniz.
@@ -41,7 +43,7 @@ Yaptığımız değişiklikleri ve güncellediğimiz `version.json` dosyasını 
 ```powershell
 git add .
 git commit -m "v1.0.2+5: Excel ve Yeni Tasarım Güncellemesi"
-git push
+git push -u origin main
 ```
 
 ---
