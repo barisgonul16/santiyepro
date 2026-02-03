@@ -1,0 +1,4 @@
+{
+  "version": "1.0.2+5",
+  "notes": "v5 Güncellemesi: \n- Harcamalarım sayfası tasarımı yenilendi.\n- Excel'e aktarma özelliği eklendi.\n- Faturalar şantiye bazlı klasör yapısına geçirildi.\n- Excel aktarımında invoice fotoğrafları dahil edildi."
+}

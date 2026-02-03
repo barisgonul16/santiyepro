@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "739991426228",
+    "project_id": "santiyepro-49515",
+    "storage_bucket": "santiyepro-49515.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:739991426228:android:881e7f043cd664a355f3e1",
+        "android_client_info": {
+          "package_name": "com.example.santiyepro"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "739991426228-s550j2h19a85202ln3tuuka76979pgts.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.santiyepro",
+            "certificate_hash": "c92ece4e7218197d98a66f222dba7b2a100ecc95"
+          }
+        },
+        {
+          "client_id": "739991426228-ve86hr43nqfa35pnvv4k8hpcsfu43peg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKoaF6FOrvyB2pVFVhVtrrEb8N4FQVYMw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "739991426228-ve86hr43nqfa35pnvv4k8hpcsfu43peg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

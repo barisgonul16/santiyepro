@@ -1,0 +1,43 @@
+﻿Resolving dependencies...
+flutter : Because dev
+ice_calendar >=4.3.0-
+3635229635 depends on
+ timezone ^0.9.0 and 
+santiyepro depends on
+ timezone ^0.10.1, de
+vice_calendar >=4.3.0
+-3635229635 is forbid
+den.
+At line:1 char:1
++ flutter pub get 2>&
+1 | Out-File -Encodin
+g utf8 pub_error.txt
++ ~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo   
+           : NotSpeci
+fied: (B    ecause de
+vice_...5 is     forb
+idden.:String) [    ]
+, RemoteException
+    + FullyQualifiedE
+rror    Id : NativeCo
+mmandErr    or
+ 
+So, because santiyepr
+o depends on device_c
+alendar ^4.3.3, versi
+on solving failed.
+
+
+You can try the follo
+wing suggestion to ma
+ke the pubspec resolv
+e:
+* Consider downgradin
+g your constraint on 
+device_calendar: flut
+ter pub add device_ca
+lendar:^3.9.0
+Failed to update pack
+ages.
