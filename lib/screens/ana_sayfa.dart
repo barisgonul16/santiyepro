@@ -284,17 +284,15 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: ThemeColors.cardBackground(context),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white10),
+                    border: Border.all(color: ThemeColors.border(context)),
                   ),
-                  child: const Center(
                     child: Text(
                       'Aktif hatırlatıcı yok',
-                      style: TextStyle(color: Colors.white54, fontSize: 16),
+                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 16),
                     ),
-                  ),
-                )
+                  )
               else
                 ListView.builder(
                   shrinkWrap: true,
@@ -383,10 +381,10 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 child: ExpansionTile(
                   title: Text(
                     "Tamamlanan Hatırlatıcılar (${tamamlananHatirlaticilar.length})",
-                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontWeight: FontWeight.bold),
                   ),
-                  leading: const Icon(Icons.check_circle_outline, color: Colors.white54),
-                  collapsedIconColor: Colors.white54,
+                  leading: Icon(Icons.check_circle_outline, color: ThemeColors.textTertiary(context)),
+                  collapsedIconColor: ThemeColors.textTertiary(context),
                   iconColor: Colors.orange,
                   initiallyExpanded: _showCompleted,
                   onExpansionChanged: (val) => setState(() => _showCompleted = val),
@@ -396,13 +394,13 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                        title: Text(
                          hatirlatici.baslik,
                          style: TextStyle(
-                           color: Colors.white54,
+                           color: ThemeColors.textTertiary(context),
                            decoration: TextDecoration.lineThrough,
                          ),
                        ),
                        subtitle: Text(
                          "${_formatTarih(hatirlatici.tarih)}, ${_formatSaat(hatirlatici.saat)}",
-                         style: TextStyle(color: Colors.white30),
+                         style: TextStyle(color: ThemeColors.textTertiary(context).withOpacity(0.7)),
                        ),
                        trailing: IconButton(
                          icon: Icon(Icons.refresh, color: Colors.green),
@@ -459,7 +457,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 title,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white70,
+                  color: ThemeColors.textSecondary(context),
                 ),
               ),
             ],
@@ -498,7 +496,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
               title,
               style: TextStyle(
                 fontSize: 11,
-                color: Colors.white70,
+                color: ThemeColors.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -578,8 +576,8 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 ),
               ),
               PopupMenuButton<String>(
-                icon: Icon(Icons.more_vert, color: Colors.white54),
-                color: const Color(0xFF3d3d3d),
+                icon: Icon(Icons.more_vert, color: ThemeColors.textTertiary(context)),
+                color: ThemeColors.cardBackground(context),
                 onSelected: (value) {
                   if (value == 'duzenle') {
                     _hatirlaticiDuzenleDialog(index, hatirlatici);

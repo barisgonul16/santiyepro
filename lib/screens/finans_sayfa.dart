@@ -4,10 +4,13 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
+import 'package:url_launcher/url_launcher.dart'; 
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as sf;
 import '../models/fatura.dart';
 import '../models/harcama.dart';
 import '../models/proje.dart';
 import '../services/image_service.dart';
+import '../services/storage_service.dart';
 import '../theme/theme_colors.dart';
 
 class FinansSayfaPage extends StatefulWidget {
@@ -20,7 +23,7 @@ class FinansSayfaPage extends StatefulWidget {
   final Function(Harcama) onHarcamaEkle;
   final Function(int) onHarcamaSil;
   final Function(int, Harcama) onHarcamaGuncelle;
-  final VoidCallback onHesapSifirla;
+  final Function(bool, {bool? isFatura}) onHesapSifirla; // bool isArchive: true = sadece hesap, false = komple sil, optional isFatura: true = fatura, false = harcama, null = hepsi
 
   const FinansSayfaPage({
     super.key,
@@ -103,19 +106,33 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
             // Üst Bilgi Barı
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: Colors.transparent,
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: ThemeColors.cardBackground(context),
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                   _buildHeaderInfoItem(
+                    "Toplam Fatura",
+                    "${widget.faturalar.length} Adet",
+                    Colors.orange,
+                  ),
+                  const Spacer(),
                   IconButton(
                     onPressed: () => _finansExcelAktar(isFatura: true), 
-                    icon: const Icon(Icons.table_view, color: Colors.green),
+                    icon: const Icon(Icons.download, color: Colors.green),
                     tooltip: "Excel'e Aktar",
                   ),
                   IconButton(
-                    onPressed: () => _finansAktar(isFatura: true), 
-                    icon: const Icon(Icons.download, color: Colors.orange),
-                    tooltip: "CSV ve Fotoğrafları Aktar",
+                    onPressed: () => _showArchivesDialog(),
+                    icon: const Icon(Icons.history, color: Colors.blue),
+                    tooltip: "Arşivler",
+                  ),
+                  IconButton(
+                    onPressed: () => _showResetOptionsDialog(true),
+                    icon: const Icon(Icons.refresh, color: Colors.orange),
+                    tooltip: "Faturaları Sıfırla",
                   ),
                 ],
               ),
@@ -135,32 +152,26 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                           child: ExpansionTile(
                             leading: const Icon(Icons.folder, color: Colors.orange, size: 30),
-                            title: Text(santiyeAdi, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
-                            subtitle: Text("${faturalar.length} fatura", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                            iconColor: Colors.white54,
-                            collapsedIconColor: Colors.white54,
+                            title: Text(santiyeAdi, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: ThemeColors.textPrimary(context))),
+                            subtitle: Text("${faturalar.length} fatura", style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
+                            iconColor: ThemeColors.textTertiary(context),
+                            collapsedIconColor: ThemeColors.textTertiary(context),
                             children: faturalar.map((fatura) {
                               final realIndex = widget.faturalar.indexOf(fatura);
                               return Container(
                                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.05),
+                                  color: ThemeColors.cardBackground(context),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: ListTile(
                                   onTap: () => _resimGoster(fatura.fotoYolu),
-                                  title: Text(fatura.aciklama, style: const TextStyle(color: Colors.white70)),
+                                  title: Text(fatura.aciklama, style: TextStyle(color: ThemeColors.textSecondary(context))),
                                   subtitle: Text("${fatura.tarih.day}/${fatura.tarih.month}/${fatura.tarih.year}", 
-                                      style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                                        onPressed: () {
-                                          // Edit logic would go here
-                                        },
-                                      ),
                                       IconButton(
                                         icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                                         onPressed: () => widget.onFaturaSil(realIndex),
@@ -196,12 +207,12 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
       children: [
         Column(
           children: [
-            // Üst Bilgi Barı - Screenshot'a göre yeniden tasarlandı
+            // Üst Bilgi Barı
             Container(
               margin: const EdgeInsets.all(12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
+                color: ThemeColors.cardBackground(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -222,24 +233,36 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                       _buildHeaderInfoItem(
                         "Net Durum",
                         "${(_toplamAlinanPara() - _toplamHarcamaSadece()).toStringAsFixed(2)} TL",
-                        Colors.white,
+                        ThemeColors.textPrimary(context),
                       ),
                     ],
                   ),
-                  const Divider(color: Colors.white10, height: 24),
-                  InkWell(
-                    onTap: widget.onHesapSifirla,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.refresh, color: Colors.orange, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          "Hesabı Sıfırla",
-                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  const Divider(color: Colors.black12, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      InkWell(
+                        onTap: () => _showArchivesDialog(),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.history, color: Colors.blue, size: 20),
+                            SizedBox(width: 8),
+                            Text("Arşivler", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 30),
+                      InkWell(
+                        onTap: () => _showResetOptionsDialog(false),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.refresh, color: Colors.orange, size: 20),
+                            SizedBox(width: 8),
+                            Text("Hesabı Sıfırla", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -251,13 +274,8 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 children: [
                   IconButton(
                     onPressed: () => _finansExcelAktar(isFatura: false),
-                    icon: const Icon(Icons.table_view, color: Colors.green, size: 24),
+                    icon: const Icon(Icons.download, color: Colors.green, size: 24),
                     tooltip: "Excel'e Aktar",
-                  ),
-                  IconButton(
-                    onPressed: () => _finansAktar(isFatura: false),
-                    icon: const Icon(Icons.download, color: Colors.orange, size: 24),
-                    tooltip: "CSV/Foto Aktar",
                   ),
                 ],
               ),
@@ -383,12 +401,14 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
     );
   }
 
-  Future<void> _finansAktar({required bool isFatura}) async {
+  Future<void> _finansExcelAktar({required bool isFatura}) async {
     final veri = isFatura ? widget.faturalar : widget.harcamalar;
     if (veri.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aktarılacak veri bulunamadı'), backgroundColor: Colors.orange),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aktarılacak veri bulunamadı'), backgroundColor: Colors.orange),
+        );
+      }
       return;
     }
 
@@ -400,60 +420,204 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
     final klasorAdi = "${typeStr}_Aktarim_$timestamp";
     final hedefKlasor = Directory("$selectedDirectory/$klasorAdi");
 
-    try {
-      await hedefKlasor.create();
-      
-      // CSV Hazırla
-      String csvData = isFatura 
-          ? "Firma;Tarih;Tutar;KDV;Toplam;Açıklama\n"
-          : "Tip;Kategori;Tarih;Tutar;Açıklama\n";
+    // Bekleme göster
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-      for (var item in veri) {
-        if (isFatura && item is Fatura) {
-          csvData += "${item.firmaAdi};${item.tarih};${item.tutar};${item.kdv};${item.toplamTutar};${item.aciklama}\n";
-          // Resim varsa kopyala
-          if (item.fotoYolu != null && item.fotoYolu!.isNotEmpty) {
-            try {
-              final fotoFile = File(item.fotoYolu!);
-              if (await fotoFile.exists()) {
-                final yeniFotoAdi = "Fatura_${item.firmaAdi}_${DateTime.now().millisecondsSinceEpoch}.jpg";
-                await fotoFile.copy("${hedefKlasor.path}/$yeniFotoAdi");
+    int successCount = 0;
+    int photoSuccessCount = 0;
+    int photoErrorCount = 0;
+    List<String> errorLogs = [];
+
+    try {
+      await hedefKlasor.create(recursive: true);
+      
+      // Syncfusion Excel Oluştur
+      final sf.Workbook workbook = sf.Workbook();
+      final sf.Worksheet sheet = workbook.worksheets[0];
+      sheet.name = typeStr;
+
+      if (isFatura) {
+        // BAŞLIKLAR
+        sheet.getRangeByIndex(1, 1).setText("Firma/Şantiye");
+        sheet.getRangeByIndex(1, 2).setText("Tarih");
+        sheet.getRangeByIndex(1, 3).setText("Toplam");
+        sheet.getRangeByIndex(1, 4).setText("Açıklama");
+        sheet.getRangeByIndex(1, 5).setText("Fotoğraf");
+        sheet.getRangeByIndex(1, 6).setText("Dosya Adı");
+
+        int photoCount = 0;
+        for (int i = 0; i < veri.length; i++) {
+          final item = veri[i];
+          final row = i + 2;
+          if (item is Fatura) {
+            final tarihStr = "${item.tarih.day}.${item.tarih.month.toString().padLeft(2, '0')}.${item.tarih.year}";
+            
+            sheet.getRangeByIndex(row, 1).setText(item.firmaAdi);
+            sheet.getRangeByIndex(row, 2).setText(tarihStr);
+            sheet.getRangeByIndex(row, 3).setNumber(item.toplamTutar);
+            sheet.getRangeByIndex(row, 4).setText(item.aciklama);
+
+            if (item.fotoYolu.isNotEmpty) {
+              try {
+                final bytes = await (ImageService.isNetworkUrl(item.fotoYolu) 
+                    ? ImageService().downloadImage(item.fotoYolu) 
+                    : File(item.fotoYolu).readAsBytes());
+                
+                if (bytes != null) {
+                  photoCount++;
+                  final String sheetName = "F-$photoCount";
+                  final sf.Worksheet photoSheet = workbook.worksheets.addWithName(sheetName);
+                  
+                  photoSheet.getRangeByIndex(1, 1).setText("${item.firmaAdi} - $tarihStr");
+                  photoSheet.getRangeByIndex(1, 1).cellStyle.bold = true;
+                  photoSheet.pictures.addStream(2, 1, bytes);
+                  
+                  // Ana sayfadan bu sayfaya link ver
+                  final sf.Range range = sheet.getRangeByIndex(row, 5);
+                  final sf.Hyperlink hyperlink = sheet.hyperlinks.add(range, sf.HyperlinkType.workbook, "'$sheetName'!A1");
+                  hyperlink.textToDisplay = "RESMİ GÖR";
+                  
+                  final safeFirma = item.firmaAdi.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+                  final uzanti = item.fotoYolu.split('.').last.split('?').first.toLowerCase();
+                  final fotoAdi = "fatura_${safeFirma}_$tarihStr.$photoCount.$uzanti";
+                  sheet.getRangeByIndex(row, 6).setText(fotoAdi);
+                  
+                  await File("${hedefKlasor.path}/$fotoAdi").writeAsBytes(bytes);
+                  photoSuccessCount++;
+                }
+              } catch (e) {
+                photoErrorCount++;
+                errorLogs.add("Hata (${item.firmaAdi}): $e");
               }
-            } catch (e) {
-              debugPrint("Fatura fotoğraf kopyalama hatası: $e");
             }
+            successCount++;
           }
-        } else if (!isFatura && item is Harcama) {
-          final tip = item.isReimbursement ? "Alınan Para" : "Harcama";
-          csvData += "$tip;${item.kategori};${item.tarih};${item.tutar};${item.aciklama}\n";
-          // Resim varsa kopyala
+        }
+      } else {
+        // HARCAMALAR
+        sheet.getRangeByIndex(1, 1).setText("Tarih");
+        sheet.getRangeByIndex(1, 2).setText("Tip");
+        sheet.getRangeByIndex(1, 3).setText("Kategori");
+        sheet.getRangeByIndex(1, 4).setText("Tutar");
+        sheet.getRangeByIndex(1, 5).setText("Açıklama");
+        sheet.getRangeByIndex(1, 6).setText("Bakiye");
+        sheet.getRangeByIndex(1, 7).setText("Fotoğraf");
+        sheet.getRangeByIndex(1, 8).setText("Dosya Adı");
+
+        final sortedList = List<Harcama>.from(widget.harcamalar)
+          ..sort((a, b) => a.tarih.compareTo(b.tarih));
+
+        double cumulative = 0.0;
+        int photoCount = 0;
+        for (int i = 0; i < sortedList.length; i++) {
+          final item = sortedList[i];
+          final row = i + 2;
+          final amount = item.tutar;
+          item.isReimbursement ? cumulative += amount : cumulative -= amount;
+          
+          final tarihStr = "${item.tarih.day}.${item.tarih.month.toString().padLeft(2, '0')}.${item.tarih.year}";
+          
+          sheet.getRangeByIndex(row, 1).setText(tarihStr);
+          sheet.getRangeByIndex(row, 2).setText(item.isReimbursement ? "Alınan Para" : "Harcama");
+          sheet.getRangeByIndex(row, 3).setText(item.kategori);
+          sheet.getRangeByIndex(row, 4).setNumber(amount);
+          sheet.getRangeByIndex(row, 5).setText(item.aciklama);
+          sheet.getRangeByIndex(row, 6).setNumber(cumulative);
+
           if (item.fisYolu.isNotEmpty) {
             try {
-              final fotoFile = File(item.fisYolu);
-              if (await fotoFile.exists()) {
-                final yeniFotoAdi = "Gider_${item.aciklama}_${DateTime.now().millisecondsSinceEpoch}.jpg";
-                await fotoFile.copy("${hedefKlasor.path}/$yeniFotoAdi");
+              final bytes = await (ImageService.isNetworkUrl(item.fisYolu) 
+                  ? ImageService().downloadImage(item.fisYolu) 
+                  : File(item.fisYolu).readAsBytes());
+              
+              if (bytes != null) {
+                photoCount++;
+                final String sheetName = "H-$photoCount";
+                final sf.Worksheet photoSheet = workbook.worksheets.addWithName(sheetName);
+
+                photoSheet.getRangeByIndex(1, 1).setText("${item.aciklama} - $tarihStr");
+                photoSheet.getRangeByIndex(1, 1).cellStyle.bold = true;
+                photoSheet.pictures.addStream(2, 1, bytes);
+
+                final sf.Range range = sheet.getRangeByIndex(row, 7);
+                final sf.Hyperlink hyperlink = sheet.hyperlinks.add(range, sf.HyperlinkType.workbook, "'$sheetName'!A1");
+                hyperlink.textToDisplay = "RESMİ GÖR";
+
+                final safeAciklama = item.aciklama.length > 20 
+                    ? item.aciklama.substring(0, 20).replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+                    : item.aciklama.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+                final uzanti = item.fisYolu.split('.').last.split('?').first.toLowerCase();
+                final fotoAdi = "harcama_${safeAciklama}_$tarihStr.$photoCount.$uzanti";
+                sheet.getRangeByIndex(row, 8).setText(fotoAdi);
+
+                await File("${hedefKlasor.path}/$fotoAdi").writeAsBytes(bytes);
+                photoSuccessCount++;
               }
             } catch (e) {
-              debugPrint("Gider fotoğraf kopyalama hatası: $e");
+              photoErrorCount++;
+              errorLogs.add("Hata (${item.aciklama}): $e");
             }
           }
+          successCount++;
         }
       }
 
-      final csvFile = File("${hedefKlasor.path}/$typeStr.csv");
-      await csvFile.writeAsString(csvData);
+      final List<int> bytes = workbook.saveAsStream();
+      workbook.dispose();
+      
+      final excelFile = File("${hedefKlasor.path}/$typeStr.xlsx");
+      await excelFile.writeAsBytes(bytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Veriler ve fotoğraflar aktarıldı: ${hedefKlasor.path}'), backgroundColor: Colors.green),
+        Navigator.pop(context); // Dialog kapat
+        
+        String resultMsg = '$successCount kayıt Excel\'e aktarıldı.\n';
+        if (photoSuccessCount > 0) resultMsg += '$photoSuccessCount fotoğraf başarıyla kopyalandı.\n';
+        if (photoErrorCount > 0) resultMsg += '$photoErrorCount fotoğraf kopyalanamadı.';
+        
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(photoErrorCount > 0 ? "İşlem Tamamlandı (Bazı Hatalar Var)" : "İşlem Başarılı"),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(resultMsg),
+                  if (photoErrorCount > 0) ...[
+                    const Divider(),
+                    const Text("Hata Detayları:", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...errorLogs.map((e) => Text("- $e", style: const TextStyle(fontSize: 12, color: Colors.red))),
+                  ]
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(child: const Text("TAMAM"), onPressed: () => Navigator.pop(context)),
+              TextButton(
+                child: const Text("KLASÖRÜ AÇ"), 
+                onPressed: () {
+                   Navigator.pop(context);
+                   launchUrl(Uri.file(hedefKlasor.path));
+                }
+              ),
+            ],
+          ),
         );
       }
 
     } catch (e) {
       if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Kritik Hata: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -645,7 +809,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
       children: [
         Text(
           title,
-          style: const TextStyle(color: Colors.white54, fontSize: 11),
+          style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 11),
         ),
         const SizedBox(height: 4),
         Text(
@@ -658,107 +822,6 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
         ),
       ],
     );
-  }
-
-  Future<void> _finansExcelAktar({required bool isFatura}) async {
-    final veri = isFatura ? widget.faturalar : widget.harcamalar;
-    if (veri.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aktarılacak veri bulunamadı'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    try {
-      String? selectedDirectory;
-      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-        selectedDirectory = await pkr.FilePicker.platform.getDirectoryPath();
-      } else {
-        selectedDirectory = (await getExternalStorageDirectory())?.path;
-      }
-      if (selectedDirectory == null) return;
-
-      final typeStr = isFatura ? "Faturalar" : "Harcamalarim";
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final folderName = "${typeStr}_Excel_Aktarim_$timestamp";
-      final targetDirectory = Directory("$selectedDirectory/$folderName");
-      await targetDirectory.create(recursive: true);
-
-      var excel = xls.Excel.createExcel();
-      xls.Sheet sheetObject = excel['Sheet1'];
-
-      if (isFatura) {
-        sheetObject.appendRow([
-          xls.TextCellValue("Firma/Santiye Adı"),
-          xls.TextCellValue("Tarih"),
-          xls.TextCellValue("Açıklama"),
-          xls.TextCellValue("Fotoğraf Dosyası"),
-        ]);
-        
-        final photosDir = Directory("${targetDirectory.path}/fotograflar");
-        await photosDir.create();
-
-        for (var item in widget.faturalar) {
-          String fotoAdi = "";
-          if (item.fotoYolu.isNotEmpty) {
-            try {
-              final originalFile = File(item.fotoYolu);
-              if (await originalFile.exists()) {
-                fotoAdi = "fatura_${item.id}_${DateTime.now().millisecondsSinceEpoch}.jpg";
-                await originalFile.copy("${photosDir.path}/$fotoAdi");
-                fotoAdi = "fotograflar/$fotoAdi";
-              }
-            } catch (e) {
-              debugPrint("Fotoğraf kopyalama hatası: $e");
-            }
-          }
-
-          sheetObject.appendRow([
-            xls.TextCellValue(item.firmaAdi),
-            xls.TextCellValue(item.tarih.toString()),
-            xls.TextCellValue(item.aciklama),
-            xls.TextCellValue(fotoAdi),
-          ]);
-        }
-      } else {
-        sheetObject.appendRow([
-          xls.TextCellValue("Tip"),
-          xls.TextCellValue("Kategori"),
-          xls.TextCellValue("Tarih"),
-          xls.TextCellValue("Tutar"),
-          xls.TextCellValue("Açıklama"),
-        ]);
-        for (var item in widget.harcamalar) {
-          sheetObject.appendRow([
-            xls.TextCellValue(item.isReimbursement ? "Alınan Para" : "Harcama"),
-            xls.TextCellValue(item.kategori),
-            xls.TextCellValue(item.tarih.toString()),
-            xls.DoubleCellValue(item.tutar),
-            xls.TextCellValue(item.aciklama),
-          ]);
-        }
-      }
-
-      final fileName = "$typeStr.xlsx";
-      final file = File("${targetDirectory.path}/$fileName");
-      
-      final binData = excel.encode();
-      if (binData != null) {
-        await file.writeAsBytes(binData);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Excel dosyası ve fotoğraflar kaydedildi: ${targetDirectory.path}'), backgroundColor: Colors.green),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint("Excel aktarma hatası: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   void _yeniHarcamaEkleDialog() {
@@ -851,6 +914,24 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                     focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
+                const SizedBox(height: 15),
+                DropdownButtonFormField<String>(
+                  dropdownColor: const Color(0xFF2C2C2C),
+                  value: kategori,
+                  decoration: const InputDecoration(
+                    labelText: "Kategori",
+                    labelStyle: TextStyle(color: Colors.white38),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  items: ["Genel", "Yemek", "Malzeme", "İşçilik", "Diğer"].map((cat) => DropdownMenuItem(
+                    value: cat,
+                    child: Text(cat, style: const TextStyle(color: Colors.white)),
+                  )).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => kategori = val);
+                  },
+                ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -888,6 +969,200 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showResetOptionsDialog(bool isFatura) {
+    final title = isFatura ? "Fatura Hesabı Sıfırlama" : "Harcama Hesabı Sıfırlama";
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeColors.cardBackground(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title, style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Bu işlem sadece seçili kategoriyi etkiler. Lütfen bir seçenek belirleyin:",
+              style: TextStyle(color: ThemeColors.textSecondary(context)),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                widget.onHesapSifirla(true, isFatura: isFatura); 
+              },
+              child: const Row(
+                children: [
+                   Icon(Icons.history, color: Colors.white),
+                   SizedBox(width: 10),
+                   Expanded(child: Text("Yeni Dönem Başlat\n(Eskileri Arşivle)", style: TextStyle(color: Colors.white), textAlign: TextAlign.left)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+                _showDeleteConfirmDialog(isFatura);
+              },
+              child: const Row(
+                children: [
+                   Icon(Icons.delete_forever, color: Colors.white),
+                   SizedBox(width: 10),
+                   Expanded(child: Text("Kalıcı Olarak Sil", style: TextStyle(color: Colors.white), textAlign: TextAlign.left)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+             child: Text("İptal", style: TextStyle(color: ThemeColors.textSecondary(context))),
+             onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmDialog(bool isFatura) {
+    final category = isFatura ? "fatura" : "harcama";
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeColors.cardBackground(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("DİKKAT!", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: Text(
+          "Tüm $category kayıtları kalıcı olarak silinecek.\nDevam etmek istiyor musunuz?",
+          style: TextStyle(color: ThemeColors.textSecondary(context)),
+        ),
+        actions: [
+          TextButton(
+             child: Text("Vazgeç", style: TextStyle(color: ThemeColors.textSecondary(context))),
+             onPressed: () => Navigator.pop(context),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text("EVET, SİL", style: TextStyle(color: Colors.white)),
+            onPressed: () {
+              Navigator.pop(context);
+              widget.onHesapSifirla(false, isFatura: isFatura);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showArchivesDialog() async {
+    final archives = await StorageService().getArchives();
+    
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: const Text("Finans Arşivleri", style: TextStyle(color: Colors.white)),
+        content: archives.isEmpty 
+          ? const Text("Henüz arşivlenmiş veri bulunmuyor.", style: TextStyle(color: Colors.white70))
+          : SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: archives.length,
+                itemBuilder: (context, index) {
+                  final archive = archives[index];
+                  final date = archive['date'] as DateTime;
+                  final dateStr = "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}";
+                  
+                  return ListTile(
+                    leading: Icon(
+                      archive['type'] == 'Faturalar' ? Icons.receipt_long : Icons.payments,
+                      color: Colors.orange,
+                    ),
+                    title: Text("${archive['type']} Arşivi", style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(dateStr, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _viewArchiveData(archive);
+                    },
+                    trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+                  );
+                },
+              ),
+            ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Kapat")),
+        ],
+      ),
+    );
+  }
+
+  void _viewArchiveData(Map<String, dynamic> archive) async {
+    final data = await StorageService().loadArchiveData(archive['filename']);
+    final isFatura = archive['type'] == 'Faturalar';
+    
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: ThemeColors.background(context),
+        title: Text("${archive['type']} (${(archive['date'] as DateTime).year})", style: const TextStyle(color: Colors.white)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: Column(
+            children: [
+               Text("${data.length} kayıt bulundu", style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+               const Divider(),
+               Expanded(
+                 child: ListView.builder(
+                   itemCount: data.length,
+                   itemBuilder: (context, index) {
+                     final item = data[index];
+                     if (isFatura) {
+                       return ListTile(
+                         title: Text(item['firmaAdi'] ?? '', style: const TextStyle(color: Colors.white)),
+                         subtitle: Text(item['aciklama'] ?? '', style: const TextStyle(color: Colors.white54)),
+                         trailing: Text("${item['toplamTutar']} TL", style: const TextStyle(color: Colors.greenAccent)),
+                       );
+                     } else {
+                        final isInc = item['isReimbursement'] == true;
+                        return ListTile(
+                         title: Text(item['aciklama'] ?? '', style: const TextStyle(color: Colors.white)),
+                         subtitle: Text(item['kategori'] ?? '', style: const TextStyle(color: Colors.white54)),
+                         trailing: Text(
+                           "${isInc ? '+' : '-'}${item['tutar']} TL", 
+                           style: TextStyle(color: isInc ? Colors.greenAccent : Colors.redAccent)
+                         ),
+                       );
+                     }
+                   },
+                 ),
+               ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Geri", style: TextStyle(color: Colors.orange))),
+        ],
       ),
     );
   }

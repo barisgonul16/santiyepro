@@ -422,14 +422,14 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
       builder: (context) {
         final controller = TextEditingController();
         return AlertDialog(
-          backgroundColor: const Color(0xFF333333),
-          title: const Text('Çizimi Kaydet', style: TextStyle(color: Colors.white)),
+          backgroundColor: ThemeColors.cardBackground(context),
+          title: Text('Çizimi Kaydet', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: TextField(
             controller: controller,
-            style: TextStyle(color: Colors.white),
-            decoration: const InputDecoration(
+            style: TextStyle(color: ThemeColors.textPrimary(context)),
+            decoration: InputDecoration(
               hintText: 'Çizim Adı',
-              hintStyle: TextStyle(color: Colors.white54),
+              hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
             ),
           ),
           actions: [
@@ -473,8 +473,8 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF333333),
-          title: const Text('Çizim Yükle', style: TextStyle(color: Colors.white)),
+          backgroundColor: ThemeColors.cardBackground(context),
+          title: Text('Çizim Yükle', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -483,7 +483,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
               itemBuilder: (context, index) {
                 final name = savedSketches.keys.elementAt(index);
                 return ListTile(
-                  title: Text(name, style: TextStyle(color: Colors.white)),
+                  title: Text(name, style: TextStyle(color: ThemeColors.textPrimary(context))),
                   trailing: IconButton(
                     icon: Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
@@ -544,7 +544,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                   decoration: BoxDecoration(
                     color: Colors.black, // Canvas background
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white24),
+                    border: Border.all(color: ThemeColors.border(context)),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
@@ -693,7 +693,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
       decoration: BoxDecoration(
         color: ThemeColors.cardBackground(context),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: ThemeColors.border(context)),
         boxShadow: [
           BoxShadow(color: Colors.black45, blurRadius: 10, offset: const Offset(0, 4)),
         ],
@@ -710,7 +710,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                 // 1. Color Picker (Single color, opens submenu)
                 _buildColorPickerPopup(),
                 const SizedBox(width: 12),
-                Container(width: 1, height: 24, color: Colors.white24),
+                Container(width: 1, height: 24, color: ThemeColors.border(context)),
                 
                 // 2. Move (DrawMode.select)
                 _buildToolButton(Icons.open_with, DrawingMode.select, 'Taşı'),
@@ -721,7 +721,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                 // 4. Eraser
                 _buildToolButton(Icons.cleaning_services, DrawingMode.eraser, 'Silgi'),
                 
-                Container(width: 1, height: 24, color: Colors.white24),
+                Container(width: 1, height: 24, color: ThemeColors.border(context)),
                 const SizedBox(width: 8),
 
                 // 5. Undo
@@ -756,15 +756,15 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
           ),
           
           const SizedBox(height: 10),
-          Container(height: 1, width: double.infinity, color: Colors.white10),
+          Container(height: 1, width: double.infinity, color: ThemeColors.border(context)),
           const SizedBox(height: 10),
 
           // Row 2: Stroke Width Slider
           Row(
             children: [
-              const Icon(Icons.line_weight, color: Colors.white70, size: 16),
+              Icon(Icons.line_weight, color: ThemeColors.textSecondary(context), size: 16),
               const SizedBox(width: 10),
-              const Text('Kalınlık Seçme:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Kalınlık Seçme:', style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
               const SizedBox(width: 10),
               Expanded(
                 child: SliderTheme(
@@ -783,7 +783,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                   ),
                 ),
               ),
-              Text(strokeWidth.round().toString(), style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(strokeWidth.round().toString(), style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
             ],
           ),
         ],
@@ -801,7 +801,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
           if (currentMode == DrawingMode.eraser) currentMode = DrawingMode.freehand;
         });
       },
-      color: const Color(0xFF3d3d3d),
+      color: ThemeColors.cardBackground(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       itemBuilder: (context) => colors.map((color) => PopupMenuItem<Color>(
         value: color,
@@ -842,7 +842,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
 
     return PopupMenuButton<DrawingMode>(
       onSelected: (mode) => setState(() => currentMode = mode),
-      color: const Color(0xFF3d3d3d),
+      color: ThemeColors.cardBackground(context),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       itemBuilder: (context) => tools.map((tool) => PopupMenuItem<DrawingMode>(
         value: tool['mode'] as DrawingMode,

@@ -204,7 +204,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
               if (snapshot.hasData) {
                 return Center(
                   child: Text(
-                    "Sürüm: v${snapshot.data!.version}",
+                    "Sürüm: v${snapshot.data!.version}+${snapshot.data!.buildNumber}",
                     style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
                   ),
                 );

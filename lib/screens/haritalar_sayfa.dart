@@ -60,26 +60,26 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
           return AlertDialog(
-            backgroundColor: const Color(0xFF333333),
-            title: const Text('Yeni Konum Ekle', style: TextStyle(color: Colors.white)),
+            backgroundColor: ThemeColors.cardBackground(context),
+            title: Text('Yeni Konum Ekle', style: TextStyle(color: ThemeColors.textPrimary(context))),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                    TextField(
                     controller: nameController,
-                    style: TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: ThemeColors.textPrimary(context)),
+                    decoration: InputDecoration(
                       labelText: 'Konum Adı',
-                      labelStyle: TextStyle(color: Colors.white70),
+                      labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     ),
                   ),
                   const SizedBox(height: 10),
                    DropdownButton<String>(
                     value: selectedType,
-                    dropdownColor: const Color(0xFF444444),
+                    dropdownColor: ThemeColors.cardBackground(context),
                     isExpanded: true,
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: ThemeColors.textPrimary(context)),
                     items: ['Ev', 'Şantiye', 'Diğer']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                         .toList(),
@@ -96,12 +96,12 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
                          child: TextField(
                           controller: latController,
                           keyboardType: TextInputType.text,
-                          style: TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
+                          decoration: InputDecoration(
                             labelText: 'Enlem (Lat)',
-                            labelStyle: TextStyle(color: Colors.white70),
+                            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                             hintText: '40.123',
-                            hintStyle: TextStyle(color: Colors.white24),
+                            hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
                           ),
                           onChanged: (value) {
                             // Google Maps koordinat formatını (Enlem, Boylam) akıllıca ayrıştır
@@ -140,21 +140,21 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
                          child: TextField(
                           controller: lngController,
                           keyboardType: TextInputType.text,
-                          style: TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
+                          decoration: InputDecoration(
                             labelText: 'Boylam (Lng)',
-                            labelStyle: TextStyle(color: Colors.white70),
+                            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                              hintText: '29.456',
-                            hintStyle: TextStyle(color: Colors.white24),
+                            hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
                           ),
                         ),
                        ),
                      ],
                    ),
                   const SizedBox(height: 10),
-                  const Text(
+                  Text(
                     'İpucu: Google Maps\'te bir yere sağ tıklayıp koordinatları kopyalayabilirsiniz.',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                    style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12),
                   ),
                 ],
               ),
@@ -219,7 +219,7 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-       color: const Color(0xFF1a1a1a),
+       color: ThemeColors.background(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -284,10 +284,10 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
           const SizedBox(height: 20),
           Expanded(
             child: widget.savedLocations.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Henüz kayıtlı bir konum yok.',
-                      style: TextStyle(color: Colors.white54, fontSize: 18),
+                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 18),
                     ),
                   )
                 : ListView.builder(
@@ -331,7 +331,7 @@ class _HaritalarSayfaPageState extends State<HaritalarSayfaPage> {
                            ),
                            subtitle: Text(
                              'Lat: ${item.latitude}, Lng: ${item.longitude}',
-                             style: TextStyle(color: Colors.white54, fontSize: 12),
+                             style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12),
                            ),
                            trailing: IconButton(
                              icon: Icon(Icons.delete, color: Colors.redAccent),

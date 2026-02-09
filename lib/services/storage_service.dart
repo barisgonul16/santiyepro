@@ -329,6 +329,87 @@ class StorageService {
     }
   }
 
+  // --- CLOUD SYNC ---
+  // ... (previous methods)
+
+  // --- ARCHIVE DATA ---
+  Future<void> archiveFaturalar() async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    try {
+      final file = await _getFile('faturalar.json');
+      if (await file.exists()) {
+        final path = await _localPath;
+        await file.rename('$path/faturalar_archive_$timestamp.json');
+      }
+    } catch (e) {
+      print("Fatura arşivleme hatası: $e");
+    }
+  }
+
+  Future<void> archiveHarcamalar() async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    try {
+      final file = await _getFile('harcamalar.json');
+      if (await file.exists()) {
+        final path = await _localPath;
+        await file.rename('$path/harcamalar_archive_$timestamp.json');
+      }
+    } catch (e) {
+      print("Harcama arşivleme hatası: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getArchives() async {
+    final path = await _localPath;
+    final dir = Directory(path);
+    final List<Map<String, dynamic>> archives = [];
+    
+    try {
+      final files = dir.listSync();
+      for (var file in files) {
+        if (file is File) {
+          final filename = file.path.split(Platform.pathSeparator).last;
+          if (filename.contains('_archive_')) {
+            final parts = filename.split('_');
+            final type = parts[0]; // faturalar or harcamalar
+            final timestampStr = parts.last.split('.').first;
+            final timestamp = int.tryParse(timestampStr) ?? 0;
+            
+            archives.add({
+              'filename': filename,
+              'type': type == 'faturalar' ? 'Faturalar' : 'Harcamalar',
+              'date': DateTime.fromMillisecondsSinceEpoch(timestamp),
+              'path': file.path,
+            });
+          }
+        }
+      }
+      archives.sort((a, b) => (b['date'] as DateTime).compareTo(a['date']));
+    } catch (e) {
+      print("Arşiv listeleme hatası: $e");
+    }
+    return archives;
+  }
+
+  Future<List<dynamic>> loadArchiveData(String filename) async {
+    try {
+      final path = await _localPath;
+      final file = File('$path/$filename');
+      if (!await file.exists()) return [];
+      final contents = await file.readAsString();
+      return jsonDecode(contents);
+    } catch (e) {
+      print("Arşiv yükleme hatası: $e");
+      return [];
+    }
+  }
+
+  @Deprecated("Use archiveFaturalar or archiveHarcamalar instead")
+  Future<void> archiveFinansData() async {
+    await archiveFaturalar();
+    await archiveHarcamalar();
+  }
+
   // --- CLEAR LOCAL DATA ---
   Future<void> clearLocalData() async {
     final collections = [

@@ -825,15 +825,74 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  Future<void> _hesapSifirla() async {
+  Future<void> _hesapSifirla({required bool isArchive, bool? isFatura}) async {
     if (faturalar.isEmpty && harcamalar.isEmpty) return;
 
-    setState(() {
-      faturalar.clear();
-      harcamalar.clear();
-      _storageService.saveFaturalar(faturalar);
-      _storageService.saveHarcamalar(harcamalar);
-    });
+    if (isArchive) {
+      // Arşivle
+      if (isFatura == null || isFatura == true) {
+        await _storageService.archiveFaturalar();
+        setState(() {
+          faturalar.clear();
+          _storageService.saveFaturalar(faturalar);
+        });
+      }
+      if (isFatura == null || isFatura == false) {
+        await _storageService.archiveHarcamalar();
+        setState(() {
+          harcamalar.clear();
+          _storageService.saveHarcamalar(harcamalar);
+        });
+      }
+      
+      if (mounted) {
+        String msg = isFatura == null ? "Tüm finans verileri" : (isFatura ? "Faturalar" : "Harcamalar");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Yeni hesap dönemi başlatıldı. $msg arşivlendi.'), backgroundColor: Colors.green),
+        );
+      }
+    } else {
+      // Komple Sil (Geri Alma şansı ver)
+      final backupFaturalar = List<Fatura>.from(faturalar);
+      final backupHarcamalar = List<Harcama>.from(harcamalar);
+
+      setState(() {
+        if (isFatura == null || isFatura == true) {
+          faturalar.clear();
+          _storageService.saveFaturalar(faturalar);
+        }
+        if (isFatura == null || isFatura == false) {
+          harcamalar.clear();
+          _storageService.saveHarcamalar(harcamalar);
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Veriler silindi! (Geri almak için 10 saniyeniz var)', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'GERİ AL',
+              textColor: Colors.white,
+              onPressed: () {
+                setState(() {
+                  if (isFatura == null || isFatura == true) {
+                    faturalar = backupFaturalar;
+                    _storageService.saveFaturalar(faturalar);
+                  }
+                  if (isFatura == null || isFatura == false) {
+                    harcamalar = backupHarcamalar;
+                    _storageService.saveHarcamalar(harcamalar);
+                  }
+                });
+              },
+            ),
+          ),
+        );
+      }
+    }
   }
 
   // Malzeme
@@ -937,7 +996,7 @@ class _MainScreenState extends State<MainScreen> {
           onHarcamaEkle: _harcamaEkle,
           onHarcamaSil: _harcamaSil,
           onHarcamaGuncelle: _harcamaGuncelle,
-          onHesapSifirla: _hesapSifirla,
+          onHesapSifirla: (archive, {isFatura}) => _hesapSifirla(isArchive: archive, isFatura: isFatura),
         );
       case 7: // Malzemeler
         return MalzemelerSayfaPage(

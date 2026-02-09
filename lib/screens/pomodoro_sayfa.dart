@@ -29,8 +29,8 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Süre Ayarları (Dakika)', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Süre Ayarları (Dakika)', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -66,13 +66,13 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         children: [
-           Expanded(child: Text(label, style: TextStyle(color: Colors.white70))),
+           Expanded(child: Text(label, style: TextStyle(color: ThemeColors.textSecondary(context)))),
            SizedBox(
              width: 60,
              child: TextFormField(
                initialValue: value.toString(),
                keyboardType: TextInputType.number,
-               style: TextStyle(color: Colors.white),
+               style: TextStyle(color: ThemeColors.textPrimary(context)),
                onChanged: (val) => onChange(int.tryParse(val) ?? 1),
              ),
            ),
@@ -113,12 +113,12 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
                       child: Text(
                         isMobile ? 'Pomodoro' : 'Pomodoro Zamanlayıcı',
                         style: TextStyle(
-                            fontSize: isMobile ? 20 : 28, fontWeight: FontWeight.bold, color: Colors.white),
+                            fontSize: isMobile ? 20 : 28, fontWeight: FontWeight.bold, color: ThemeColors.textPrimary(context)),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
-                      icon: Icon(Icons.settings, color: Colors.white54),
+                      icon: Icon(Icons.settings, color: ThemeColors.textTertiary(context)),
                       onPressed: _showSettingsDialog,
                     )
                   ],
@@ -149,7 +149,7 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
                     value: progress,
                     strokeWidth: 12,
                     color: timerColor,
-                    backgroundColor: Colors.white10,
+                    backgroundColor: ThemeColors.border(context),
                   ),
                 ),
                 Text(
@@ -179,7 +179,7 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
                 const SizedBox(width: 30),
                 IconButton(
                   iconSize: 40,
-                  icon: Icon(Icons.refresh, color: Colors.white54),
+                  icon: Icon(Icons.refresh, color: ThemeColors.textTertiary(context)),
                   onPressed: _resetTimer,
                 ),
               ],
@@ -246,9 +246,9 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text('Süre Doldu!', style: TextStyle(color: Colors.white)),
+        title: Text('Süre Doldu!', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Text('$_mode süresi tamamlandı.',
-            style: TextStyle(color: Colors.white70)),
+            style: TextStyle(color: ThemeColors.textSecondary(context))),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
@@ -277,7 +277,7 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
       onPressed: () => _setMode(mode),
       style: OutlinedButton.styleFrom(
         side: BorderSide(
-          color: isSelected ? color : Colors.white24,
+          color: isSelected ? color : ThemeColors.border(context),
           width: 2,
         ),
         backgroundColor: isSelected ? color.withOpacity(0.1) : Colors.transparent,
@@ -285,7 +285,7 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
       child: Text(
         mode,
         style: TextStyle(
-          color: isSelected ? color : Colors.white54,
+          color: isSelected ? color : ThemeColors.textTertiary(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),

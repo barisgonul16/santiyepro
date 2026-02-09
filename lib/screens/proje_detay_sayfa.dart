@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import '../services/image_service.dart';
+import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
 
 
@@ -293,7 +294,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     return filtrelenmis;
   }
 
-  Future<void> _excelOlarakAktar() async {
+  Future<void> _excelVeFotograflariAktar() async {
     final kayitlar = _getPuantajKayitlari();
 
     // Varsayılan dosya adı
@@ -309,7 +310,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF333333),
-        title: const Text('Excel Dosya Adı', style: TextStyle(color: Colors.white)),
+        title: const Text('Excel ve Fotoğraflar', style: TextStyle(color: Colors.white)),
         content: TextField(
           controller: fileNameController,
           style: TextStyle(color: Colors.white),
@@ -344,29 +345,110 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     if (selectedDirectory == null) return;
 
-    // 3. İçeriği hazırla (BOM ekle: \uFEFF)
-    String csvData = "\uFEFFPROJE ADI: ${widget.proje.ad}\n\n";
-    csvData += "Tarih;Kalıpçı;Demirci;Diğer;Toplam\n";
-
-    for (var kayit in kayitlar) {
-      final tarihStr =
-          "${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}";
-      final toplam = kayit.kalipci + kayit.demirci + kayit.diger;
-      csvData +=
-          "$tarihStr;${kayit.kalipci};${kayit.demirci};${kayit.diger};$toplam\n";
+    // Bekleme göster
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
     }
 
     try {
-      final tamDosyaAdi = "$dosyaAdi.csv";
-      final dosyaYolu = "$selectedDirectory/$tamDosyaAdi";
+      // Excel Oluştur
+      var excel = xls.Excel.createExcel();
+      xls.Sheet sheetObject = excel['Puantaj'];
+      excel.delete('Sheet1'); // Varsayılanı sil
 
-      final file = File(dosyaYolu);
-      await file.writeAsString(csvData);
+      // Başlıklar
+      sheetObject.appendRow([
+        xls.TextCellValue("Tarih"),
+        xls.TextCellValue("Kalıpçı"),
+        xls.TextCellValue("Demirci"),
+        xls.TextCellValue("Diğer"),
+        xls.TextCellValue("Toplam"),
+        xls.TextCellValue("Yapılan İşler (Kalıpçı)"),
+        xls.TextCellValue("Yapılan İşler (Demirci)"),
+        xls.TextCellValue("Notlar"),
+        xls.TextCellValue("Beton"),
+        xls.TextCellValue("Fotoğraf Dosyaları"),
+      ]);
+
+      // Fotoğraf Klasörü Hazırla
+      final fotoKlasorAdi = "${dosyaAdi}_Fotograflar";
+      final fotoKlasorYolu = "$selectedDirectory/$fotoKlasorAdi";
+      final fotoDir = Directory(fotoKlasorYolu);
+      if (!await fotoDir.exists()) {
+        await fotoDir.create(recursive: true);
+      }
+
+      int fotoSayac = 0;
+
+      for (var kayit in kayitlar) {
+        final tarihStr = "${kayit.tarih.day.toString().padLeft(2, '0')}.${kayit.tarih.month.toString().padLeft(2, '0')}.${kayit.tarih.year}";
+        final toplam = kayit.kalipci + kayit.demirci + kayit.diger;
+
+        // Fotoğrafları kopyala ve isimlerini biriktir
+        List<String> kopyalananFotolar = [];
+        for (int i = 0; i < kayit.fotografYollari.length; i++) {
+          final kaynak = kayit.fotografYollari[i];
+          String uzanti = "jpg";
+          if (kaynak.contains('.')) {
+             final lastPart = kaynak.split('.').last.split('?').first.toLowerCase();
+             if (['png', 'jpg', 'jpeg', 'webp'].contains(lastPart)) uzanti = lastPart;
+          }
+          
+          final yeniAd = "${tarihStr}_${(i+1).toString().padLeft(2, '0')}.$uzanti";
+          final hedefYol = "$fotoKlasorYolu/$yeniAd";
+
+          try {
+            if (ImageService.isNetworkUrl(kaynak)) {
+              final bytes = await _imageService.downloadImage(kaynak);
+              if (bytes != null) await File(hedefYol).writeAsBytes(bytes);
+            } else {
+              final f = File(kaynak);
+              if (await f.exists()) await f.copy(hedefYol);
+            }
+            kopyalananFotolar.add(yeniAd);
+            fotoSayac++;
+          } catch (e) {
+            print("Foto kopyalama hatası: $e");
+          }
+        }
+
+        sheetObject.appendRow([
+          xls.TextCellValue(tarihStr),
+          xls.IntCellValue(kayit.kalipci),
+          xls.IntCellValue(kayit.demirci),
+          xls.IntCellValue(kayit.diger),
+          xls.IntCellValue(toplam),
+          xls.TextCellValue(kayit.kalipciYapilanIs),
+          xls.TextCellValue(kayit.demirciYapilanIs),
+          xls.TextCellValue(kayit.notlar),
+          xls.TextCellValue(kayit.beton),
+          xls.TextCellValue(kopyalananFotolar.join(", ")),
+        ]);
+        
+        // Tarih hücresi formatı (İsteğe bağlı, kütüphane desteğine göre)
+        // sheetObject.cell(CellIndex.indexByString("A${sheetObject.maxRows}")).cellStyle = CellStyle(numberFormat: NumFormat.standard_14);
+      }
+
+      // Dosyayı Kaydet
+      final fileBytes = excel.save();
+      final tamDosyaAdi = "$dosyaAdi.xlsx";
+      final dosyaYolu = "$selectedDirectory/$tamDosyaAdi";
+      
+      if (fileBytes != null) {
+        File(dosyaYolu)
+          ..createSync(recursive: true)
+          ..writeAsBytesSync(fileBytes);
+      }
 
       if (mounted) {
+        Navigator.pop(context); // Dialog kapat
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Dosya Başarıyla Kaydedildi:\n$dosyaYolu'),
+            content: Text('Excel ve $fotoSayac fotoğraf kaydedildi:\n$dosyaYolu'),
             backgroundColor: Colors.green,
             duration: const Duration(seconds: 5),
             action: SnackBarAction(
@@ -379,9 +461,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       }
     } catch (e) {
       if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Kaydetme hatası: $e'),
+            content: Text('Hata: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -693,11 +776,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             const SizedBox(height: 15),
             ListTile(
               leading: const Icon(Icons.table_chart, color: Colors.green),
-              title: Text('Puantaj (Excel)', style: TextStyle(color: Colors.white)),
-              subtitle: Text('Sadece puantaj tablosu', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              title: Text('Puantaj ve Fotoğraflar (Excel)', style: TextStyle(color: Colors.white)),
+              subtitle: Text('Excel tablosu ve fotoğraf klasörü', style: TextStyle(color: Colors.white54, fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
-                _excelOlarakAktar();
+                _excelVeFotograflariAktar();
               },
             ),
             ListTile(
@@ -847,7 +930,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           onPressed: _fotografEkle,
                           icon: Icon(Icons.camera_alt),
                           label: const Text('Foto'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade700, padding: const EdgeInsets.symmetric(vertical: 12)),
+
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green, 
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12)
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -856,7 +944,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           onPressed: _kaydet,
                           icon: Icon(Icons.save),
                           label: const Text('Kaydet'),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 12)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green, 
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12)
+                          ),
                         ),
                       ),
                     ],
@@ -882,14 +974,24 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                      margin: const EdgeInsets.only(right: 8),
                      child: Stack(
                        children: [
-                         ClipRRect(
-                           borderRadius: BorderRadius.circular(8),
-                           child: SizedBox(
-                             width: 80,
-                             height: 80,
-                             child: ImageService.buildImage(
-                               fotograflar[index],
-                               fit: BoxFit.cover,
+                         GestureDetector(
+                           onTap: () {
+                             // Create photo list for viewing
+                             final photosList = fotograflar.asMap().entries.map((e) => <String, dynamic>{
+                               'tarih': DateTime.now(),
+                               'yol': e.value,
+                             }).toList();
+                             _fotografBuyut(context, photosList, index);
+                           },
+                           child: ClipRRect(
+                             borderRadius: BorderRadius.circular(8),
+                             child: SizedBox(
+                               width: 80,
+                               height: 80,
+                               child: ImageService.buildImage(
+                                 fotograflar[index],
+                                 fit: BoxFit.cover,
+                               ),
                              ),
                            ),
                          ),
@@ -1202,6 +1304,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           label: const Text("Aktar", style: TextStyle(fontSize: 13)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -1267,6 +1370,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       label: const Text("Aktar"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       ),
                     ),
@@ -1353,47 +1457,103 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                         numeric: true,
                       ),
                     ],
-                    rows: kayitlar.map((kayit) {
-                      final toplam =
-                          kayit.kalipci + kayit.demirci + kayit.diger;
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            Text(
-                              "${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}",
-                              style: TextStyle(color: ThemeColors.textPrimary(context)),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              kayit.kalipci.toString(),
-                              style: TextStyle(color: ThemeColors.textSecondary(context)),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              kayit.demirci.toString(),
-                              style: TextStyle(color: ThemeColors.textSecondary(context)),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              kayit.diger.toString(),
-                              style: TextStyle(color: ThemeColors.textSecondary(context)),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              toplam.toString(),
-                              style: TextStyle(
-                                color: Colors.blueAccent,
-                                fontWeight: FontWeight.bold,
+                    rows: [
+                      ...kayitlar.map((kayit) {
+                        final toplam =
+                            kayit.kalipci + kayit.demirci + kayit.diger;
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                "${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}",
+                                style: TextStyle(color: ThemeColors.textPrimary(context)),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                            DataCell(
+                              Text(
+                                kayit.kalipci.toString(),
+                                style: TextStyle(color: ThemeColors.textSecondary(context)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayit.demirci.toString(),
+                                style: TextStyle(color: ThemeColors.textSecondary(context)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayit.diger.toString(),
+                                style: TextStyle(color: ThemeColors.textSecondary(context)),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                toplam.toString(),
+                                style: TextStyle(
+                                  color: Colors.blueAccent,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                      // Toplam Satırı
+                      if (kayitlar.isNotEmpty)
+                        DataRow(
+                          color: MaterialStateProperty.all(Colors.blue.withOpacity(0.05)),
+                          cells: [
+                            DataCell(
+                              Text(
+                                "TOPLAM",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayitlar.fold(0, (sum, item) => sum + item.kalipci).toString(),
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayitlar.fold(0, (sum, item) => sum + item.demirci).toString(),
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayitlar.fold(0, (sum, item) => sum + item.diger).toString(),
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                kayitlar.fold(0, (sum, item) => sum + item.kalipci + item.demirci + item.diger).toString(),
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ),
                 ),
@@ -1554,6 +1714,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           onPressed: () => _tarihDegistir(DateTime.now()),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green.shade800,
+            foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 40),
           ),
           child: const Text('Bugün'),
@@ -1619,7 +1780,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       child: Text(
                         '$gunNo',
                         style: TextStyle(
-                          color: ThemeColors.textPrimary(context),
+                          color: (secili || kayitVar) 
+                              ? Colors.white 
+                              : (bugun 
+                                  ? Colors.black 
+                                  : ThemeColors.textPrimary(context)),
                           fontSize: Platform.isWindows ? 14 : 12,
                           fontWeight: secili || bugun ? FontWeight.bold : FontWeight.normal,
                         ),

@@ -1,4 +1,4 @@
 {
-  "version": "1.0.2+6",
-  "notes": "v6 Güncellemesi: \n- Güncelleme mekanizması düzeltildi.\n- Excel aktarma ve yeni tasarım özellikleri eklendi."
+  "version": "1.0.3+7",
+  "notes": "v1.0.3+7 Güncellemesi: \n- Proje kartlarındaki ilerleme çubuğu maviye, yüzde metni beyaza ayarlandı.\n- Puantaj tablosunun en altına toplam satırı eklendi."
 }

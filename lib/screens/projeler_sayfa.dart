@@ -164,19 +164,19 @@ class ProjelerSayfaPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: ThemeColors.textPrimary(context),
+                      color: proje.durum == "Tamamlandı" ? Colors.white : ThemeColors.textPrimary(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 PopupMenuButton(
-                  color: const Color(0xFF3d3d3d),
-                  icon: Icon(Icons.more_vert, color: Colors.white),
+                  color: ThemeColors.cardBackground(context),
+                  icon: Icon(Icons.more_vert, color: proje.durum == "Tamamlandı" ? Colors.white70 : ThemeColors.textSecondary(context)),
                   itemBuilder: (context) => [
                     PopupMenuItem(
-                      child: const Text(
+                      child: Text(
                         'Düzenle',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: ThemeColors.textPrimary(context)),
                       ),
                       onTap: () => Future.delayed(
                         Duration.zero,
@@ -200,7 +200,10 @@ class ProjelerSayfaPage extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               proje.aciklama,
-              style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 14),
+              style: TextStyle(
+                color: proje.durum == "Tamamlandı" ? Colors.white70 : ThemeColors.textSecondary(context),
+                fontSize: 14,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -210,19 +213,29 @@ class ProjelerSayfaPage extends StatelessWidget {
                 Icon(
                   Icons.calendar_today,
                   size: 14,
-                  color: ThemeColors.textTertiary(context),
+                  color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
                 ),
                 const SizedBox(width: 5),
                 Text(
                   '${proje.baslangicTarihi.day}/${proje.baslangicTarihi.month}/${proje.baslangicTarihi.year}',
-                  style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12),
+                  style: TextStyle(
+                    color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(width: 15),
-                Icon(Icons.access_time, size: 14, color: Colors.white54),
+                Icon(
+                  Icons.access_time, 
+                  size: 14, 
+                  color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context)
+                ),
                 const SizedBox(width: 5),
                 Text(
                   '${proje.toplamGun} gün',
-                  style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12),
+                  style: TextStyle(
+                    color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -232,15 +245,15 @@ class ProjelerSayfaPage extends StatelessWidget {
                 Expanded(
                   child: LinearProgressIndicator(
                     value: ilerleme / 100,
-                    backgroundColor: Colors.white24,
+                    backgroundColor: proje.durum == "Tamamlandı" ? Colors.white24 : ThemeColors.border(context),
                     color: Colors.blue,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
                   '${ilerleme.toInt()}%',
-                  style: TextStyle(
-                    color: ThemeColors.textPrimary(context),
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
