@@ -9,6 +9,12 @@ class GunlukKayit {
   String beton;
   List<String> fotografYollari; // Fotoğrafların yolları
 
+  // Vinç bilgileri
+  String vincFirmaAdi;
+  String vincBaslangic; // "HH:mm" formatında
+  String vincBitis;     // "HH:mm" formatında
+  int vincMola;         // Dakika cinsinden
+
   GunlukKayit({
     required this.tarih,
     this.kalipci = 0,
@@ -19,6 +25,10 @@ class GunlukKayit {
     this.notlar = '',
     this.beton = '',
     this.fotografYollari = const [],
+    this.vincFirmaAdi = '',
+    this.vincBaslangic = '',
+    this.vincBitis = '',
+    this.vincMola = 0,
   });
   Map<String, dynamic> toJson() => {
         'tarih': tarih.toIso8601String(),
@@ -30,6 +40,10 @@ class GunlukKayit {
         'notlar': notlar,
         'beton': beton,
         'fotografYollari': fotografYollari,
+        'vincFirmaAdi': vincFirmaAdi,
+        'vincBaslangic': vincBaslangic,
+        'vincBitis': vincBitis,
+        'vincMola': vincMola,
       };
 
   factory GunlukKayit.fromJson(Map<String, dynamic> json) {
@@ -43,6 +57,11 @@ class GunlukKayit {
       notlar: json['notlar'],
       beton: json['beton'] ?? '',
       fotografYollari: List<String>.from(json['fotografYollari'] ?? []),
+      vincFirmaAdi: json['vincFirmaAdi'] ?? '',
+      vincBaslangic: json['vincBaslangic'] ?? '',
+      vincBitis: json['vincBitis'] ?? '',
+      vincMola: json['vincMola'] ?? 0,
     );
   }
 }
+

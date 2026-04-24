@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ImageService {
   // Cloudinary Yapılandırması
@@ -76,27 +77,30 @@ class ImageService {
     final isNetwork = path.startsWith('http://') || path.startsWith('https://');
     
     if (isNetwork) {
-      return Image.network(
-        path,
+      // Cloudinary ise thumbnail URL oluştur (daha hızlı ilk yükleme)
+      String displayUrl = path;
+      if (path.contains('res.cloudinary.com') && !path.contains('/w_')) {
+        displayUrl = path.replaceFirst('/upload/', '/upload/w_800,c_limit,q_auto/');
+      }
+
+      return CachedNetworkImage(
+        imageUrl: displayUrl,
         width: width,
         height: height,
         fit: fit,
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
+        placeholder: (context, url) => Container(
+          width: width,
+          height: height,
+          color: Colors.black26,
+          child: const Center(
             child: SizedBox(
               width: 24,
               height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54),
             ),
-          );
-        },
-        errorBuilder: (context, error, stackTrace) => const Center(
+          ),
+        ),
+        errorWidget: (context, url, error) => const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

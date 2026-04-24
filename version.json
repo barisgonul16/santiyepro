@@ -1,4 +1,4 @@
 {
-  "version": "1.0.3+7",
-  "notes": "v1.0.3+7 Güncellemesi: \n- Proje kartlarındaki ilerleme çubuğu maviye, yüzde metni beyaza ayarlandı.\n- Puantaj tablosunun en altına toplam satırı eklendi."
+  "version": "1.2.0+1",
+  "notes": "v1.2 Güncellemesi: \n- Günlük veri girişine Vinç Bilgileri (Firma Adı, Başlangıç, Bitiş, Mola) eklendi.\n- Puantaj sekmesine Vinç alt sekmesi eklendi ve net çalışma süresi hesaplaması yapıldı."
 }

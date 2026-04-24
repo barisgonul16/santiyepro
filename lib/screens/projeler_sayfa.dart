@@ -99,18 +99,28 @@ class ProjelerSayfaPage extends StatelessWidget {
                           style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 16),
                         ),
                       )
-                    : GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: isMobile ? 1 : 3,
-                          crossAxisSpacing: 20,
-                          mainAxisSpacing: 20,
-                          childAspectRatio: isMobile ? 1.8 : 1.5,
-                        ),
-                        itemCount: projeler.length,
-                        itemBuilder: (context, index) {
-                          return _buildProjeKart(context, index, projeler[index]);
-                        },
-                      ),
+                    : Builder(
+                      builder: (context) {
+                        final siraliProjeler = [...projeler]..sort((a, b) {
+                          final aTamamlandi = a.durum == 'Tamamlandı' ? 1 : 0;
+                          final bTamamlandi = b.durum == 'Tamamlandı' ? 1 : 0;
+                          return aTamamlandi.compareTo(bTamamlandi);
+                        });
+                        return GridView.builder(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isMobile ? 1 : 3,
+                            crossAxisSpacing: 20,
+                            mainAxisSpacing: 20,
+                            childAspectRatio: isMobile ? 1.8 : 1.5,
+                          ),
+                          itemCount: siraliProjeler.length,
+                          itemBuilder: (context, index) {
+                            final gercekIndex = projeler.indexOf(siraliProjeler[index]);
+                            return _buildProjeKart(context, gercekIndex, siraliProjeler[index]);
+                          },
+                        );
+                      },
+                    ),
               ),
             ],
           ),

@@ -9,8 +9,7 @@ import 'dart:async';
 import '../services/image_service.dart';
 import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
-
-
+import 'package:flutter/services.dart';
 
 class ProjeDetaySayfa extends StatefulWidget {
   final Proje proje;
@@ -45,6 +44,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final betonController = TextEditingController();
   List<String> fotograflar = [];
 
+  // --- Vinç State Değişkenleri ---
+  final vincFirmaAdiController = TextEditingController();
+  final vincBaslangicController = TextEditingController();
+  final vincBitisController = TextEditingController();
+  final vincMolaController = TextEditingController();
+
   // --- Puantaj State Değişkenleri ---
   late TabController _tabController;
   late DateTime puantajBaslangicTarihi;
@@ -74,6 +79,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     demirciIsController.dispose();
     notlarController.dispose();
     betonController.dispose();
+    vincFirmaAdiController.dispose();
+    vincBaslangicController.dispose();
+    vincBitisController.dispose();
+    vincMolaController.dispose();
     super.dispose();
   }
 
@@ -94,6 +103,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     notlarController.text = kayit.notlar;
     betonController.text = kayit.beton;
     fotograflar = List.from(kayit.fotografYollari);
+    vincFirmaAdiController.text = kayit.vincFirmaAdi;
+    vincBaslangicController.text = kayit.vincBaslangic;
+    vincBitisController.text = kayit.vincBitis;
+    vincMolaController.text = kayit.vincMola > 0 ? kayit.vincMola.toString() : '';
     if (mounted) setState(() {});
   }
 
@@ -203,6 +216,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         notlar: notlarController.text,
         beton: betonController.text,
         fotografYollari: List.from(fotograflar),
+        vincFirmaAdi: vincFirmaAdiController.text,
+        vincBaslangic: vincBaslangicController.text,
+        vincBitis: vincBitisController.text,
+        vincMola: int.tryParse(vincMolaController.text) ?? 0,
       );
 
       final mevcutIndex = widget.gunlukKayitlar.indexWhere(
@@ -374,6 +391,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         xls.TextCellValue("Fotoğraf Dosyaları"),
       ]);
 
+      xls.Sheet vincSheet = excel['Vinç'];
+      vincSheet.appendRow([
+        xls.TextCellValue("Tarih"),
+        xls.TextCellValue("Firma Adı"),
+        xls.TextCellValue("Başlangıç"),
+        xls.TextCellValue("Bitiş"),
+        xls.TextCellValue("Mola (dk)"),
+        xls.TextCellValue("Net Çalışma (saat)"),
+      ]);
+
       // Fotoğraf Klasörü Hazırla
       final fotoKlasorAdi = "${dosyaAdi}_Fotograflar";
       final fotoKlasorYolu = "$selectedDirectory/$fotoKlasorAdi";
@@ -428,6 +455,18 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           xls.TextCellValue(kayit.beton),
           xls.TextCellValue(kopyalananFotolar.join(", ")),
         ]);
+        
+        if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
+          final netSaat = _hesaplaVincNetSaat(kayit.vincBaslangic, kayit.vincBitis, kayit.vincMola);
+          vincSheet.appendRow([
+            xls.TextCellValue(tarihStr),
+            xls.TextCellValue(kayit.vincFirmaAdi),
+            xls.TextCellValue(kayit.vincBaslangic),
+            xls.TextCellValue(kayit.vincBitis),
+            xls.IntCellValue(kayit.vincMola),
+            xls.TextCellValue(netSaat),
+          ]);
+        }
         
         // Tarih hücresi formatı (İsteğe bağlı, kütüphane desteğine göre)
         // sheetObject.cell(CellIndex.indexByString("A${sheetObject.maxRows}")).cellStyle = CellStyle(numberFormat: NumFormat.standard_14);
@@ -551,7 +590,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     
     csvData += "GÜNLÜK KAYITLAR\n";
-    csvData += "Tarih;Kalıpçı;Demirci;Diğer;Toplam;Kalıpçı İş;Demirci İş;Notlar;Beton;Fotoğraf Sayısı\n";
+    csvData += "Tarih;Kalıpçı;Demirci;Diğer;Toplam;Kalıpçı İş;Demirci İş;Notlar;Beton;Fotoğraf Sayısı;Vinç Firma;Vinç Başlangıç;Vinç Bitiş;Vinç Mola\n";
 
     // Tarihe göre sırala
     final sortedKayitlar = List<GunlukKayit>.from(kayitlar);
@@ -565,7 +604,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       csvData += "${kayit.demirciYapilanIs.replaceAll(';', ',')};";
       csvData += "${kayit.notlar.replaceAll(';', ',')};";
       csvData += "${kayit.beton.replaceAll(';', ',')};";
-      csvData += "${kayit.fotografYollari.length}\n";
+      csvData += "${kayit.fotografYollari.length};";
+      csvData += "${kayit.vincFirmaAdi.replaceAll(';', ',')};";
+      csvData += "${kayit.vincBaslangic};";
+      csvData += "${kayit.vincBitis};";
+      csvData += "${kayit.vincMola}\n";
     }
 
     try {
@@ -923,6 +966,127 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   const SizedBox(height: 8),
                   _buildMobileInputItem("Beton", betonController),
                   const SizedBox(height: 15),
+                  // Vinç Bilgileri
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.construction, color: Colors.orange, size: 18),
+                            const SizedBox(width: 6),
+                            Text('Vinç Bilgileri', style: TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            )),
+                            const Spacer(),
+                            if (vincFirmaAdiController.text.isNotEmpty ||
+                                vincBaslangicController.text.isNotEmpty ||
+                                vincBitisController.text.isNotEmpty ||
+                                vincMolaController.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () async {
+                                  final onay = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      backgroundColor: const Color(0xFF333333),
+                                      title: const Text('Vinç Bilgilerini Sil', style: TextStyle(color: Colors.white)),
+                                      content: const Text('Bu gün için girilen tüm vinç bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: Colors.white70)),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('İptal'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: const Text('Sil', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (onay == true) {
+                                    setState(() {
+                                      vincFirmaAdiController.clear();
+                                      vincBaslangicController.clear();
+                                      vincBitisController.clear();
+                                      vincMolaController.clear();
+                                    });
+                                  }
+                                },
+                                child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        _buildMobileInputItem("Firma Adı", vincFirmaAdiController),
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: vincBaslangicController.text.isNotEmpty
+                                      ? TimeOfDay(
+                                          hour: int.parse(vincBaslangicController.text.split(':')[0]),
+                                          minute: int.parse(vincBaslangicController.text.split(':')[1]),
+                                        )
+                                      : const TimeOfDay(hour: 8, minute: 0),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    vincBaslangicController.text =
+                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                  });
+                                }
+                              },
+                              child: AbsorbPointer(
+                                child: _buildMobileInputItem("Başlangıç", vincBaslangicController),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () async {
+                                final picked = await showTimePicker(
+                                  context: context,
+                                  initialTime: vincBitisController.text.isNotEmpty
+                                      ? TimeOfDay(
+                                          hour: int.parse(vincBitisController.text.split(':')[0]),
+                                          minute: int.parse(vincBitisController.text.split(':')[1]),
+                                        )
+                                      : const TimeOfDay(hour: 18, minute: 0),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    vincBitisController.text =
+                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                  });
+                                }
+                              },
+                              child: AbsorbPointer(
+                                child: _buildMobileInputItem("Bitiş", vincBitisController),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildMobileInputItem("Mola (dk)", vincMolaController, isNumeric: true),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   Row(
                     children: [
                       Expanded(
@@ -1204,6 +1368,32 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
+  // --- Yardımcı Metod ---
+  String _hesaplaVincNetSaat(String baslangic, String bitis, int molaDakika) {
+    if (baslangic.isEmpty || bitis.isEmpty) return "0.0";
+    try {
+      final bParts = baslangic.split(':');
+      final btParts = bitis.split(':');
+      final bSaat = int.parse(bParts[0]);
+      final bDakika = int.parse(bParts[1]);
+      final btSaat = int.parse(btParts[0]);
+      final btDakika = int.parse(btParts[1]);
+
+      final bToplamDk = bSaat * 60 + bDakika;
+      final btToplamDk = btSaat * 60 + btDakika;
+
+      int farkDk = btToplamDk - bToplamDk;
+      if (farkDk < 0) farkDk += 24 * 60; // Ertesi güne sarkma
+
+      final netDk = farkDk - molaDakika;
+      if (netDk <= 0) return "0.0";
+
+      return (netDk / 60.0).toStringAsFixed(1);
+    } catch (e) {
+      return "0.0";
+    }
+  }
+
   // --- 2. SEKME: PUANTAJ VE TABLO ---
   Widget _buildPuantajTab() {
     final kayitlar = _getPuantajKayitlari();
@@ -1385,178 +1575,139 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
           // Tablo Alanı
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: ThemeColors.cardBackground(context),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(15),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.white24),
-                    child: DataTable(
-                    headingRowColor: MaterialStateProperty.all(
-                      const Color(0xFF1a1a1a),
+            child: DefaultTabController(
+              length: 2,
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: ThemeColors.cardBackground(context),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                      border: Border(bottom: BorderSide(color: Colors.white24)),
                     ),
-                    dataRowColor: MaterialStateProperty.resolveWith<Color>((
-                      Set<MaterialState> states,
-                    ) {
-                      return Colors.transparent; // Satır renkleri
-                    }),
-                    columns: [
-                      DataColumn(
-                        label: Text(
-                          'Tarih',
-                          style: TextStyle(
-                            color: ThemeColors.textPrimary(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Kalıpçı',
-                          style: TextStyle(
-                            color: ThemeColors.textPrimary(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        numeric: true,
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Demirci',
-                          style: TextStyle(
-                            color: ThemeColors.textPrimary(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        numeric: true,
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Diğer',
-                          style: TextStyle(
-                            color: ThemeColors.textPrimary(context),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        numeric: true,
-                      ),
-                      DataColumn(
-                        label: Text(
-                          'Toplam',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        numeric: true,
-                      ),
-                    ],
-                    rows: [
-                      ...kayitlar.map((kayit) {
-                        final toplam =
-                            kayit.kalipci + kayit.demirci + kayit.diger;
-                        return DataRow(
-                          cells: [
-                            DataCell(
-                              Text(
-                                "${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}",
-                                style: TextStyle(color: ThemeColors.textPrimary(context)),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayit.kalipci.toString(),
-                                style: TextStyle(color: ThemeColors.textSecondary(context)),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayit.demirci.toString(),
-                                style: TextStyle(color: ThemeColors.textSecondary(context)),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayit.diger.toString(),
-                                style: TextStyle(color: ThemeColors.textSecondary(context)),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                toplam.toString(),
-                                style: TextStyle(
-                                  color: Colors.blueAccent,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                      // Toplam Satırı
-                      if (kayitlar.isNotEmpty)
-                        DataRow(
-                          color: MaterialStateProperty.all(Colors.blue.withOpacity(0.05)),
-                          cells: [
-                            DataCell(
-                              Text(
-                                "TOPLAM",
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayitlar.fold(0, (sum, item) => sum + item.kalipci).toString(),
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayitlar.fold(0, (sum, item) => sum + item.demirci).toString(),
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayitlar.fold(0, (sum, item) => sum + item.diger).toString(),
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                kayitlar.fold(0, (sum, item) => sum + item.kalipci + item.demirci + item.diger).toString(),
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
+                    child: TabBar(
+                      indicatorColor: Colors.blue,
+                      labelColor: Colors.blue,
+                      unselectedLabelColor: ThemeColors.textSecondary(context),
+                      tabs: const [
+                        Tab(text: "İşçiler"),
+                        Tab(text: "Vinç"),
+                      ],
+                    ),
                   ),
-                ),
-                ),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: ThemeColors.cardBackground(context),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                      ),
+                      child: TabBarView(
+                        children: [
+                          // 1. İşçiler Tablosu
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.all(15),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
+                                child: DataTable(
+                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
+                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
+                                  columns: [
+                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Kalıpçı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
+                                    DataColumn(label: Text('Demirci', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
+                                    DataColumn(label: Text('Diğer', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
+                                    DataColumn(label: Text('Toplam', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)), numeric: true),
+                                  ],
+                                  rows: [
+                                    ...kayitlar.map((kayit) {
+                                      final toplam = kayit.kalipci + kayit.demirci + kayit.diger;
+                                      return DataRow(
+                                        cells: [
+                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                                          DataCell(Text(kayit.kalipci.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.demirci.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.diger.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(toplam.toString(), style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))),
+                                        ],
+                                      );
+                                    }).toList(),
+                                    if (kayitlar.isNotEmpty)
+                                      DataRow(
+                                        color: MaterialStateProperty.all(Colors.blue.withOpacity(0.05)),
+                                        cells: [
+                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 14))),
+                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.kalipci).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.demirci).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.diger).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.kalipci + item.demirci + item.diger).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16))),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // 2. Vinç Tablosu
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.all(15),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
+                                child: DataTable(
+                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
+                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
+                                  columns: [
+                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Firma Adı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Başlangıç', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Bitiş', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Mola (dk)', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
+                                    DataColumn(label: Text('Net Çalışma', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)), numeric: true),
+                                  ],
+                                  rows: [
+                                    ...kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).map((kayit) {
+                                      final netSaat = _hesaplaVincNetSaat(kayit.vincBaslangic, kayit.vincBitis, kayit.vincMola);
+                                      return DataRow(
+                                        cells: [
+                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                                          DataCell(Text(kayit.vincFirmaAdi, style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.vincBaslangic, style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.vincBitis, style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.vincMola > 0 ? kayit.vincMola.toString() : '-', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text("$netSaat sa", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold))),
+                                        ],
+                                      );
+                                    }).toList(),
+                                    if (kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).isNotEmpty)
+                                      DataRow(
+                                        color: MaterialStateProperty.all(Colors.orange.withOpacity(0.05)),
+                                        cells: [
+                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14))),
+                                          const DataCell(Text("")),
+                                          const DataCell(Text("")),
+                                          const DataCell(Text("")),
+                                          const DataCell(Text("")),
+                                          DataCell(
+                                            Text(
+                                              "${kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).map((k) => double.tryParse(_hesaplaVincNetSaat(k.vincBaslangic, k.vincBitis, k.vincMola)) ?? 0.0).fold(0.0, (sum, val) => sum + val).toStringAsFixed(1)} sa",
+                                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1834,6 +1985,23 @@ class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
   void initState() {
     super.initState();
     mevcutIndex = widget.baslangicIndex;
+    // Fotoğraf görüntüleme ekranında tüm yönlere izin ver
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    // Çıkışta sadece dikey moda geri dön
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    _transformationController.dispose();
+    super.dispose();
   }
 
   void _oncekiFoto() {

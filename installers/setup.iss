@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "SantiyePro"
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.2.0"
 #define MyAppPublisher "Baris"
 #define MyAppExeName "SantiyePro_v3.exe"
 
@@ -20,7 +20,7 @@ AllowNoIcons=yes
 ; Remove the following line to run in administrative install mode (install for all users.)
 PrivilegesRequired=lowest
 OutputDir=.
-OutputBaseFilename=SantiyePro_Setup
+OutputBaseFilename=SantiyePro_Setup_v1.2.0
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
