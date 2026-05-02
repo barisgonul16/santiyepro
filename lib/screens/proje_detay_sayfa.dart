@@ -10,6 +10,7 @@ import '../services/image_service.dart';
 import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class ProjeDetaySayfa extends StatefulWidget {
   final Proje proje;
