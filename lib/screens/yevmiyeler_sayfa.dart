@@ -32,6 +32,8 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
   bool _useMonthlyFilter = true;
+  String _ekipFiltresi = '';
+  final TextEditingController _ekipFiltreController = TextEditingController();
 
   final List<String> _aylar = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -53,6 +55,11 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
             // Tarih Aralığı filtresi
             if (_filterStartDate != null && kayit.tarih.isBefore(_filterStartDate!)) continue;
             if (_filterEndDate != null && kayit.tarih.isAfter(_filterEndDate!.add(const Duration(days: 1)))) continue;
+          }
+
+          // Ekip Filtresi
+          if (_ekipFiltresi.isNotEmpty) {
+            if (!kayit.yevmiyeEkipAdi.toLowerCase().contains(_ekipFiltresi.toLowerCase())) continue;
           }
 
           liste.add({
@@ -400,6 +407,49 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                   Text(
                     '${_aylar[_selectedMonth - 1]} $_selectedYear Kayıtları',
                     style: const TextStyle(color: Colors.tealAccent, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
+          ),
+          // Ekip Filtre Alanı
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF004D40).withOpacity(0.05),
+              border: const Border(bottom: BorderSide(color: Colors.white12)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.search, color: Colors.white54, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _ekipFiltreController,
+                    onChanged: (val) {
+                      setState(() {
+                        _ekipFiltresi = val;
+                      });
+                    },
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Ekip ismine göre filtrele...',
+                      hintStyle: TextStyle(color: Colors.white38, fontSize: 13),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                if (_ekipFiltresi.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                    onPressed: () {
+                      setState(() {
+                        _ekipFiltreController.clear();
+                        _ekipFiltresi = '';
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
               ],
             ),
