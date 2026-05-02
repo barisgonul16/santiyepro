@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build and Release
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -40,7 +42,7 @@ jobs:
         with:
           files: |
             build/app/outputs/flutter-apk/app-release.apk
-            build/windows/runner/Release/*.exe
+            build/windows/x64/runner/Release/*.exe
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref }}
           draft: false

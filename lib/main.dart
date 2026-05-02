@@ -27,6 +27,7 @@ import 'services/calendar_service.dart';
 import 'screens/finans_sayfa.dart';
 
 import 'screens/malzemeler_sayfa.dart';
+import 'screens/yevmiyeler_sayfa.dart';
 import 'screens/login_sayfa.dart';
 import 'widgets/custom_bottom_nav_bar.dart';
 import 'services/storage_service.dart';
@@ -920,6 +921,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Map<String, dynamic>> _menuItems = [
     {'icon': Icons.home, 'title': 'Ana Sayfa', 'color': Colors.cyan},
     {'icon': Icons.folder, 'title': 'Projeler', 'color': Colors.blue},
+    {'icon': Icons.payments, 'title': 'Yevmiyeler', 'color': const Color(0xFF004D40)}, // Koyu Yeşil/Teal Tonu
     {'icon': Icons.check_circle, 'title': 'Görevler', 'color': Colors.purple},
     {'icon': Icons.note, 'title': 'Notlar', 'color': Colors.orange},
     {'icon': Icons.lightbulb, 'title': 'Pratik Bilgiler', 'color': Colors.green},
@@ -958,6 +960,12 @@ class _MainScreenState extends State<MainScreen> {
           onGunlukKayitGuncelle: _gunlukKayitGuncelle,
         );
       case 2:
+        return YevmiyelerSayfaPage(
+          projeler: projeler,
+          projeGunlukKayitlari: projeGunlukKayitlari,
+          onGunlukKayitGuncelle: _gunlukKayitGuncelle,
+        );
+      case 3:
         return GorevlerSayfaPage(
           gorevler: gorevler,
           hatirlaticilar: hatirlaticilar,
@@ -966,26 +974,26 @@ class _MainScreenState extends State<MainScreen> {
           onGorevTamamla: _gorevTamamla,
           onGorevDuzenle: _gorevDuzenle,
         );
-      case 3:
+      case 4:
         return NotlarSayfaPage(
           notlar: notlar,
           onNotEkle: _notEkle,
           onNotSil: _notSil,
           onNotDuzenle: _notDuzenle,
         );
-      case 4:
+      case 5:
         return PratikBilgilerSayfaPage(
           customPratikBilgiler: customPratikBilgiler,
           onEkle: _pratikBilgiEkle,
           onGuncelle: _pratikBilgiGuncelle,
           onSil: _pratikBilgiSil,
         );
-      case 5:
+      case 6:
         return TakvimSayfaPage(
           projeler: projeler,
           projeGunlukKayitlari: projeGunlukKayitlari,
         );
-      case 6: // Faturalar (Finans)
+      case 7: // Faturalar (Finans)
         return FinansSayfaPage(
           faturalar: faturalar,
           harcamalar: harcamalar,
@@ -998,24 +1006,24 @@ class _MainScreenState extends State<MainScreen> {
           onHarcamaGuncelle: _harcamaGuncelle,
           onHesapSifirla: (archive, {isFatura}) => _hesapSifirla(isArchive: archive, isFatura: isFatura),
         );
-      case 7: // Malzemeler
+      case 8: // Malzemeler
         return MalzemelerSayfaPage(
           malzemeler: malzemeler,
           onMalzemeEkle: _malzemeEkle,
           onMalzemeGuncelle: _malzemeGuncelle,
           onMalzemeSil: _malzemeSil,
         );
-      case 8:
-        return const EskizlerSayfaPage();
       case 9:
-        return const PomodoroSayfaPage();
+        return const EskizlerSayfaPage();
       case 10:
+        return const PomodoroSayfaPage();
+      case 11:
         return HaritalarSayfaPage(
           savedLocations: savedLocations,
           onAddLocation: _konumEkle,
           onDeleteLocation: _konumSil,
         );
-      case 11: // Ayarlar
+      case 12: // Ayarlar
         return AyarlarSayfaPage(
           currentSettings: _appSettings,
           onSettingsChanged: _onSettingsChanged,
@@ -1135,7 +1143,7 @@ class _MainScreenState extends State<MainScreen> {
                                   color: isSelected
                                       ? Colors.white
                                       : ThemeColors.textSecondary(context),
-                                  fontSize: 16,
+                                  fontSize: item['isSubItem'] == true ? 14 : 16,
                                   fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,

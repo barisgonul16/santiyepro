@@ -15,6 +15,11 @@ class GunlukKayit {
   String vincBitis;     // "HH:mm" formatında
   int vincMola;         // Dakika cinsinden
 
+  // Yevmiye bilgileri
+  String yevmiyeEkipAdi;
+  double yevmiyeMiktari;
+  String yevmiyeAciklama;
+
   GunlukKayit({
     required this.tarih,
     this.kalipci = 0,
@@ -29,6 +34,9 @@ class GunlukKayit {
     this.vincBaslangic = '',
     this.vincBitis = '',
     this.vincMola = 0,
+    this.yevmiyeEkipAdi = '',
+    this.yevmiyeMiktari = 0,
+    this.yevmiyeAciklama = '',
   });
   Map<String, dynamic> toJson() => {
         'tarih': tarih.toIso8601String(),
@@ -44,6 +52,9 @@ class GunlukKayit {
         'vincBaslangic': vincBaslangic,
         'vincBitis': vincBitis,
         'vincMola': vincMola,
+        'yevmiyeEkipAdi': yevmiyeEkipAdi,
+        'yevmiyeMiktari': yevmiyeMiktari,
+        'yevmiyeAciklama': yevmiyeAciklama,
       };
 
   factory GunlukKayit.fromJson(Map<String, dynamic> json) {
@@ -61,6 +72,9 @@ class GunlukKayit {
       vincBaslangic: json['vincBaslangic'] ?? '',
       vincBitis: json['vincBitis'] ?? '',
       vincMola: json['vincMola'] ?? 0,
+      yevmiyeEkipAdi: json['yevmiyeEkipAdi'] ?? '',
+      yevmiyeMiktari: (json['yevmiyeMiktari'] ?? 0).toDouble(),
+      yevmiyeAciklama: json['yevmiyeAciklama'] ?? '',
     );
   }
 }

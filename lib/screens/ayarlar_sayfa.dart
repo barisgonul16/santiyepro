@@ -25,15 +25,16 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
   final List<Map<String, dynamic>> _availablePages = [
     {'index': 0, 'title': 'Ana Sayfa', 'icon': Icons.home, 'color': Colors.cyan},
     {'index': 1, 'title': 'Projeler', 'icon': Icons.folder, 'color': Colors.blue},
-    {'index': 2, 'title': 'Görevler', 'icon': Icons.check_circle, 'color': Colors.purple},
-    {'index': 3, 'title': 'Notlar', 'icon': Icons.note, 'color': Colors.orange},
-    {'index': 4, 'title': 'Pratik Bilgiler', 'icon': Icons.lightbulb, 'color': Colors.green},
-    {'index': 5, 'title': 'Takvim', 'icon': Icons.calendar_today, 'color': Colors.cyan},
-    {'index': 6, 'title': 'Faturalar', 'icon': Icons.attach_money, 'color': Colors.amber},
-    {'index': 7, 'title': 'Malzemeler', 'icon': Icons.build, 'color': Colors.brown},
-    {'index': 8, 'title': 'Eskizler', 'icon': Icons.brush, 'color': Colors.pink},
-    {'index': 9, 'title': 'Pomodoro', 'icon': Icons.timer, 'color': Colors.red},
-    {'index': 10, 'title': 'Haritalar', 'icon': Icons.map, 'color': Colors.teal},
+    {'index': 2, 'title': 'Yevmiyeler', 'icon': Icons.payments, 'color': Colors.purple},
+    {'index': 3, 'title': 'Görevler', 'icon': Icons.check_circle, 'color': Colors.purple},
+    {'index': 4, 'title': 'Notlar', 'icon': Icons.note, 'color': Colors.orange},
+    {'index': 5, 'title': 'Pratik Bilgiler', 'icon': Icons.lightbulb, 'color': Colors.green},
+    {'index': 6, 'title': 'Takvim', 'icon': Icons.calendar_today, 'color': Colors.cyan},
+    {'index': 7, 'title': 'Faturalar', 'icon': Icons.attach_money, 'color': Colors.amber},
+    {'index': 8, 'title': 'Malzemeler', 'icon': Icons.build, 'color': Colors.brown},
+    {'index': 9, 'title': 'Eskizler', 'icon': Icons.brush, 'color': Colors.pink},
+    {'index': 10, 'title': 'Pomodoro', 'icon': Icons.timer, 'color': Colors.red},
+    {'index': 11, 'title': 'Haritalar', 'icon': Icons.map, 'color': Colors.teal},
   ];
 
   @override

@@ -50,6 +50,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final vincBitisController = TextEditingController();
   final vincMolaController = TextEditingController();
 
+  // --- Yevmiye State Değişkenleri ---
+  final yevmiyeEkipAdiController = TextEditingController();
+  final yevmiyeMiktariController = TextEditingController();
+  final yevmiyeAciklamaController = TextEditingController();
+
   // --- Puantaj State Değişkenleri ---
   late TabController _tabController;
   late DateTime puantajBaslangicTarihi;
@@ -83,6 +88,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     vincBaslangicController.dispose();
     vincBitisController.dispose();
     vincMolaController.dispose();
+    yevmiyeEkipAdiController.dispose();
+    yevmiyeMiktariController.dispose();
+    yevmiyeAciklamaController.dispose();
     super.dispose();
   }
 
@@ -107,6 +115,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     vincBaslangicController.text = kayit.vincBaslangic;
     vincBitisController.text = kayit.vincBitis;
     vincMolaController.text = kayit.vincMola > 0 ? kayit.vincMola.toString() : '';
+    yevmiyeEkipAdiController.text = kayit.yevmiyeEkipAdi;
+    yevmiyeMiktariController.text = kayit.yevmiyeMiktari > 0 ? kayit.yevmiyeMiktari.toString() : '';
+    yevmiyeAciklamaController.text = kayit.yevmiyeAciklama;
     if (mounted) setState(() {});
   }
 
@@ -220,6 +231,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         vincBaslangic: vincBaslangicController.text,
         vincBitis: vincBitisController.text,
         vincMola: int.tryParse(vincMolaController.text) ?? 0,
+        yevmiyeEkipAdi: yevmiyeEkipAdiController.text,
+        yevmiyeMiktari: double.tryParse(yevmiyeMiktariController.text) ?? 0,
+        yevmiyeAciklama: yevmiyeAciklamaController.text,
       );
 
       final mevcutIndex = widget.gunlukKayitlar.indexWhere(
@@ -401,6 +415,14 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         xls.TextCellValue("Net Çalışma (saat)"),
       ]);
 
+      xls.Sheet yevmiyeSheet = excel['Yevmiye'];
+      yevmiyeSheet.appendRow([
+        xls.TextCellValue("Tarih"),
+        xls.TextCellValue("Ekip Adı"),
+        xls.TextCellValue("Yevmiye"),
+        xls.TextCellValue("Açıklama"),
+      ]);
+
       // Fotoğraf Klasörü Hazırla
       final fotoKlasorAdi = "${dosyaAdi}_Fotograflar";
       final fotoKlasorYolu = "$selectedDirectory/$fotoKlasorAdi";
@@ -465,6 +487,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             xls.TextCellValue(kayit.vincBitis),
             xls.IntCellValue(kayit.vincMola),
             xls.TextCellValue(netSaat),
+          ]);
+        }
+
+        // Yevmiye Bilgilerini Ekle
+        if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+          yevmiyeSheet.appendRow([
+            xls.TextCellValue(tarihStr),
+            xls.TextCellValue(kayit.yevmiyeEkipAdi),
+            xls.DoubleCellValue(kayit.yevmiyeMiktari),
+            xls.TextCellValue(kayit.yevmiyeAciklama),
           ]);
         }
         
@@ -1087,6 +1119,75 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     ),
                   ),
                   const SizedBox(height: 15),
+                  // Yevmiye Bilgileri
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.payments, color: Colors.purple, size: 18),
+                            const SizedBox(width: 6),
+                            Text('Yevmiye Bilgileri', style: TextStyle(
+                              color: Colors.purple,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            )),
+                            const Spacer(),
+                            if (yevmiyeEkipAdiController.text.isNotEmpty ||
+                                yevmiyeMiktariController.text.isNotEmpty ||
+                                yevmiyeAciklamaController.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () async {
+                                  final onay = await showDialog<bool>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      backgroundColor: const Color(0xFF333333),
+                                      title: const Text('Yevmiye Bilgilerini Sil', style: TextStyle(color: Colors.white)),
+                                      content: const Text('Bu gün için girilen yevmiye bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: Colors.white70)),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, false),
+                                          child: const Text('İptal'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                          onPressed: () => Navigator.pop(ctx, true),
+                                          child: const Text('Sil', style: TextStyle(color: Colors.white)),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (onay == true) {
+                                    setState(() {
+                                      yevmiyeEkipAdiController.clear();
+                                      yevmiyeMiktariController.clear();
+                                      yevmiyeAciklamaController.clear();
+                                    });
+                                  }
+                                },
+                                child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(child: _buildMobileInputItem("Ekip Adı", yevmiyeEkipAdiController)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildMobileInputItem("Yevmiye", yevmiyeMiktariController, isNumeric: true)),
+                        ]),
+                        const SizedBox(height: 8),
+                        _buildMobileInputItem("Açıklama", yevmiyeAciklamaController),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 15),
                   Row(
                     children: [
                       Expanded(
@@ -1576,7 +1677,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           // Tablo Alanı
           Expanded(
             child: DefaultTabController(
-              length: 2,
+              length: 3,
               child: Column(
                 children: [
                   Container(
@@ -1592,6 +1693,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       tabs: const [
                         Tab(text: "İşçiler"),
                         Tab(text: "Vinç"),
+                        Tab(text: "Yevmiye"),
                       ],
                     ),
                   ),
@@ -1696,6 +1798,53 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                               style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
                                             ),
                                           ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // 3. Yevmiye Tablosu
+                          SingleChildScrollView(
+                            padding: const EdgeInsets.all(15),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Theme(
+                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
+                                child: DataTable(
+                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
+                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
+                                  columns: [
+                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Ekip Adı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
+                                    DataColumn(label: Text('Adet', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
+                                    DataColumn(label: Text('Açıklama', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold))),
+                                  ],
+                                  rows: [
+                                    ...kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).map((kayit) {
+                                      return DataRow(
+                                        cells: [
+                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                                          DataCell(Text(kayit.yevmiyeEkipAdi, style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                          DataCell(Text(kayit.yevmiyeMiktari.toString(), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
+                                          DataCell(Text(kayit.yevmiyeAciklama, style: TextStyle(color: ThemeColors.textSecondary(context), fontStyle: FontStyle.italic))),
+                                        ],
+                                      );
+                                    }).toList(),
+                                    if (kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).isNotEmpty)
+                                      DataRow(
+                                        color: MaterialStateProperty.all(Colors.purple.withOpacity(0.05)),
+                                        cells: [
+                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14))),
+                                          const DataCell(Text("")),
+                                          DataCell(
+                                            Text(
+                                              kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).map((k) => k.yevmiyeMiktari).fold(0.0, (sum, val) => sum + val).toString(),
+                                              style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                                            ),
+                                          ),
+                                          const DataCell(Text("")),
                                         ],
                                       ),
                                   ],
