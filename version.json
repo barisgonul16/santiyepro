@@ -1,4 +1,4 @@
 {
-  "version": "1.3.0+9",
-  "notes": "v1.3 Güncellemesi: \n- Yevmiyeler sayfası Projeler altına taşındı.\n- Yevmiyeler sayfası için Ekip İsmi ile filtreleme özelliği eklendi.\n- Yevmiyeler tablosu Proje Adı sütunu ile genişletildi.\n- Koyu yeşil tema ve çeşitli tasarım iyileştirmeleri yapıldı."
+  "version": "1.3.1+11",
+  "notes": "v1.3.1 Güncellemesi: \n- Ana sayfadaki yönlendirme hataları giderildi.\n- Fotoğraf galerisine yana kaydırma (swipe) özelliği eklendi.\n- Yatay modda tam ekran fotoğraf görüntüleme iyileştirildi."
 }

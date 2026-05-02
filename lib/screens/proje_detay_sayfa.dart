@@ -2127,13 +2127,14 @@ class _FotografGoruntulePage extends StatefulWidget {
 
 class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
   late int mevcutIndex;
-  final TransformationController _transformationController =
-      TransformationController();
+  late PageController _pageController;
+  bool _showAppBar = true;
 
   @override
   void initState() {
     super.initState();
     mevcutIndex = widget.baslangicIndex;
+    _pageController = PageController(initialPage: widget.baslangicIndex);
     // Fotoğraf görüntüleme ekranında tüm yönlere izin ver
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -2149,103 +2150,117 @@ class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
-    _transformationController.dispose();
+    _pageController.dispose();
     super.dispose();
-  }
-
-  void _oncekiFoto() {
-    if (mevcutIndex > 0)
-      setState(() {
-        mevcutIndex--;
-        _transformationController.value = Matrix4.identity();
-      });
-  }
-
-  void _sonrakiFoto() {
-    if (mevcutIndex < widget.fotograflar.length - 1)
-      setState(() {
-        mevcutIndex++;
-        _transformationController.value = Matrix4.identity();
-      });
   }
 
   @override
   Widget build(BuildContext context) {
-    final mevcutFoto = widget.fotograflar[mevcutIndex];
-    final tarih = mevcutFoto['tarih'] as DateTime;
-    final yol = mevcutFoto['yol'] as String;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.close, color: ThemeColors.textPrimary(context), size: 30),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '${mevcutIndex + 1} / ${widget.fotograflar.length}',
-          style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 16),
-        ),
-        actions: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 15),
-              child: Text(
-                '${tarih.day}/${tarih.month}/${tarih.year}',
-                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 14),
+      extendBodyBehindAppBar: true,
+      appBar: _showAppBar && (!isLandscape) 
+          ? AppBar(
+              backgroundColor: Colors.black45,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
               ),
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Center(
-            child: InteractiveViewer(
-              transformationController: _transformationController,
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: ImageService.buildImage(
-                yol,
-                fit: BoxFit.contain,
+              title: Text(
+                '${mevcutIndex + 1} / ${widget.fotograflar.length}',
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
+              actions: [
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 15),
+                    child: Text(
+                      DateFormat('dd/MM/yyyy').format(widget.fotograflar[mevcutIndex]['tarih'] as DateTime),
+                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : null,
+      body: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showAppBar = !_showAppBar;
+          });
+        },
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _pageController,
+              itemCount: widget.fotograflar.length,
+              onPageChanged: (index) {
+                setState(() {
+                  mevcutIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final yol = widget.fotograflar[index]['yol'] as String;
+                return Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: ImageService.buildImage(
+                      yol,
+                      fit: BoxFit.contain,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  ),
+                );
+              },
             ),
-          ),
-          if (mevcutIndex > 0)
-            Positioned(
-              left: 10,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: IconButton(
-                  onPressed: _oncekiFoto,
-                  icon: Icon(
-                    Icons.arrow_back_ios,
-                    color: Colors.white54,
-                    size: 40,
+            // Portre modunda okları göster, manzara modunda gizle (veya tam tersi tercih edilebilir)
+            if (!isLandscape && mevcutIndex > 0)
+              Positioned(
+                left: 10,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: IconButton(
+                    onPressed: () => _pageController.previousPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    ),
+                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white54, size: 40),
                   ),
                 ),
               ),
-            ),
-          if (mevcutIndex < widget.fotograflar.length - 1)
-            Positioned(
-              right: 10,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: IconButton(
-                  onPressed: _sonrakiFoto,
-                  icon: Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.white54,
-                    size: 40,
+            if (!isLandscape && mevcutIndex < widget.fotograflar.length - 1)
+              Positioned(
+                right: 10,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: IconButton(
+                    onPressed: () => _pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    ),
+                    icon: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 40),
                   ),
                 ),
               ),
-            ),
-        ],
+            // Manzara modunda geri çıkış butonu (AppBar kapalıyken gerekli olabilir)
+            if (isLandscape && !_showAppBar)
+              Positioned(
+                top: 20,
+                left: 20,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54, size: 30),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
