@@ -221,66 +221,83 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
   }
 
   void _yevmiyeDuzenleDialog(Map<String, dynamic> item) {
-    final ekipAdiController = TextEditingController(text: item['ekipAdi']);
+    String? secilenEkip = item['ekipAdi'];
     final miktarController = TextEditingController(text: item['yevmiye'].toString());
     final aciklamaController = TextEditingController(text: item['aciklama']);
 
+    List<String> ekipAdlari = List.from(widget.ekipler)..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    
+    if (secilenEkip != null && secilenEkip!.isNotEmpty && !ekipAdlari.contains(secilenEkip)) {
+      ekipAdlari.insert(0, secilenEkip!);
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text('Yevmiye Düzenle', style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: ekipAdiController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Ekip Adı', labelStyle: TextStyle(color: Colors.white70)),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: ThemeColors.cardBackground(context),
+            title: const Text('Yevmiye Düzenle', style: TextStyle(color: Colors.white)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: secilenEkip,
+                  dropdownColor: const Color(0xFF2D2D2D),
+                  decoration: const InputDecoration(labelText: 'Ekip Adı', labelStyle: TextStyle(color: Colors.white70)),
+                  style: const TextStyle(color: Colors.white),
+                  items: ekipAdlari.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (val) {
+                    setDialogState(() {
+                      secilenEkip = val;
+                    });
+                  },
+                ),
+                TextField(
+                  controller: miktarController,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Yevmiye Adeti', labelStyle: TextStyle(color: Colors.white70)),
+                ),
+                TextField(
+                  controller: aciklamaController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Açıklama', labelStyle: TextStyle(color: Colors.white70)),
+                ),
+              ],
             ),
-            TextField(
-              controller: miktarController,
-              style: const TextStyle(color: Colors.white),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Yevmiye Adeti', labelStyle: TextStyle(color: Colors.white70)),
-            ),
-            TextField(
-              controller: aciklamaController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Açıklama', labelStyle: TextStyle(color: Colors.white70)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
-          ElevatedButton(
-            onPressed: () {
-              final oldKayit = item['kayit'] as GunlukKayit;
-              final newKayit = GunlukKayit(
-                tarih: oldKayit.tarih,
-                kalipci: oldKayit.kalipci,
-                demirci: oldKayit.demirci,
-                diger: oldKayit.diger,
-                kalipciYapilanIs: oldKayit.kalipciYapilanIs,
-                demirciYapilanIs: oldKayit.demirciYapilanIs,
-                notlar: oldKayit.notlar,
-                beton: oldKayit.beton,
-                fotografYollari: oldKayit.fotografYollari,
-                vincFirmaAdi: oldKayit.vincFirmaAdi,
-                vincBaslangic: oldKayit.vincBaslangic,
-                vincBitis: oldKayit.vincBitis,
-                vincMola: oldKayit.vincMola,
-                yevmiyeEkipAdi: ekipAdiController.text,
-                yevmiyeMiktari: double.tryParse(miktarController.text) ?? 0,
-                yevmiyeAciklama: aciklamaController.text,
-              );
-              widget.onGunlukKayitGuncelle(item['projeId'], item['kayitIndex'], newKayit);
-              Navigator.pop(context);
-              setState(() {});
-            },
-            child: const Text('Güncelle'),
-          ),
-        ],
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+              ElevatedButton(
+                onPressed: () {
+                  final oldKayit = item['kayit'] as GunlukKayit;
+                  final newKayit = GunlukKayit(
+                    tarih: oldKayit.tarih,
+                    kalipci: oldKayit.kalipci,
+                    demirci: oldKayit.demirci,
+                    diger: oldKayit.diger,
+                    kalipciYapilanIs: oldKayit.kalipciYapilanIs,
+                    demirciYapilanIs: oldKayit.demirciYapilanIs,
+                    notlar: oldKayit.notlar,
+                    beton: oldKayit.beton,
+                    fotografYollari: oldKayit.fotografYollari,
+                    vincFirmaAdi: oldKayit.vincFirmaAdi,
+                    vincBaslangic: oldKayit.vincBaslangic,
+                    vincBitis: oldKayit.vincBitis,
+                    vincMola: oldKayit.vincMola,
+                    yevmiyeEkipAdi: secilenEkip ?? '',
+                    yevmiyeMiktari: double.tryParse(miktarController.text) ?? 0,
+                    yevmiyeAciklama: aciklamaController.text,
+                  );
+                  widget.onGunlukKayitGuncelle(item['projeId'], item['kayitIndex'], newKayit);
+                  Navigator.pop(context);
+                  setState(() {});
+                },
+                child: const Text('Güncelle'),
+              ),
+            ],
+          );
+        }
       ),
     );
   }
