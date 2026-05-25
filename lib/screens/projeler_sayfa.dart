@@ -146,6 +146,7 @@ class ProjelerSayfaPage extends StatelessWidget {
               onKayitEkle: (kayit) => onGunlukKayitEkle(proje.id, kayit),
               onKayitGuncelle: (i, kayit) =>
                   onGunlukKayitGuncelle(proje.id, i, kayit),
+              projeGunlukKayitlari: projeGunlukKayitlari,
               ekipler: ekipler,
             ),
           ),

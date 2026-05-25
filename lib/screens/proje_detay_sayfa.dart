@@ -93,7 +93,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     vincBaslangicController.dispose();
     vincBitisController.dispose();
     vincMolaController.dispose();
-    yevmiyeEkipAdiController.dispose();
     yevmiyeMiktariController.dispose();
     yevmiyeAciklamaController.dispose();
     super.dispose();
