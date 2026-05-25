@@ -11,12 +11,16 @@ class YevmiyelerSayfaPage extends StatefulWidget {
   final List<Proje> projeler;
   final Map<String, List<GunlukKayit>> projeGunlukKayitlari;
   final Function(String, int, GunlukKayit) onGunlukKayitGuncelle;
+  final List<String> ekipler;
+  final Function(List<String>) onEkiplerGuncelle;
 
   const YevmiyelerSayfaPage({
     super.key,
     required this.projeler,
     required this.projeGunlukKayitlari,
     required this.onGunlukKayitGuncelle,
+    required this.ekipler,
+    required this.onEkiplerGuncelle,
   });
 
   @override
@@ -323,6 +327,90 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
     );
   }
 
+  void _ekipleriYonet() {
+    final yeniEkipController = TextEditingController();
+    List<String> tempEkipler = List.from(widget.ekipler);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: ThemeColors.cardBackground(context),
+            title: Text('Ekipleri Yönet', style: TextStyle(color: ThemeColors.textPrimary(context))),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: yeniEkipController,
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
+                          decoration: InputDecoration(
+                            hintText: 'Yeni ekip adı',
+                            hintStyle: TextStyle(color: ThemeColors.textSecondary(context)),
+                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.teal)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (yeniEkipController.text.isNotEmpty) {
+                            setDialogState(() {
+                              tempEkipler.add(yeniEkipController.text);
+                              yeniEkipController.clear();
+                            });
+                            widget.onEkiplerGuncelle(tempEkipler);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                        child: const Text('Ekle'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: tempEkipler.isEmpty
+                        ? Center(child: Text('Kayıtlı ekip yok.', style: TextStyle(color: ThemeColors.textSecondary(context))))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: tempEkipler.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                title: Text(tempEkipler[index], style: TextStyle(color: ThemeColors.textPrimary(context))),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      tempEkipler.removeAt(index);
+                                    });
+                                    widget.onEkiplerGuncelle(tempEkipler);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Kapat'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final liste = _getYevmiyeListesi();
@@ -333,6 +421,11 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
       appBar: AppBar(
         title: const Text('Yevmiye Takibi'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.group),
+            onPressed: _ekipleriYonet,
+            tooltip: 'Ekipleri Yönet',
+          ),
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _tarihFiltresiSec,

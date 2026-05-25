@@ -26,6 +26,26 @@ class StorageService {
     return File('$path/$filename');
   }
 
+  Future<void> saveEkipler(List<String> ekipler) async {
+    final file = await _getFile('ekipler.json');
+    final String jsonString = jsonEncode(ekipler);
+    await file.writeAsString(jsonString);
+    await _syncToFirestore('ekipler', jsonString);
+  }
+
+  Future<List<String>> loadEkipler() async {
+    try {
+      final file = await _getFile('ekipler.json');
+      if (!await file.exists()) return [];
+      final String contents = await file.readAsString();
+      final List<dynamic> jsonList = jsonDecode(contents);
+      return jsonList.map((e) => e.toString()).toList();
+    } catch (e) {
+      print('Ekipler yükleme hatası: $e');
+      return [];
+    }
+  }
+
   Future<void> saveProjects(List<Proje> projects) async {
     final file = await _getFile('projects.json');
     final String jsonString = jsonEncode(projects.map((p) => p.toJson()).toList());
@@ -288,7 +308,7 @@ class StorageService {
     final collections = [
       'projects', 'tasks', 'notes', 'reminders', 'locations', 
       'project_logs', 'sketches', 'faturalar', 'harcamalar', 
-      'malzemeler', 'pratik_bilgiler'
+      'malzemeler', 'pratik_bilgiler', 'ekipler'
     ];
 
     try {
@@ -415,7 +435,7 @@ class StorageService {
     final collections = [
       'projects', 'tasks', 'notes', 'reminders', 'locations', 
       'project_logs', 'sketches', 'faturalar', 'harcamalar', 
-      'malzemeler', 'pratik_bilgiler'
+      'malzemeler', 'pratik_bilgiler', 'ekipler'
     ];
 
     for (var col in collections) {

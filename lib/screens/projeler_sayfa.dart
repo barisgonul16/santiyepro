@@ -12,6 +12,7 @@ class ProjelerSayfaPage extends StatelessWidget {
   final Map<String, List<GunlukKayit>> projeGunlukKayitlari;
   final Function(String, GunlukKayit) onGunlukKayitEkle;
   final Function(String, int, GunlukKayit) onGunlukKayitGuncelle;
+  final List<String> ekipler;
 
   const ProjelerSayfaPage({
     super.key,
@@ -22,6 +23,7 @@ class ProjelerSayfaPage extends StatelessWidget {
     required this.projeGunlukKayitlari,
     required this.onGunlukKayitEkle,
     required this.onGunlukKayitGuncelle,
+    required this.ekipler,
   });
 
   @override
@@ -144,6 +146,7 @@ class ProjelerSayfaPage extends StatelessWidget {
               onKayitEkle: (kayit) => onGunlukKayitEkle(proje.id, kayit),
               onKayitGuncelle: (i, kayit) =>
                   onGunlukKayitGuncelle(proje.id, i, kayit),
+              ekipler: ekipler,
             ),
           ),
         );

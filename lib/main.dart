@@ -315,6 +315,7 @@ class _MainScreenState extends State<MainScreen> {
   List<Harcama> harcamalar = [];
   List<Malzeme> malzemeler = [];
   List<PratikBilgi> customPratikBilgiler = [];
+  List<String> ekipler = [];
 
   // Ayarlar
   AppSettings _appSettings = AppSettings();
@@ -394,6 +395,7 @@ class _MainScreenState extends State<MainScreen> {
     final loadedHarcamalar = await _storageService.loadHarcamalar();
     final loadedMalzemeler = await _storageService.loadMalzemeler();
     final loadedPratikBilgiler = await _storageService.loadPratikBilgiler();
+    final loadedEkipler = await _storageService.loadEkipler();
 
     setState(() {
       projeler = projects;
@@ -408,6 +410,7 @@ class _MainScreenState extends State<MainScreen> {
       harcamalar = loadedHarcamalar;
       malzemeler = loadedMalzemeler;
       customPratikBilgiler = loadedPratikBilgiler;
+      ekipler = loadedEkipler;
       
       // Varsayılan konumlar yoksa ekle (ilk açılış)
       if (savedLocations.isEmpty) {
@@ -762,25 +765,32 @@ class _MainScreenState extends State<MainScreen> {
      });
   }
 
-  void _pratikBilgiEkle(PratikBilgi yeniBilgi) {
+  void _pratikBilgiEkle(PratikBilgi bilgi) {
     setState(() {
-      customPratikBilgiler.add(yeniBilgi);
-      _storageService.savePratikBilgiler(customPratikBilgiler);
+      customPratikBilgiler.add(bilgi);
     });
+    _storageService.savePratikBilgiler(customPratikBilgiler);
   }
 
-  void _pratikBilgiGuncelle(int index, PratikBilgi yeniBilgi) {
+  void _pratikBilgiGuncelle(int index, PratikBilgi bilgi) {
     setState(() {
-      customPratikBilgiler[index] = yeniBilgi;
-      _storageService.savePratikBilgiler(customPratikBilgiler);
+      customPratikBilgiler[index] = bilgi;
     });
+    _storageService.savePratikBilgiler(customPratikBilgiler);
   }
 
   void _pratikBilgiSil(int index) {
     setState(() {
       customPratikBilgiler.removeAt(index);
-      _storageService.savePratikBilgiler(customPratikBilgiler);
     });
+    _storageService.savePratikBilgiler(customPratikBilgiler);
+  }
+
+  void _ekiplerGuncelle(List<String> yeniEkipler) {
+    setState(() {
+      ekipler = yeniEkipler;
+    });
+    _storageService.saveEkipler(ekipler);
   }
 
   // Finans
@@ -958,12 +968,15 @@ class _MainScreenState extends State<MainScreen> {
           projeGunlukKayitlari: projeGunlukKayitlari,
           onGunlukKayitEkle: _gunlukKayitEkle,
           onGunlukKayitGuncelle: _gunlukKayitGuncelle,
+          ekipler: ekipler,
         );
       case 2:
         return YevmiyelerSayfaPage(
           projeler: projeler,
           projeGunlukKayitlari: projeGunlukKayitlari,
           onGunlukKayitGuncelle: _gunlukKayitGuncelle,
+          ekipler: ekipler,
+          onEkiplerGuncelle: _ekiplerGuncelle,
         );
       case 3:
         return GorevlerSayfaPage(

@@ -17,6 +17,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   final List<GunlukKayit> gunlukKayitlar;
   final Function(GunlukKayit) onKayitEkle;
   final Function(int, GunlukKayit) onKayitGuncelle;
+  final Map<String, List<GunlukKayit>> projeGunlukKayitlari;
+  final List<String> ekipler;
 
   const ProjeDetaySayfa({
     super.key,
@@ -24,6 +26,8 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.gunlukKayitlar,
     required this.onKayitEkle,
     required this.onKayitGuncelle,
+    required this.projeGunlukKayitlari,
+    required this.ekipler,
   });
 
   @override
@@ -52,7 +56,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final vincMolaController = TextEditingController();
 
   // --- Yevmiye State Değişkenleri ---
-  final yevmiyeEkipAdiController = TextEditingController();
+  String? _secilenEkipAdi;
   final yevmiyeMiktariController = TextEditingController();
   final yevmiyeAciklamaController = TextEditingController();
 
@@ -116,7 +120,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     vincBaslangicController.text = kayit.vincBaslangic;
     vincBitisController.text = kayit.vincBitis;
     vincMolaController.text = kayit.vincMola > 0 ? kayit.vincMola.toString() : '';
-    yevmiyeEkipAdiController.text = kayit.yevmiyeEkipAdi;
+    _secilenEkipAdi = kayit.yevmiyeEkipAdi.isNotEmpty ? kayit.yevmiyeEkipAdi : null;
     yevmiyeMiktariController.text = kayit.yevmiyeMiktari > 0 ? kayit.yevmiyeMiktari.toString() : '';
     yevmiyeAciklamaController.text = kayit.yevmiyeAciklama;
     if (mounted) setState(() {});
@@ -232,7 +236,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         vincBaslangic: vincBaslangicController.text,
         vincBitis: vincBitisController.text,
         vincMola: int.tryParse(vincMolaController.text) ?? 0,
-        yevmiyeEkipAdi: yevmiyeEkipAdiController.text,
+        yevmiyeEkipAdi: _secilenEkipAdi ?? '',
         yevmiyeMiktari: double.tryParse(yevmiyeMiktariController.text) ?? 0,
         yevmiyeAciklama: yevmiyeAciklamaController.text,
       );
@@ -1141,7 +1145,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               fontSize: 14,
                             )),
                             const Spacer(),
-                            if (yevmiyeEkipAdiController.text.isNotEmpty ||
+                            if ((_secilenEkipAdi ?? '').isNotEmpty ||
                                 yevmiyeMiktariController.text.isNotEmpty ||
                                 yevmiyeAciklamaController.text.isNotEmpty)
                               GestureDetector(
@@ -1167,7 +1171,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   );
                                   if (onay == true) {
                                     setState(() {
-                                      yevmiyeEkipAdiController.clear();
+                                      _secilenEkipAdi = null;
                                       yevmiyeMiktariController.clear();
                                       yevmiyeAciklamaController.clear();
                                     });
@@ -1179,7 +1183,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                         ),
                         const SizedBox(height: 10),
                         Row(children: [
-                          Expanded(child: _buildMobileInputItem("Ekip Adı", yevmiyeEkipAdiController)),
+                          Expanded(child: _buildEkipDropdown()),
                           const SizedBox(width: 8),
                           Expanded(child: _buildMobileInputItem("Yevmiye", yevmiyeMiktariController, isNumeric: true)),
                         ]),
@@ -1362,6 +1366,56 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       ],
     );
   }
+
+  Widget _buildEkipDropdown() {
+    final ekipAdlari = List<String>.from(widget.ekipler)..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    
+    // Eğer seçilen ekip adı listede yoksa null yap (eski kayıtlar için)
+    if (_secilenEkipAdi != null && !ekipAdlari.contains(_secilenEkipAdi)) {
+      if (_secilenEkipAdi!.isNotEmpty) {
+        ekipAdlari.insert(0, _secilenEkipAdi!);
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text("Ekip Adı", style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.black12,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _secilenEkipAdi,
+              isExpanded: true,
+              hint: Text(
+                ekipAdlari.isEmpty ? 'Henüz ekip yok' : 'Ekip seçin...',
+                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 14),
+              ),
+              dropdownColor: ThemeColors.cardBackground(context),
+              style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
+              icon: Icon(Icons.arrow_drop_down, color: ThemeColors.textSecondary(context)),
+              isDense: true,
+              items: ekipAdlari.map((ekip) => DropdownMenuItem<String>(
+                value: ekip,
+                child: Text(ekip),
+              )).toList(),
+              onChanged: ekipAdlari.isEmpty ? null : (val) {
+                setState(() {
+                  _secilenEkipAdi = val;
+                });
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildDesktopGenelBakis() {
     final ilerleme = _ilerlemeHesapla();
