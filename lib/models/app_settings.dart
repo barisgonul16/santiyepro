@@ -3,7 +3,7 @@ class AppSettings {
   final bool isDarkMode;
 
   AppSettings({
-    this.bottomNavIndexes = const [0, 1, 10], // Ana Sayfa, Projeler, Haritalar
+    this.bottomNavIndexes = const [0, 1, 12], // Ana Sayfa, Projeler, Haritalar
     this.isDarkMode = true,
   });
 
@@ -18,7 +18,7 @@ class AppSettings {
     return AppSettings(
       bottomNavIndexes: json['bottomNavIndexes'] != null
           ? List<int>.from(json['bottomNavIndexes'])
-          : [0, 1, 10],
+          : [0, 1, 12],
       isDarkMode: json['isDarkMode'] ?? true,
     );
   }

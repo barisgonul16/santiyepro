@@ -31,10 +31,11 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
     {'index': 5, 'title': 'Pratik Bilgiler', 'icon': Icons.lightbulb, 'color': Colors.green},
     {'index': 6, 'title': 'Takvim', 'icon': Icons.calendar_today, 'color': Colors.cyan},
     {'index': 7, 'title': 'Faturalar', 'icon': Icons.attach_money, 'color': Colors.amber},
-    {'index': 8, 'title': 'Malzemeler', 'icon': Icons.build, 'color': Colors.brown},
-    {'index': 9, 'title': 'Eskizler', 'icon': Icons.brush, 'color': Colors.pink},
-    {'index': 10, 'title': 'Pomodoro', 'icon': Icons.timer, 'color': Colors.red},
-    {'index': 11, 'title': 'Haritalar', 'icon': Icons.map, 'color': Colors.teal},
+    {'index': 8, 'title': 'Yemek', 'icon': Icons.restaurant, 'color': Colors.orangeAccent},
+    {'index': 9, 'title': 'Malzemeler', 'icon': Icons.build, 'color': Colors.brown},
+    {'index': 10, 'title': 'Eskizler', 'icon': Icons.brush, 'color': Colors.pink},
+    {'index': 11, 'title': 'Pomodoro', 'icon': Icons.timer, 'color': Colors.red},
+    {'index': 12, 'title': 'Haritalar', 'icon': Icons.map, 'color': Colors.teal},
   ];
 
   @override
