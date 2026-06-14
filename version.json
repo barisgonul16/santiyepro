@@ -1,4 +1,4 @@
 {
-  "version": "1.3.1+11",
-  "notes": "v1.3.1 Güncellemesi: \n- Ana sayfadaki yönlendirme hataları giderildi.\n- Fotoğraf galerisine yana kaydırma (swipe) özelliği eklendi.\n- Yatay modda tam ekran fotoğraf görüntüleme iyileştirildi."
+  "version": "1.4.0+12",
+  "notes": "v1.4.0 Güncellemesi: \n- Yemek Takip Sistemi eklendi (Kalıpçı, Demirci ve Diğer çalışanlar için günlük yemek sayıları girilebilir).\n- Proje Detay sayfasında otomatik hesaplanan ve manuel değiştirilebilen yemek listesi eklendi.\n- Yeni Yemekler Sayfası eklendi: Şantiyelerdeki yemek sayılarını tarih ve şantiye bazlı filtreleyebilir, verileri Excel'e aktarabilirsiniz."
 }

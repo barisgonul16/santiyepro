@@ -49,6 +49,14 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final betonController = TextEditingController();
   List<String> fotograflar = [];
 
+  // --- Yemek State Değişkenleri ---
+  final yemekKalipciController = TextEditingController();
+  final yemekDemirciController = TextEditingController();
+  final yemekDigerController = TextEditingController();
+  bool isYemekKalipciManuel = false;
+  bool isYemekDemirciManuel = false;
+  bool isYemekDigerManuel = false;
+
   // --- Vinç State Değişkenleri ---
   final vincFirmaAdiController = TextEditingController();
   final vincBaslangicController = TextEditingController();
@@ -76,6 +84,22 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     puantajBaslangicTarihi = widget.proje.baslangicTarihi;
     puantajBitisTarihi = DateTime.now();
 
+    kalipciController.addListener(() {
+      if (!isYemekKalipciManuel) {
+        yemekKalipciController.text = kalipciController.text;
+      }
+    });
+    demirciController.addListener(() {
+      if (!isYemekDemirciManuel) {
+        yemekDemirciController.text = demirciController.text;
+      }
+    });
+    digerController.addListener(() {
+      if (!isYemekDigerManuel) {
+        yemekDigerController.text = digerController.text;
+      }
+    });
+
     _yukleKayit();
   }
 
@@ -95,6 +119,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     vincMolaController.dispose();
     yevmiyeMiktariController.dispose();
     yevmiyeAciklamaController.dispose();
+    yemekKalipciController.dispose();
+    yemekDemirciController.dispose();
+    yemekDigerController.dispose();
     super.dispose();
   }
 
@@ -110,6 +137,13 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     kalipciController.text = kayit.kalipci.toString();
     demirciController.text = kayit.demirci.toString();
     digerController.text = kayit.diger.toString();
+    
+    isYemekKalipciManuel = false;
+    isYemekDemirciManuel = false;
+    isYemekDigerManuel = false;
+    yemekKalipciController.text = kayit.yemekKalipci.toString();
+    yemekDemirciController.text = kayit.yemekDemirci.toString();
+    yemekDigerController.text = kayit.yemekDiger.toString();
     kalipciIsController.text = kayit.kalipciYapilanIs;
     demirciIsController.text = kayit.demirciYapilanIs;
     notlarController.text = kayit.notlar;
@@ -226,6 +260,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         kalipci: int.tryParse(kalipciController.text) ?? 0,
         demirci: int.tryParse(demirciController.text) ?? 0,
         diger: int.tryParse(digerController.text) ?? 0,
+        yemekKalipci: int.tryParse(yemekKalipciController.text) ?? 0,
+        yemekDemirci: int.tryParse(yemekDemirciController.text) ?? 0,
+        yemekDiger: int.tryParse(yemekDigerController.text) ?? 0,
         kalipciYapilanIs: kalipciIsController.text,
         demirciYapilanIs: demirciIsController.text,
         notlar: notlarController.text,
@@ -1192,6 +1229,50 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     ),
                   ),
                   const SizedBox(height: 15),
+
+                  // Yemek Kartı Eklentisi
+                  Card(
+                    color: ThemeColors.cardBackground(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 20),
+                              const SizedBox(width: 8),
+                              Text('Yemek Sayıları', style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildMobileInputItem("Kalıpçı Y.", yemekKalipciController, isNumeric: true, onChanged: (val) {
+                                  isYemekKalipciManuel = true;
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildMobileInputItem("Demirci Y.", yemekDemirciController, isNumeric: true, onChanged: (val) {
+                                  isYemekDemirciManuel = true;
+                                }),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildMobileInputItem("Diğer Y.", yemekDigerController, isNumeric: true, onChanged: (val) {
+                                  isYemekDigerManuel = true;
+                                }),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+
                   Row(
                     children: [
                       Expanded(
@@ -1343,7 +1424,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false}) {
+  Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false, Function(String)? onChanged}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1351,6 +1432,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         const SizedBox(height: 5),
         TextField(
           controller: controller,
+          onChanged: onChanged,
           style: TextStyle(color: ThemeColors.textPrimary(context)),
           maxLines: maxLines,
           keyboardType: isNumeric ? TextInputType.number : TextInputType.text,

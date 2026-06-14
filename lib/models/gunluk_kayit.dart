@@ -9,6 +9,11 @@ class GunlukKayit {
   String beton;
   List<String> fotografYollari; // Fotoğrafların yolları
 
+  // Yemek bilgileri
+  int yemekKalipci;
+  int yemekDemirci;
+  int yemekDiger;
+
   // Vinç bilgileri
   String vincFirmaAdi;
   String vincBaslangic; // "HH:mm" formatında
@@ -25,6 +30,9 @@ class GunlukKayit {
     this.kalipci = 0,
     this.demirci = 0,
     this.diger = 0,
+    this.yemekKalipci = 0,
+    this.yemekDemirci = 0,
+    this.yemekDiger = 0,
     this.kalipciYapilanIs = '',
     this.demirciYapilanIs = '',
     this.notlar = '',
@@ -43,6 +51,9 @@ class GunlukKayit {
         'kalipci': kalipci,
         'demirci': demirci,
         'diger': diger,
+        'yemekKalipci': yemekKalipci,
+        'yemekDemirci': yemekDemirci,
+        'yemekDiger': yemekDiger,
         'kalipciYapilanIs': kalipciYapilanIs,
         'demirciYapilanIs': demirciYapilanIs,
         'notlar': notlar,
@@ -63,6 +74,9 @@ class GunlukKayit {
       kalipci: json['kalipci'],
       demirci: json['demirci'],
       diger: json['diger'],
+      yemekKalipci: json['yemekKalipci'] ?? 0,
+      yemekDemirci: json['yemekDemirci'] ?? 0,
+      yemekDiger: json['yemekDiger'] ?? 0,
       kalipciYapilanIs: json['kalipciYapilanIs'],
       demirciYapilanIs: json['demirciYapilanIs'],
       notlar: json['notlar'],

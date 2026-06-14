@@ -14,6 +14,8 @@ import 'models/malzeme.dart';
 import 'models/pratik_bilgi.dart';
 import 'screens/ana_sayfa.dart';
 import 'screens/projeler_sayfa.dart';
+import 'screens/yevmiyeler_sayfa.dart';
+import 'screens/yemek_sayfa.dart';
 import 'screens/gorevler_sayfa.dart';
 import 'screens/notlar_sayfa.dart';
 import 'screens/pratik_bilgiler_sayfa.dart';
@@ -937,6 +939,7 @@ class _MainScreenState extends State<MainScreen> {
     {'icon': Icons.lightbulb, 'title': 'Pratik Bilgiler', 'color': Colors.green},
     {'icon': Icons.calendar_today, 'title': 'Takvim', 'color': Colors.cyan},
     {'icon': Icons.attach_money, 'title': 'Faturalar', 'color': Colors.amber},
+    {'icon': Icons.restaurant, 'title': 'Yemek', 'color': Colors.orangeAccent},
     {'icon': Icons.build, 'title': 'Malzemeler', 'color': Colors.brown},
     {'icon': Icons.brush, 'title': 'Eskizler', 'color': Colors.pink},
     {'icon': Icons.timer, 'title': 'Pomodoro', 'color': Colors.red},
@@ -1019,24 +1022,29 @@ class _MainScreenState extends State<MainScreen> {
           onHarcamaGuncelle: _harcamaGuncelle,
           onHesapSifirla: (archive, {isFatura}) => _hesapSifirla(isArchive: archive, isFatura: isFatura),
         );
-      case 8: // Malzemeler
+      case 8: // Yemek
+        return YemekSayfaPage(
+          projeler: projeler,
+          projeGunlukKayitlari: projeGunlukKayitlari,
+        );
+      case 9: // Malzemeler
         return MalzemelerSayfaPage(
           malzemeler: malzemeler,
           onMalzemeEkle: _malzemeEkle,
           onMalzemeGuncelle: _malzemeGuncelle,
           onMalzemeSil: _malzemeSil,
         );
-      case 9:
-        return const EskizlerSayfaPage();
       case 10:
-        return const PomodoroSayfaPage();
+        return const EskizlerSayfaPage();
       case 11:
+        return const PomodoroSayfaPage();
+      case 12:
         return HaritalarSayfaPage(
           savedLocations: savedLocations,
           onAddLocation: _konumEkle,
           onDeleteLocation: _konumSil,
         );
-      case 12: // Ayarlar
+      case 13: // Ayarlar
         return AyarlarSayfaPage(
           currentSettings: _appSettings,
           onSettingsChanged: _onSettingsChanged,
