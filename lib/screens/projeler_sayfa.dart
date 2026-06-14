@@ -113,12 +113,12 @@ class ProjelerSayfaPage extends StatelessWidget {
                             crossAxisCount: isMobile ? 1 : 3,
                             crossAxisSpacing: 20,
                             mainAxisSpacing: 20,
-                            childAspectRatio: isMobile ? 1.8 : 1.5,
+                            childAspectRatio: isMobile ? 1.6 : 1.5,
                           ),
                           itemCount: siraliProjeler.length,
                           itemBuilder: (context, index) {
                             final gercekIndex = projeler.indexOf(siraliProjeler[index]);
-                            return _buildProjeKart(context, gercekIndex, siraliProjeler[index]);
+                            return _buildProjeKart(context, gercekIndex, siraliProjeler[index], isMobile);
                           },
                         );
                       },
@@ -131,7 +131,7 @@ class ProjelerSayfaPage extends StatelessWidget {
     );
   }
 
-  Widget _buildProjeKart(BuildContext context, int index, Proje proje) {
+  Widget _buildProjeKart(BuildContext context, int index, Proje proje, bool isMobile) {
     final ilerleme = _ilerlemeHesapla(proje);
     final kayitlar = projeGunlukKayitlari[proje.id] ?? [];
 
@@ -153,7 +153,7 @@ class ProjelerSayfaPage extends StatelessWidget {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isMobile ? 15 : 20),
         decoration: BoxDecoration(
           color: proje.durum == "Tamamlandı" 
               ? Colors.green.withOpacity(0.2) 
