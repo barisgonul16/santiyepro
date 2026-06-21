@@ -194,6 +194,17 @@ class _AuthWrapperState extends State<AuthWrapper> {
   bool _splashAnimationComplete = false;
   bool _isDataReady = false;
   bool _startedLoading = false;
+  Stream<User?>? _authStream;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        _authStream = FirebaseAuth.instance.authStateChanges();
+      }
+    } catch (_) {}
+  }
 
   void _onSplashComplete() {
     setState(() {
@@ -224,15 +235,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    Stream<User?>? authStream;
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        authStream = FirebaseAuth.instance.authStateChanges();
-      }
-    } catch (_) {}
-
     return StreamBuilder<User?>(
-      stream: authStream,
+      stream: _authStream,
       builder: (context, snapshot) {
         // Firebase başlatılamadıysa direkt ana ekrana git (Çevrimdışı Mod / Windows)
         try {

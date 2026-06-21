@@ -163,8 +163,11 @@ class _LoginSayfaState extends State<LoginSayfa> {
                         side: const BorderSide(color: Colors.white24),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () async {
-                        setState(() => loading = true);
+                      onPressed: loading ? null : () async {
+                        setState(() {
+                          loading = true;
+                          error = '';
+                        });
                         try {
                           dynamic result = await _auth.signInWithGoogle();
                           if (result == null) {
@@ -174,17 +177,14 @@ class _LoginSayfaState extends State<LoginSayfa> {
                                 loading = false;
                               });
                             }
-                          } else {
-                            // Başarılı giriş
-                            if (mounted) {
-                              Navigator.pop(context);
-                            }
                           }
+                          // Başarılı girişte AuthWrapper otomatik yönlendirir,
+                          // Navigator.pop KULLANMIYORUZ — siyah ekrandan kaçınmak için
                         } catch (e) {
                           if (mounted) {
                             setState(() {
                               loading = false;
-                              error = 'Google giriş hatası: $e';
+                              error = 'Google giriş hatası: ${e.toString().length > 100 ? e.toString().substring(0, 100) : e}';
                             });
                           }
                         }

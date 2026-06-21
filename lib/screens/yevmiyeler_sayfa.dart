@@ -51,7 +51,30 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
       final kayitlar = widget.projeGunlukKayitlari[proje.id] ?? [];
       for (int i = 0; i < kayitlar.length; i++) {
         final kayit = kayitlar[i];
-        if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+        
+        final listToProcess = <Map<String, dynamic>>[];
+        if (kayit.yevmiyeler.isNotEmpty) {
+          for (int yIdx = 0; yIdx < kayit.yevmiyeler.length; yIdx++) {
+            final y = kayit.yevmiyeler[yIdx];
+            if (y.ekipAdi.isNotEmpty || y.miktar > 0) {
+              listToProcess.add({
+                'ekipAdi': y.ekipAdi,
+                'yevmiye': y.miktar,
+                'aciklama': y.aciklama,
+                'yevmiyeIndex': yIdx,
+              });
+            }
+          }
+        } else if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+          listToProcess.add({
+            'ekipAdi': kayit.yevmiyeEkipAdi,
+            'yevmiye': kayit.yevmiyeMiktari,
+            'aciklama': kayit.yevmiyeAciklama,
+            'yevmiyeIndex': -1,
+          });
+        }
+
+        for (var item in listToProcess) {
           // Ay Filtresi
           if (_useMonthlyFilter) {
             if (kayit.tarih.year != _selectedYear || kayit.tarih.month != _selectedMonth) continue;
@@ -62,8 +85,9 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
           }
 
           // Ekip Filtresi
+          final String ekip = item['ekipAdi'];
           if (_ekipFiltresi.isNotEmpty) {
-            if (!kayit.yevmiyeEkipAdi.toLowerCase().contains(_ekipFiltresi.toLowerCase())) continue;
+            if (!ekip.toLowerCase().contains(_ekipFiltresi.toLowerCase())) continue;
           }
 
           liste.add({
@@ -72,9 +96,10 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
             'kayit': kayit,
             'projeAdi': proje.ad,
             'tarih': kayit.tarih,
-            'ekipAdi': kayit.yevmiyeEkipAdi,
-            'yevmiye': kayit.yevmiyeMiktari,
-            'aciklama': kayit.yevmiyeAciklama,
+            'ekipAdi': ekip,
+            'yevmiye': item['yevmiye'],
+            'aciklama': item['aciklama'],
+            'yevmiyeIndex': item['yevmiyeIndex'],
           });
         }
       }
@@ -271,23 +296,37 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
               ElevatedButton(
                 onPressed: () {
                   final oldKayit = item['kayit'] as GunlukKayit;
+                  final newYevmiyeler = List<YevmiyeBilgisi>.from(oldKayit.yevmiyeler);
+                  final targetIdx = item['yevmiyeIndex'] as int;
+
+                  final updatedYevmiye = YevmiyeBilgisi(
+                    ekipAdi: secilenEkip ?? '',
+                    miktar: double.tryParse(miktarController.text) ?? 0,
+                    aciklama: aciklamaController.text,
+                  );
+
+                  if (targetIdx == -1) {
+                    newYevmiyeler.clear();
+                    newYevmiyeler.add(updatedYevmiye);
+                  } else {
+                    newYevmiyeler[targetIdx] = updatedYevmiye;
+                  }
+
                   final newKayit = GunlukKayit(
                     tarih: oldKayit.tarih,
                     kalipci: oldKayit.kalipci,
                     demirci: oldKayit.demirci,
                     diger: oldKayit.diger,
+                    yemekKalipci: oldKayit.yemekKalipci,
+                    yemekDemirci: oldKayit.yemekDemirci,
+                    yemekDiger: oldKayit.yemekDiger,
                     kalipciYapilanIs: oldKayit.kalipciYapilanIs,
                     demirciYapilanIs: oldKayit.demirciYapilanIs,
                     notlar: oldKayit.notlar,
                     beton: oldKayit.beton,
                     fotografYollari: oldKayit.fotografYollari,
-                    vincFirmaAdi: oldKayit.vincFirmaAdi,
-                    vincBaslangic: oldKayit.vincBaslangic,
-                    vincBitis: oldKayit.vincBitis,
-                    vincMola: oldKayit.vincMola,
-                    yevmiyeEkipAdi: secilenEkip ?? '',
-                    yevmiyeMiktari: double.tryParse(miktarController.text) ?? 0,
-                    yevmiyeAciklama: aciklamaController.text,
+                    vincler: oldKayit.vincler,
+                    yevmiyeler: newYevmiyeler,
                   );
                   widget.onGunlukKayitGuncelle(item['projeId'], item['kayitIndex'], newKayit);
                   Navigator.pop(context);
@@ -315,23 +354,30 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               final oldKayit = item['kayit'] as GunlukKayit;
+              final newYevmiyeler = List<YevmiyeBilgisi>.from(oldKayit.yevmiyeler);
+              final targetIdx = item['yevmiyeIndex'] as int;
+
+              if (targetIdx == -1) {
+                newYevmiyeler.clear();
+              } else {
+                newYevmiyeler.removeAt(targetIdx);
+              }
+
               final newKayit = GunlukKayit(
                 tarih: oldKayit.tarih,
                 kalipci: oldKayit.kalipci,
                 demirci: oldKayit.demirci,
                 diger: oldKayit.diger,
+                yemekKalipci: oldKayit.yemekKalipci,
+                yemekDemirci: oldKayit.yemekDemirci,
+                yemekDiger: oldKayit.yemekDiger,
                 kalipciYapilanIs: oldKayit.kalipciYapilanIs,
                 demirciYapilanIs: oldKayit.demirciYapilanIs,
                 notlar: oldKayit.notlar,
                 beton: oldKayit.beton,
                 fotografYollari: oldKayit.fotografYollari,
-                vincFirmaAdi: oldKayit.vincFirmaAdi,
-                vincBaslangic: oldKayit.vincBaslangic,
-                vincBitis: oldKayit.vincBitis,
-                vincMola: oldKayit.vincMola,
-                yevmiyeEkipAdi: '',
-                yevmiyeMiktari: 0,
-                yevmiyeAciklama: '',
+                vincler: oldKayit.vincler,
+                yevmiyeler: newYevmiyeler,
               );
               widget.onGunlukKayitGuncelle(item['projeId'], item['kayitIndex'], newKayit);
               Navigator.pop(context);

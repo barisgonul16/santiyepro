@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/proje.dart';
 import '../models/gunluk_kayit.dart';
 import 'package:file_picker/file_picker.dart' as pkr;
-import 'package:path_provider/path_provider.dart'; // Dosya kaydı için gerekli paket
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
@@ -11,6 +10,44 @@ import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+
+class VincFormControllers {
+  final firmaAdiController = TextEditingController();
+  final baslangicController = TextEditingController();
+  final bitisController = TextEditingController();
+  final molaController = TextEditingController();
+
+  VincFormControllers({String firma = '', String baslangic = '', String bitis = '', String mola = ''}) {
+    firmaAdiController.text = firma;
+    baslangicController.text = baslangic;
+    bitisController.text = bitis;
+    molaController.text = mola;
+  }
+
+  void dispose() {
+    firmaAdiController.dispose();
+    baslangicController.dispose();
+    bitisController.dispose();
+    molaController.dispose();
+  }
+}
+
+class YevmiyeFormControllers {
+  String? secilenEkipAdi;
+  final miktarController = TextEditingController();
+  final aciklamaController = TextEditingController();
+
+  YevmiyeFormControllers({String? ekip, String miktar = '', String aciklama = ''}) {
+    secilenEkipAdi = ekip;
+    miktarController.text = miktar;
+    aciklamaController.text = aciklama;
+  }
+
+  void dispose() {
+    miktarController.dispose();
+    aciklamaController.dispose();
+  }
+}
 
 class ProjeDetaySayfa extends StatefulWidget {
   final Proje proje;
@@ -58,15 +95,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   bool isYemekDigerManuel = false;
 
   // --- Vinç State Değişkenleri ---
-  final vincFirmaAdiController = TextEditingController();
-  final vincBaslangicController = TextEditingController();
-  final vincBitisController = TextEditingController();
-  final vincMolaController = TextEditingController();
+  final List<VincFormControllers> _vincFormList = [];
 
   // --- Yevmiye State Değişkenleri ---
-  String? _secilenEkipAdi;
-  final yevmiyeMiktariController = TextEditingController();
-  final yevmiyeAciklamaController = TextEditingController();
+  final List<YevmiyeFormControllers> _yevmiyeFormList = [];
 
   // --- Puantaj State Değişkenleri ---
   late TabController _tabController;
@@ -84,22 +116,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     puantajBaslangicTarihi = widget.proje.baslangicTarihi;
     puantajBitisTarihi = DateTime.now();
 
-    kalipciController.addListener(() {
-      if (!isYemekKalipciManuel) {
-        yemekKalipciController.text = kalipciController.text;
-      }
-    });
-    demirciController.addListener(() {
-      if (!isYemekDemirciManuel) {
-        yemekDemirciController.text = demirciController.text;
-      }
-    });
-    digerController.addListener(() {
-      if (!isYemekDigerManuel) {
-        yemekDigerController.text = digerController.text;
-      }
-    });
-
     _yukleKayit();
   }
 
@@ -113,15 +129,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     demirciIsController.dispose();
     notlarController.dispose();
     betonController.dispose();
-    vincFirmaAdiController.dispose();
-    vincBaslangicController.dispose();
-    vincBitisController.dispose();
-    vincMolaController.dispose();
-    yevmiyeMiktariController.dispose();
-    yevmiyeAciklamaController.dispose();
     yemekKalipciController.dispose();
     yemekDemirciController.dispose();
     yemekDigerController.dispose();
+    for (var ctrl in _vincFormList) {
+      ctrl.dispose();
+    }
+    for (var ctrl in _yevmiyeFormList) {
+      ctrl.dispose();
+    }
     super.dispose();
   }
 
@@ -149,13 +165,44 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     notlarController.text = kayit.notlar;
     betonController.text = kayit.beton;
     fotograflar = List.from(kayit.fotografYollari);
-    vincFirmaAdiController.text = kayit.vincFirmaAdi;
-    vincBaslangicController.text = kayit.vincBaslangic;
-    vincBitisController.text = kayit.vincBitis;
-    vincMolaController.text = kayit.vincMola > 0 ? kayit.vincMola.toString() : '';
-    _secilenEkipAdi = kayit.yevmiyeEkipAdi.isNotEmpty ? kayit.yevmiyeEkipAdi : null;
-    yevmiyeMiktariController.text = kayit.yevmiyeMiktari > 0 ? kayit.yevmiyeMiktari.toString() : '';
-    yevmiyeAciklamaController.text = kayit.yevmiyeAciklama;
+
+    // Vinç listesini temizle ve yükle
+    for (var ctrl in _vincFormList) {
+      ctrl.dispose();
+    }
+    _vincFormList.clear();
+
+    if (kayit.vincler.isNotEmpty) {
+      for (var v in kayit.vincler) {
+        _vincFormList.add(VincFormControllers(
+          firma: v.firmaAdi,
+          baslangic: v.baslangic,
+          bitis: v.bitis,
+          mola: v.mola > 0 ? v.mola.toString() : '',
+        ));
+      }
+    } else {
+      _vincFormList.add(VincFormControllers());
+    }
+
+    // Yevmiye listesini temizle ve yükle
+    for (var ctrl in _yevmiyeFormList) {
+      ctrl.dispose();
+    }
+    _yevmiyeFormList.clear();
+
+    if (kayit.yevmiyeler.isNotEmpty) {
+      for (var y in kayit.yevmiyeler) {
+        _yevmiyeFormList.add(YevmiyeFormControllers(
+          ekip: y.ekipAdi.isNotEmpty ? y.ekipAdi : null,
+          miktar: y.miktar > 0 ? y.miktar.toString() : '',
+          aciklama: y.aciklama,
+        ));
+      }
+    } else {
+      _yevmiyeFormList.add(YevmiyeFormControllers());
+    }
+
     if (mounted) setState(() {});
   }
 
@@ -231,7 +278,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     try {
       // Fotoğrafları Firebase Storage'a yükle
       List<String> yuklenenYollar = [];
-      int basariliYukleme = 0;
       int hataliYukleme = 0;
 
       for (String p in fotograflar) {
@@ -240,7 +286,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           String? url = await _imageService.uploadImage(p);
           if (url != null) {
             yuklenenYollar.add(url);
-            basariliYukleme++;
           } else {
             yuklenenYollar.add(p); // Yükleme başarısız olursa yerel yolu tut
             hataliYukleme++;
@@ -268,13 +313,26 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         notlar: notlarController.text,
         beton: betonController.text,
         fotografYollari: List.from(fotograflar),
-        vincFirmaAdi: vincFirmaAdiController.text,
-        vincBaslangic: vincBaslangicController.text,
-        vincBitis: vincBitisController.text,
-        vincMola: int.tryParse(vincMolaController.text) ?? 0,
-        yevmiyeEkipAdi: _secilenEkipAdi ?? '',
-        yevmiyeMiktari: double.tryParse(yevmiyeMiktariController.text) ?? 0,
-        yevmiyeAciklama: yevmiyeAciklamaController.text,
+        vincler: _vincFormList
+            .where((v) =>
+                v.firmaAdiController.text.isNotEmpty ||
+                v.baslangicController.text.isNotEmpty ||
+                v.bitisController.text.isNotEmpty)
+            .map((v) => VincBilgisi(
+                  firmaAdi: v.firmaAdiController.text,
+                  baslangic: v.baslangicController.text,
+                  bitis: v.bitisController.text,
+                  mola: int.tryParse(v.molaController.text) ?? 0,
+                ))
+            .toList(),
+        yevmiyeler: _yevmiyeFormList
+            .where((y) => (y.secilenEkipAdi ?? '').isNotEmpty || y.miktarController.text.isNotEmpty)
+            .map((y) => YevmiyeBilgisi(
+                  ekipAdi: y.secilenEkipAdi ?? '',
+                  miktar: double.tryParse(y.miktarController.text) ?? 0.0,
+                  aciklama: y.aciklamaController.text,
+                ))
+            .toList(),
       );
 
       final mevcutIndex = widget.gunlukKayitlar.indexWhere(
@@ -519,7 +577,21 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           xls.TextCellValue(kopyalananFotolar.join(", ")),
         ]);
         
-        if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
+        if (kayit.vincler.isNotEmpty) {
+          for (var v in kayit.vincler) {
+            if (v.firmaAdi.isNotEmpty || v.baslangic.isNotEmpty) {
+              final netSaat = _hesaplaVincNetSaat(v.baslangic, v.bitis, v.mola);
+              vincSheet.appendRow([
+                xls.TextCellValue(tarihStr),
+                xls.TextCellValue(v.firmaAdi),
+                xls.TextCellValue(v.baslangic),
+                xls.TextCellValue(v.bitis),
+                xls.IntCellValue(v.mola),
+                xls.TextCellValue(netSaat),
+              ]);
+            }
+          }
+        } else if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
           final netSaat = _hesaplaVincNetSaat(kayit.vincBaslangic, kayit.vincBitis, kayit.vincMola);
           vincSheet.appendRow([
             xls.TextCellValue(tarihStr),
@@ -532,7 +604,18 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         }
 
         // Yevmiye Bilgilerini Ekle
-        if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+        if (kayit.yevmiyeler.isNotEmpty) {
+          for (var y in kayit.yevmiyeler) {
+            if (y.ekipAdi.isNotEmpty || y.miktar > 0) {
+              yevmiyeSheet.appendRow([
+                xls.TextCellValue(tarihStr),
+                xls.TextCellValue(y.ekipAdi),
+                xls.DoubleCellValue(y.miktar),
+                xls.TextCellValue(y.aciklama),
+              ]);
+            }
+          }
+        } else if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
           yevmiyeSheet.appendRow([
             xls.TextCellValue(tarihStr),
             xls.TextCellValue(kayit.yevmiyeEkipAdi),
@@ -678,10 +761,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       csvData += "${kayit.notlar.replaceAll(';', ',')};";
       csvData += "${kayit.beton.replaceAll(';', ',')};";
       csvData += "${kayit.fotografYollari.length};";
-      csvData += "${kayit.vincFirmaAdi.replaceAll(';', ',')};";
-      csvData += "${kayit.vincBaslangic};";
-      csvData += "${kayit.vincBitis};";
-      csvData += "${kayit.vincMola}\n";
+      final vFirma = kayit.vincler.isNotEmpty ? kayit.vincler.map((v) => v.firmaAdi).join(', ') : kayit.vincFirmaAdi;
+      final vBaslangic = kayit.vincler.isNotEmpty ? kayit.vincler.map((v) => v.baslangic).join(', ') : kayit.vincBaslangic;
+      final vBitis = kayit.vincler.isNotEmpty ? kayit.vincler.map((v) => v.bitis).join(', ') : kayit.vincBitis;
+      final vMola = kayit.vincler.isNotEmpty ? kayit.vincler.map((v) => v.mola.toString()).join(', ') : kayit.vincMola.toString();
+
+      csvData += "${vFirma.replaceAll(';', ',')};";
+      csvData += "$vBaslangic;";
+      csvData += "$vBitis;";
+      csvData += "$vMola\n";
     }
 
     try {
@@ -1060,10 +1148,22 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               fontSize: 14,
                             )),
                             const Spacer(),
-                            if (vincFirmaAdiController.text.isNotEmpty ||
-                                vincBaslangicController.text.isNotEmpty ||
-                                vincBitisController.text.isNotEmpty ||
-                                vincMolaController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.orange, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() {
+                                  _vincFormList.add(VincFormControllers());
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            if (_vincFormList.any((v) =>
+                                v.firmaAdiController.text.isNotEmpty ||
+                                v.baslangicController.text.isNotEmpty ||
+                                v.bitisController.text.isNotEmpty ||
+                                v.molaController.text.isNotEmpty))
                               GestureDetector(
                                 onTap: () async {
                                   final onay = await showDialog<bool>(
@@ -1087,10 +1187,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   );
                                   if (onay == true) {
                                     setState(() {
-                                      vincFirmaAdiController.clear();
-                                      vincBaslangicController.clear();
-                                      vincBitisController.clear();
-                                      vincMolaController.clear();
+                                      for (var ctrl in _vincFormList) {
+                                        ctrl.dispose();
+                                      }
+                                      _vincFormList.clear();
+                                      _vincFormList.add(VincFormControllers());
                                     });
                                   }
                                 },
@@ -1099,63 +1200,94 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           ],
                         ),
                         const SizedBox(height: 10),
-                        _buildMobileInputItem("Firma Adı", vincFirmaAdiController),
-                        const SizedBox(height: 8),
-                        Row(children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: vincBaslangicController.text.isNotEmpty
-                                      ? TimeOfDay(
-                                          hour: int.parse(vincBaslangicController.text.split(':')[0]),
-                                          minute: int.parse(vincBaslangicController.text.split(':')[1]),
-                                        )
-                                      : const TimeOfDay(hour: 8, minute: 0),
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    vincBaslangicController.text =
-                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                                  });
-                                }
-                              },
-                              child: AbsorbPointer(
-                                child: _buildMobileInputItem("Başlangıç", vincBaslangicController),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                final picked = await showTimePicker(
-                                  context: context,
-                                  initialTime: vincBitisController.text.isNotEmpty
-                                      ? TimeOfDay(
-                                          hour: int.parse(vincBitisController.text.split(':')[0]),
-                                          minute: int.parse(vincBitisController.text.split(':')[1]),
-                                        )
-                                      : const TimeOfDay(hour: 18, minute: 0),
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    vincBitisController.text =
-                                        '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-                                  });
-                                }
-                              },
-                              child: AbsorbPointer(
-                                child: _buildMobileInputItem("Bitiş", vincBitisController),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: _buildMobileInputItem("Mola (dk)", vincMolaController, isNumeric: true),
-                          ),
-                        ]),
+                        ..._vincFormList.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final ctrl = entry.value;
+                          return Column(
+                            key: ValueKey(ctrl),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (idx > 0) ...[
+                                const SizedBox(height: 10),
+                                Divider(color: Colors.orange.withOpacity(0.3)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${idx + 1}. Vinç', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        setState(() {
+                                          ctrl.dispose();
+                                          _vincFormList.removeAt(idx);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              _buildMobileInputItem("Firma Adı", ctrl.firmaAdiController),
+                              const SizedBox(height: 8),
+                              Row(children: [
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: ctrl.baslangicController.text.isNotEmpty
+                                            ? TimeOfDay(
+                                                hour: int.parse(ctrl.baslangicController.text.split(':')[0]),
+                                                minute: int.parse(ctrl.baslangicController.text.split(':')[1]),
+                                              )
+                                            : const TimeOfDay(hour: 8, minute: 0),
+                                      );
+                                      if (picked != null) {
+                                        setState(() {
+                                          ctrl.baslangicController.text =
+                                              '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                        });
+                                      }
+                                    },
+                                    child: AbsorbPointer(
+                                      child: _buildMobileInputItem("Başlangıç", ctrl.baslangicController),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showTimePicker(
+                                        context: context,
+                                        initialTime: ctrl.bitisController.text.isNotEmpty
+                                            ? TimeOfDay(
+                                                hour: int.parse(ctrl.bitisController.text.split(':')[0]),
+                                                minute: int.parse(ctrl.bitisController.text.split(':')[1]),
+                                              )
+                                            : const TimeOfDay(hour: 18, minute: 0),
+                                      );
+                                      if (picked != null) {
+                                        setState(() {
+                                          ctrl.bitisController.text =
+                                              '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+                                        });
+                                      }
+                                    },
+                                    child: AbsorbPointer(
+                                      child: _buildMobileInputItem("Bitiş", ctrl.bitisController),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildMobileInputItem("Mola (dk)", ctrl.molaController, isNumeric: true),
+                                ),
+                              ]),
+                            ],
+                          );
+                        }).toList(),
                       ],
                     ),
                   ),
@@ -1181,9 +1313,21 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               fontSize: 14,
                             )),
                             const Spacer(),
-                            if ((_secilenEkipAdi ?? '').isNotEmpty ||
-                                yevmiyeMiktariController.text.isNotEmpty ||
-                                yevmiyeAciklamaController.text.isNotEmpty)
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.purple, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() {
+                                  _yevmiyeFormList.add(YevmiyeFormControllers());
+                                });
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            if (_yevmiyeFormList.any((y) =>
+                                (y.secilenEkipAdi ?? '').isNotEmpty ||
+                                y.miktarController.text.isNotEmpty ||
+                                y.aciklamaController.text.isNotEmpty))
                               GestureDetector(
                                 onTap: () async {
                                   final onay = await showDialog<bool>(
@@ -1207,9 +1351,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   );
                                   if (onay == true) {
                                     setState(() {
-                                      _secilenEkipAdi = null;
-                                      yevmiyeMiktariController.clear();
-                                      yevmiyeAciklamaController.clear();
+                                      for (var ctrl in _yevmiyeFormList) {
+                                        ctrl.dispose();
+                                      }
+                                      _yevmiyeFormList.clear();
+                                      _yevmiyeFormList.add(YevmiyeFormControllers());
                                     });
                                   }
                                 },
@@ -1218,13 +1364,44 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Row(children: [
-                          Expanded(child: _buildEkipDropdown()),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildMobileInputItem("Yevmiye", yevmiyeMiktariController, isNumeric: true)),
-                        ]),
-                        const SizedBox(height: 8),
-                        _buildMobileInputItem("Açıklama", yevmiyeAciklamaController),
+                        ..._yevmiyeFormList.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final ctrl = entry.value;
+                          return Column(
+                            key: ValueKey(ctrl),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (idx > 0) ...[
+                                const SizedBox(height: 10),
+                                Divider(color: Colors.purple.withOpacity(0.3)),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${idx + 1}. Yevmiye', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    IconButton(
+                                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () {
+                                        setState(() {
+                                          ctrl.dispose();
+                                          _yevmiyeFormList.removeAt(idx);
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              Row(children: [
+                                Expanded(child: _buildEkipDropdownForIndex(ctrl)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildMobileInputItem("Yevmiye", ctrl.miktarController, isNumeric: true)),
+                              ]),
+                              const SizedBox(height: 8),
+                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController),
+                            ],
+                          );
+                        }).toList(),
                       ],
                     ),
                   ),
@@ -1448,13 +1625,13 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  Widget _buildEkipDropdown() {
+  Widget _buildEkipDropdownForIndex(YevmiyeFormControllers ctrl) {
     final ekipAdlari = List<String>.from(widget.ekipler)..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     
     // Eğer seçilen ekip adı listede yoksa null yap (eski kayıtlar için)
-    if (_secilenEkipAdi != null && !ekipAdlari.contains(_secilenEkipAdi)) {
-      if (_secilenEkipAdi!.isNotEmpty) {
-        ekipAdlari.insert(0, _secilenEkipAdi!);
+    if (ctrl.secilenEkipAdi != null && !ekipAdlari.contains(ctrl.secilenEkipAdi)) {
+      if (ctrl.secilenEkipAdi!.isNotEmpty) {
+        ekipAdlari.insert(0, ctrl.secilenEkipAdi!);
       }
     }
 
@@ -1471,7 +1648,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _secilenEkipAdi,
+              value: ctrl.secilenEkipAdi,
               isExpanded: true,
               hint: Text(
                 ekipAdlari.isEmpty ? 'Henüz ekip yok' : 'Ekip seçin...',
@@ -1487,7 +1664,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               )).toList(),
               onChanged: ekipAdlari.isEmpty ? null : (val) {
                 setState(() {
-                  _secilenEkipAdi = val;
+                  ctrl.secilenEkipAdi = val;
                 });
               },
             ),
@@ -1905,38 +2082,65 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                     DataColumn(label: Text('Mola (dk)', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
                                     DataColumn(label: Text('Net Çalışma', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)), numeric: true),
                                   ],
-                                  rows: [
-                                    ...kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).map((kayit) {
-                                      final netSaat = _hesaplaVincNetSaat(kayit.vincBaslangic, kayit.vincBitis, kayit.vincMola);
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
-                                          DataCell(Text(kayit.vincFirmaAdi, style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.vincBaslangic, style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.vincBitis, style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.vincMola > 0 ? kayit.vincMola.toString() : '-', style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text("$netSaat sa", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold))),
-                                        ],
-                                      );
-                                    }).toList(),
-                                    if (kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).isNotEmpty)
-                                      DataRow(
-                                        color: MaterialStateProperty.all(Colors.orange.withOpacity(0.05)),
-                                        cells: [
-                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14))),
-                                          const DataCell(Text("")),
-                                          const DataCell(Text("")),
-                                          const DataCell(Text("")),
-                                          const DataCell(Text("")),
-                                          DataCell(
-                                            Text(
-                                              "${kayitlar.where((k) => k.vincFirmaAdi.isNotEmpty || k.vincBaslangic.isNotEmpty).map((k) => double.tryParse(_hesaplaVincNetSaat(k.vincBaslangic, k.vincBitis, k.vincMola)) ?? 0.0).fold(0.0, (sum, val) => sum + val).toStringAsFixed(1)} sa",
-                                              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
+                                  rows: () {
+                                    final allVincler = <Map<String, dynamic>>[];
+                                    for (var kayit in kayitlar) {
+                                      if (kayit.vincler.isNotEmpty) {
+                                        for (var v in kayit.vincler) {
+                                          if (v.firmaAdi.isNotEmpty || v.baslangic.isNotEmpty) {
+                                            allVincler.add({
+                                              'tarih': kayit.tarih,
+                                              'firmaAdi': v.firmaAdi,
+                                              'baslangic': v.baslangic,
+                                              'bitis': v.bitis,
+                                              'mola': v.mola,
+                                            });
+                                          }
+                                        }
+                                      } else if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
+                                        allVincler.add({
+                                          'tarih': kayit.tarih,
+                                          'firmaAdi': kayit.vincFirmaAdi,
+                                          'baslangic': kayit.vincBaslangic,
+                                          'bitis': kayit.vincBitis,
+                                          'mola': kayit.vincMola,
+                                        });
+                                      }
+                                    }
+                                    return [
+                                      ...allVincler.map((v) {
+                                        final netSaat = _hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola']);
+                                        final DateTime tarih = v['tarih'];
+                                        return DataRow(
+                                          cells: [
+                                            DataCell(Text("${tarih.day}.${tarih.month}.${tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                                            DataCell(Text(v['firmaAdi'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                            DataCell(Text(v['baslangic'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                            DataCell(Text(v['bitis'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                            DataCell(Text(v['mola'] > 0 ? v['mola'].toString() : '-', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                            DataCell(Text("$netSaat sa", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold))),
+                                          ],
+                                        );
+                                      }).toList(),
+                                      if (allVincler.isNotEmpty)
+                                        DataRow(
+                                          color: MaterialStateProperty.all(Colors.orange.withOpacity(0.05)),
+                                          cells: [
+                                            DataCell(Text("TOPLAM", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14))),
+                                            const DataCell(Text("")),
+                                            const DataCell(Text("")),
+                                            const DataCell(Text("")),
+                                            const DataCell(Text("")),
+                                            DataCell(
+                                              Text(
+                                                "${allVincler.map((v) => double.tryParse(_hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0.0).fold(0.0, (sum, val) => sum + val).toStringAsFixed(1)} sa",
+                                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
+                                              ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
+                                          ],
+                                        ),
+                                    ];
+                                  }(),
                                 ),
                               ),
                             ),
@@ -1957,33 +2161,58 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                     DataColumn(label: Text('Adet', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
                                     DataColumn(label: Text('Açıklama', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold))),
                                   ],
-                                  rows: [
-                                    ...kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).map((kayit) {
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
-                                          DataCell(Text(kayit.yevmiyeEkipAdi, style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.yevmiyeMiktari.toString(), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
-                                          DataCell(Text(kayit.yevmiyeAciklama, style: TextStyle(color: ThemeColors.textSecondary(context), fontStyle: FontStyle.italic))),
-                                        ],
-                                      );
-                                    }).toList(),
-                                    if (kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).isNotEmpty)
-                                      DataRow(
-                                        color: MaterialStateProperty.all(Colors.purple.withOpacity(0.05)),
-                                        cells: [
-                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14))),
-                                          const DataCell(Text("")),
-                                          DataCell(
-                                            Text(
-                                              kayitlar.where((k) => k.yevmiyeEkipAdi.isNotEmpty || k.yevmiyeMiktari > 0).map((k) => k.yevmiyeMiktari).fold(0.0, (sum, val) => sum + val).toString(),
-                                              style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                                  rows: () {
+                                    final allYevmiyeler = <Map<String, dynamic>>[];
+                                    for (var kayit in kayitlar) {
+                                      if (kayit.yevmiyeler.isNotEmpty) {
+                                        for (var y in kayit.yevmiyeler) {
+                                          if (y.ekipAdi.isNotEmpty || y.miktar > 0) {
+                                            allYevmiyeler.add({
+                                              'tarih': kayit.tarih,
+                                              'ekipAdi': y.ekipAdi,
+                                              'miktar': y.miktar,
+                                              'aciklama': y.aciklama,
+                                            });
+                                          }
+                                        }
+                                      } else if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+                                        allYevmiyeler.add({
+                                          'tarih': kayit.tarih,
+                                          'ekipAdi': kayit.yevmiyeEkipAdi,
+                                          'miktar': kayit.yevmiyeMiktari,
+                                          'aciklama': kayit.yevmiyeAciklama,
+                                        });
+                                      }
+                                    }
+                                    return [
+                                      ...allYevmiyeler.map((y) {
+                                        final DateTime tarih = y['tarih'];
+                                        return DataRow(
+                                          cells: [
+                                            DataCell(Text("${tarih.day}.${tarih.month}.${tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                                            DataCell(Text(y['ekipAdi'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                                            DataCell(Text(y['miktar'].toString(), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
+                                            DataCell(Text(y['aciklama'], style: TextStyle(color: ThemeColors.textSecondary(context), fontStyle: FontStyle.italic))),
+                                          ],
+                                        );
+                                      }).toList(),
+                                      if (allYevmiyeler.isNotEmpty)
+                                        DataRow(
+                                          color: MaterialStateProperty.all(Colors.purple.withOpacity(0.05)),
+                                          cells: [
+                                            DataCell(Text("TOPLAM", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14))),
+                                            const DataCell(Text("")),
+                                            DataCell(
+                                              Text(
+                                                allYevmiyeler.map((y) => y['miktar'] as double).fold(0.0, (sum, val) => sum + val).toString(),
+                                                style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
+                                              ),
                                             ),
-                                          ),
-                                          const DataCell(Text("")),
-                                        ],
-                                      ),
-                                  ],
+                                            const DataCell(Text("")),
+                                          ],
+                                        ),
+                                    ];
+                                  }(),
                                 ),
                               ),
                             ),
