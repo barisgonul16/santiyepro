@@ -20,6 +20,33 @@ class _LoginSayfaState extends State<LoginSayfa> {
   bool loading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _attemptSilentGoogleLogin();
+  }
+
+  Future<void> _attemptSilentGoogleLogin() async {
+    try {
+      setState(() {
+        loading = true;
+      });
+      final user = await _auth.signInWithGoogleSilently();
+      if (user != null) {
+        print("LOG: Silent login successful!");
+        return;
+      }
+    } catch (e) {
+      print("LOG: Silent Google login attempt failed or no cached credentials: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          loading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a1a),

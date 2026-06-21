@@ -73,9 +73,7 @@ class AuthService {
       print("Register error: $e");
       return null;
     }
-  }
-
-  // Sign in with Google
+  }  // Sign in with Google
   Future<User?> signInWithGoogle() async {
     print("LOG: signInWithGoogle started");
     String? accessToken;
@@ -83,15 +81,9 @@ class AuthService {
 
     try {
       if (Platform.isWindows) {
-        print("LOG: Windows platform detected, forcing fresh session...");
+        print("LOG: Windows platform detected...");
         try {
-          // Önemli: Eski/Süresi dolmuş tokenları temizlemek için önce çıkış yapıyoruz
-          try {
-            print("LOG: Clearing cache...");
-            await _googleSignInWindows.signOut();
-          } catch (_) {}
-
-          print("LOG: googleSignInWindows.signIn() - BROWSER SHOULD OPEN...");
+          print("LOG: googleSignInWindows.signIn() - BROWSER MAY OPEN IF NOT LOGGED IN...");
           final response = await _googleSignInWindows.signIn().timeout(
             const Duration(seconds: 60),
             onTimeout: () {
@@ -159,15 +151,68 @@ class AuthService {
     }
   }
 
+  // Sign in with Google Silently
+  Future<User?> signInWithGoogleSilently() async {
+    print("LOG: signInWithGoogleSilently started");
+    String? accessToken;
+    String? idToken;
+
+    try {
+      if (Platform.isWindows) {
+        print("LOG: Windows platform detected, attempting silent sign-in...");
+        dynamic response;
+        try {
+          response = await _googleSignInWindows.signInOffline();
+        } catch (e) {
+          print("LOG: Windows signInOffline error: $e");
+        }
+
+        if (response == null) {
+          print("LOG: No cached credentials found for Windows");
+          return null;
+        }
+
+        accessToken = response.accessToken;
+        idToken = response.idToken;
+      } else {
+        print("LOG: Mobile/Web platform, trying official signInSilently");
+        final official.GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
+        if (googleUser == null) return null;
+
+        final official.GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        accessToken = googleAuth.accessToken;
+        idToken = googleAuth.idToken;
+      }
+
+      if (idToken == null) {
+        print("LOG: Silent sign-in failed: idToken is null");
+        return null;
+      }
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+      UserCredential result = await _auth.signInWithCredential(credential);
+      print("LOG: Firebase silent sign-in successful: ${result.user?.email}");
+      return result.user;
+    } catch (e) {
+      print("LOG: Silent sign-in error: $e");
+      return null;
+    }
+  }
+
   // Sign out
   Future<void> signOut() async {
     try {
       if (Platform.isWindows) {
-        // For Windows, the gsas.GoogleSignIn instance is local to signInWithGoogle,
-        // so we can't directly sign out from it here.
-        // A new instance would be needed if sign-out is required specifically for gsas.
-        // For now, we rely on Firebase signOut to clear auth state.
-        print("LOG: Windows platform, no direct gsas.GoogleSignIn signOut from here.");
+        try {
+          await _googleSignInWindows.signOut();
+          print("LOG: googleSignInWindows signed out.");
+        } catch (e) {
+          print("googleSignInWindows sign out error: $e");
+        }
       } else {
         // Initialize GoogleSignIn locally for sign out if it was used
         final official.GoogleSignIn googleSignIn = official.GoogleSignIn(scopes: ['email']);
@@ -181,7 +226,7 @@ class AuthService {
         }
       }
     } catch (e) {
-        print("Google sign out error: $e");
+      print("Google sign out error: $e");
     }
 
     // Clear local data on sign out
