@@ -1,4 +1,4 @@
 {
-  "version": "1.4.0+12",
-  "notes": "v1.4.0 Güncellemesi: \n- Yemek Takip Sistemi eklendi (Kalıpçı, Demirci ve Diğer çalışanlar için günlük yemek sayıları girilebilir).\n- Proje Detay sayfasında otomatik hesaplanan ve manuel değiştirilebilen yemek listesi eklendi.\n- Yeni Yemekler Sayfası eklendi: Şantiyelerdeki yemek sayılarını tarih ve şantiye bazlı filtreleyebilir, verileri Excel'e aktarabilirsiniz."
+  "version": "1.4.0+13",
+  "notes": "v1.4.0+13 Güncellemesi:\n- Google Girişinde oturum kalıcılığı sağlandı (Çıkış yapmadığınız sürece şifre sormadan otomatik giriş yapılır).\n- Windows platformu için genel kararlılık ve DLL hata düzeltmeleri uygulandı."
 }
