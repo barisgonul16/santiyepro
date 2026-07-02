@@ -22,11 +22,22 @@ Bundan sonra aşağıdaki adımlara geçebilirsiniz.
 
 Uygulamanın yeni dosyalarını terminalden şu komutlarla oluşturun:
 
-**Windows İçin:**
-```powershell
-flutter build windows
-```
-*Dosya burada oluşur:* `build/windows/x64/runner/Release/santiyepro.exe`
+**Windows İçin (İki Yöntemden Biri Seçilebilir):**
+
+*   **Yöntem A: Tek Dosyalık Kurulum Paketi (.msix - Önerilen)**
+    ```powershell
+    flutter build windows
+    dart run msix:create
+    ```
+    *Kurulum dosyası burada oluşur:* `build/windows/x64/runner/Release/SantiyePro_v3.msix`
+    *(Kullanıcılar bunu çift tıklatarak doğrudan bilgisayarlarına yükleyebilir. Tüm DLL bağımlılıklarını otomatik çözer.)*
+
+*   **Yöntem B: Taşınabilir Klasör (.zip formatında)**
+    ```powershell
+    flutter build windows
+    ```
+    `build/windows/x64/runner/Release/` klasörünün tamamını (tüm `.dll` dosyaları ve `data` klasörüyle birlikte) sıkıştırarak bir `.zip` dosyası yapın.
+    *(Kullanıcılar sadece `.exe` indirirse DLL hatası alır, bu yüzden klasörün tamamını ZIP olarak indirmelidirler.)*
 
 **Android İçin (APK):**
 ```powershell
@@ -56,7 +67,7 @@ Bu adım, diğer kullanıcılara "Yeni sürüm hazır!" uyarısının gitmesini 
 2. Sağ taraftaki **"Releases"** bölümünden **"Create a new release"** butonuna basın.
 3. **Choose a tag** kısmına `v1.0.2+5` yazın (Create new tag seçin).
 4. Release başlığına `v1.0.2+5 Güncellemesi` yazın.
-5. **Assets** (Dosyalar) kısmına derlediğiniz `.exe` ve `.apk` dosyalarını sürükleyip bırakın.
+5. **Assets** (Dosyalar) kısmına derlediğiniz `.msix` (veya hazırladığınız `.zip` klasörünü) ve `.apk` dosyalarını sürükleyip bırakın. **(Önemli: Tek başına `.exe` dosyasını yüklemeyin, aksi takdirde DLL eksik hatası alınır.)**
 6. **"Publish release"** butonuna basın.
 
 ---
