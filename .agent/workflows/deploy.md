@@ -65,8 +65,8 @@ Bu adım, diğer kullanıcılara "Yeni sürüm hazır!" uyarısının gitmesini 
 
 1. GitHub'da **santiyepro** deponuzun ana sayfasına gidin.
 2. Sağ taraftaki **"Releases"** bölümünden **"Create a new release"** butonuna basın.
-3. **Choose a tag** kısmına `v1.0.2+5` yazın (Create new tag seçin).
-4. Release başlığına `v1.0.2+5 Güncellemesi` yazın.
+3. **Choose a tag** kısmına `v2.1` yazın (Create new tag seçin).
+4. Release başlığına `v2.1 Güncellemesi` yazın.
 5. **Assets** (Dosyalar) kısmına derlediğiniz `.msix` (veya hazırladığınız `.zip` klasörünü) ve `.apk` dosyalarını sürükleyip bırakın. **(Önemli: Tek başına `.exe` dosyasını yüklemeyin, aksi takdirde DLL eksik hatası alınır.)**
 6. **"Publish release"** butonuna basın.
 

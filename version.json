@@ -1,4 +1,4 @@
 {
-  "version": "1.4.0+13",
-  "notes": "v1.4.0+13 Güncellemesi:\n- Google Girişinde oturum kalıcılığı sağlandı (Çıkış yapmadığınız sürece şifre sormadan otomatik giriş yapılır).\n- Windows platformu için genel kararlılık ve DLL hata düzeltmeleri uygulandı."
+  "version": "2.1.0+1",
+  "notes": "v2.1 Güncellemesi:\n- Google Girişinde oturum kalıcılığı sağlandı (Çıkış yapmadığınız sürece şifre sormadan otomatik giriş yapılır).\n- Windows platformu için genel kararlılık ve DLL hata düzeltmeleri uygulandı.\n- Tüm platformlarda sürüm numaraları v2.1 olarak eşitlendi."
 }
