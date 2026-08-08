@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart'; // Just in case, though not used directly in MainScreen but Haritalar uses it
 import 'models/hatirlatici.dart';
 import 'models/proje.dart';
@@ -23,6 +25,7 @@ import 'screens/takvim_sayfa.dart';
 import 'screens/eskizler_sayfa.dart';
 import 'screens/pomodoro_sayfa.dart';
 import 'screens/haritalar_sayfa.dart';
+import 'screens/gunluk_rapor_sayfa.dart';
 import 'services/calendar_service.dart';
 
 
@@ -47,8 +50,26 @@ import 'package:flutter/services.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'firebase_options.dart';
 
+/// Windows'ta Firestore cache kilitlendiyse true — sync tamamen atlanır
+bool firestoreDisabled = false;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Tüm yakalanmayan hataları yakala — uygulamanın sessizce kapanmasını önle
+  FlutterError.onError = (FlutterErrorDetails details) {
+    debugPrint('FLUTTER HATA: ${details.exception}');
+    debugPrint('STACK: ${details.stack}');
+    // Uygulamayı kapatma, sadece logla
+  };
+
+  // Dart tarafındaki yakalanmayan async hatalar
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('PLATFORM HATA: $error');
+    debugPrint('STACK: $stack');
+    return true; // true = hatayı yönetiyoruz, uygulama kapanmasın
+  };
+
   tz.initializeTimeZones();
   try {
     print("LOG: Starting Firebase initialization...");
@@ -56,10 +77,40 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print("LOG: Firebase initialization finished");
-    
-    // Windows'ta pluginlerin oturması için küçük bir bekleme ekliyoruz
+
     if (Platform.isWindows) {
-      print("LOG: Windows detected, waiting 2 seconds for native plugins...");
+      print("LOG: Windows detected, disabling Firestore persistence...");
+      
+      // Firestore cache dizinini sil; silinememişse (dosya kilidi) sync atlanacak
+      bool cacheCleared = false;
+      try {
+        final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
+        if (localAppData.isNotEmpty) {
+          final firestoreDir = Directory('$localAppData\\firestore');
+          if (await firestoreDir.exists()) {
+            await firestoreDir.delete(recursive: true);
+            print("LOG: Firestore cache directory deleted successfully.");
+          }
+          cacheCleared = true;
+        }
+      } catch (e) {
+        print("LOG: Firestore cache locked by another process - cloud sync will be skipped: $e");
+        cacheCleared = false;
+      }
+
+      // Cache temizlenemediyse Firestore'u hiç başlatma (crash önlemi)
+      if (cacheCleared) {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: false,
+        );
+        print("LOG: Firestore persistence disabled successfully.");
+      } else {
+        // Bir önceki instance hâlâ çalışıyor olabilir; Firestore'u devre dışı bırak
+        firestoreDisabled = true;
+        print("LOG: Firestore disabled - using local cached data only.");
+      }
+      
+      print("LOG: Waiting 2 seconds for native plugins...");
       await Future.delayed(const Duration(seconds: 2));
     }
   } catch (e) {
@@ -72,11 +123,14 @@ void main() async {
   } catch (e) {
     debugPrint("Notification init error: $e");
   }
-  
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+
+  // Ekran yönü kilidi sadece mobil cihazlarda
+  if (Platform.isAndroid || Platform.isIOS) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
   
   runApp(const MyApp());
 }
@@ -948,6 +1002,7 @@ class _MainScreenState extends State<MainScreen> {
     {'icon': Icons.brush, 'title': 'Eskizler', 'color': Colors.pink},
     {'icon': Icons.timer, 'title': 'Pomodoro', 'color': Colors.red},
     {'icon': Icons.map, 'title': 'Haritalar', 'color': Colors.teal},
+    {'icon': Icons.description, 'title': 'Günlük Rapor', 'color': Colors.indigo},
     {'icon': Icons.settings, 'title': 'Ayarlar', 'color': Colors.grey},
   ];
 
@@ -1048,7 +1103,12 @@ class _MainScreenState extends State<MainScreen> {
           onAddLocation: _konumEkle,
           onDeleteLocation: _konumSil,
         );
-      case 13: // Ayarlar
+      case 13:
+        return GunlukRaporSayfaPage(
+          projeler: projeler,
+          projeGunlukKayitlari: projeGunlukKayitlari,
+        );
+      case 14: // Ayarlar
         return AyarlarSayfaPage(
           currentSettings: _appSettings,
           onSettingsChanged: _onSettingsChanged,
@@ -1185,6 +1245,82 @@ class _MainScreenState extends State<MainScreen> {
               },
             ),
           ),
+          // Profil & Çıkış Yap Bölümü
+          if (FirebaseAuth.instance.currentUser != null) ...[
+            const Divider(color: Colors.white24, height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfilSayfa()));
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                        child: const Icon(Icons.person, color: Colors.blueAccent, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              FirebaseAuth.instance.currentUser?.displayName ?? 'Kullanıcı',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              FirebaseAuth.instance.currentUser?.email ?? '',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout, color: Colors.redAccent, size: 18),
+                        tooltip: 'Çıkış Yap',
+                        onPressed: () async {
+                          final bool? confirm = await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Çıkış Yap'),
+                              content: const Text('Oturumu kapatmak istediğinize emin misiniz?'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
+                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Evet')),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await StorageService().clearLocalData();
+                            await FirebaseAuth.instance.signOut();
+                            if (mounted) {
+                              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (context) => const LoginSayfa()),
+                                (route) => false,
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -424,6 +424,121 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                     },
                   ),
           ),
+
+          // ── TOPLAM SATIRI ──
+          if (liste.isNotEmpty)
+            _buildToplamSatiri(liste),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToplamSatiri(List<Map<String, dynamic>> liste) {
+    final int toplamKalipci = liste.fold(0, (sum, item) => sum + (item['kalipci'] as int));
+    final int toplamDemirci = liste.fold(0, (sum, item) => sum + (item['demirci'] as int));
+    final int toplamDiger   = liste.fold(0, (sum, item) => sum + (item['diger']   as int));
+    final int genelToplam   = liste.fold(0, (sum, item) => sum + (item['toplamYemek'] as int));
+
+    // Başlık etiketi: aylık mı yoksa tarih aralığı mı?
+    String donemEtiketi;
+    if (_useMonthlyFilter) {
+      donemEtiketi = '${_aylar[_selectedMonth - 1]} $_selectedYear';
+    } else if (_filterStartDate != null && _filterEndDate != null) {
+      final fmt = DateFormat('dd.MM.yyyy');
+      donemEtiketi = '${fmt.format(_filterStartDate!)} – ${fmt.format(_filterEndDate!)}';
+    } else {
+      donemEtiketi = 'Tüm Dönem';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.18),
+        border: const Border(
+          top: BorderSide(color: Colors.orangeAccent, width: 1.5),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              'TOPLAM  ·  $donemEtiketi',
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              // Tarih + Şantiye alanının genişliğini (flex 2+3=5) dolduran boşluk
+              const Expanded(flex: 5, child: SizedBox()),
+              // Kalıpçı
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Kalıpçı', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text(
+                      '$toplamKalipci',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Demirci
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Demirci', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text(
+                      '$toplamDemirci',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Diğer
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Diğer', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text(
+                      '$toplamDiger',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Genel Toplam
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Toplam', style: TextStyle(color: Colors.orangeAccent, fontSize: 10)),
+                    Text(
+                      '$genelToplam',
+                      style: const TextStyle(
+                        color: Colors.orangeAccent,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

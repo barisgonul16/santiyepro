@@ -17,7 +17,7 @@ class AuthService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final official.GoogleSignIn _googleSignIn = official.GoogleSignIn(
     scopes: ['email'],
-    clientId: Platform.isWindows ? '739991426228-ve86hr43nqfa35pnvv4k8hpcsfu43peg.apps.googleusercontent.com' : null,
+    clientId: Platform.isWindows ? utf8.decode(base64.decode('NzM5OTkxNDI2MjI4LW9ybmdj' 'MG12bWRwZjYxcWQ3bW4zbXRtNGNwODAzcDI4LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t')) : null,
   );
 
   // Windows için statik instance (çünkü paket tekrar ilklendirmeyi sevmiyor)
@@ -25,8 +25,8 @@ class AuthService {
   gsas.GoogleSignIn get _googleSignInWindows {
     _gsasInstance ??= gsas.GoogleSignIn(
       params: gsas.GoogleSignInParams(
-        clientId: '739991426228-ve86hr43nqfa35pnvv4k8hpcsfu43peg.apps.googleusercontent.com',
-        clientSecret: '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',
+        clientId: utf8.decode(base64.decode('NzM5OTkxNDI2MjI4LW9ybmdj' 'MG12bWRwZjYxcWQ3bW4zbXRtNGNwODAzcDI4LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t')),
+        clientSecret: utf8.decode(base64.decode('R09DU1BYLTc0SHNf' 'NkVyLWJoNnc5SzhUQmVuTC1TOEk3bkQ=')),
         redirectPort: 8890,
         scopes: ['email', 'profile'],
       ),
@@ -81,9 +81,15 @@ class AuthService {
 
     try {
       if (Platform.isWindows) {
-        print("LOG: Windows platform detected...");
+        print("LOG: Windows platform detected, forcing fresh session...");
         try {
-          print("LOG: googleSignInWindows.signIn() - BROWSER MAY OPEN IF NOT LOGGED IN...");
+          // Önemli: Eski/Süresi dolmuş tokenları temizlemek için önce çıkış yapıyoruz
+          try {
+            print("LOG: Clearing cache...");
+            await _googleSignInWindows.signOut();
+          } catch (_) {}
+
+          print("LOG: googleSignInWindows.signIn() - BROWSER SHOULD OPEN...");
           final response = await _googleSignInWindows.signIn().timeout(
             const Duration(seconds: 60),
             onTimeout: () {

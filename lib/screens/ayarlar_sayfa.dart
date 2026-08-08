@@ -36,6 +36,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
     {'index': 10, 'title': 'Eskizler', 'icon': Icons.brush, 'color': Colors.pink},
     {'index': 11, 'title': 'Pomodoro', 'icon': Icons.timer, 'color': Colors.red},
     {'index': 12, 'title': 'Haritalar', 'icon': Icons.map, 'color': Colors.teal},
+    {'index': 13, 'title': 'Günlük Rapor', 'icon': Icons.description, 'color': Colors.indigo},
   ];
 
   @override

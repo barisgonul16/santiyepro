@@ -471,7 +471,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     if (dosyaAdi == null) return; // İptal edildi
 
     // 2. Klasör seç
-    String? selectedDirectory = await (pkr.FilePicker as dynamic).platform.getDirectoryPath();
+    String? selectedDirectory = await pkr.FilePicker.platform.getDirectoryPath();
 
     if (selectedDirectory == null) return;
 
@@ -733,7 +733,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     if (dosyaAdi == null) return;
 
     // 2. Klasör seç
-    String? selectedDirectory = await (pkr.FilePicker as dynamic).platform.getDirectoryPath();
+    String? selectedDirectory = await pkr.FilePicker.platform.getDirectoryPath();
     if (selectedDirectory == null) return;
 
     // Tüm bilgileri içeren CSV oluştur
@@ -860,7 +860,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     }
 
     // Klasör seç
-    String? selectedDirectory = await (pkr.FilePicker as dynamic).platform.getDirectoryPath();
+    String? selectedDirectory = await pkr.FilePicker.platform.getDirectoryPath();
     if (selectedDirectory == null) return;
 
     // Proje klasörü oluştur

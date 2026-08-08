@@ -22,28 +22,8 @@ class _LoginSayfaState extends State<LoginSayfa> {
   @override
   void initState() {
     super.initState();
-    _attemptSilentGoogleLogin();
-  }
-
-  Future<void> _attemptSilentGoogleLogin() async {
-    try {
-      setState(() {
-        loading = true;
-      });
-      final user = await _auth.signInWithGoogleSilently();
-      if (user != null) {
-        print("LOG: Silent login successful!");
-        return;
-      }
-    } catch (e) {
-      print("LOG: Silent Google login attempt failed or no cached credentials: $e");
-    } finally {
-      if (mounted) {
-        setState(() {
-          loading = false;
-        });
-      }
-    }
+    // Firebase Auth oturumu otomatik olarak yerel depolamada saklanır.
+    // authStateChanges() akışı, uygulama yeniden açıldığında oturumu geri yükler.
   }
 
   @override
@@ -166,28 +146,33 @@ class _LoginSayfaState extends State<LoginSayfa> {
                     },
                   ),
                   
-                  // Google ile Giriş
+                  // ── AYIRICI ──
                   const SizedBox(height: 20),
                   Row(
                     children: const [
                       Expanded(child: Divider(color: Colors.white24)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text('VEYA', style: TextStyle(color: Colors.white54)),
+                        child: Text('VEYA', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       ),
                       Expanded(child: Divider(color: Colors.white24)),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 15),
+
+                  // ── GMAIL İLE GİRİŞ BUTONU ──
                   SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.account_circle, color: Colors.white, size: 24),
-                      label: const Text('Google ile Giriş Yap', style: TextStyle(fontSize: 16)),
+                      icon: const Icon(Icons.mail_outline, color: Color(0xFFEA4335), size: 22),
+                      label: const Text(
+                        'Gmail ile Giriş Yap',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white24),
+                        side: const BorderSide(color: Color(0xFFEA4335), width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: loading ? null : () async {
@@ -200,24 +185,24 @@ class _LoginSayfaState extends State<LoginSayfa> {
                           if (result == null) {
                             if (mounted) {
                               setState(() {
-                                error = 'Google girişi iptal edildi veya başarısız.';
+                                error = 'Gmail girişi iptal edildi veya başarısız.';
                                 loading = false;
                               });
                             }
                           }
-                          // Başarılı girişte AuthWrapper otomatik yönlendirir,
-                          // Navigator.pop KULLANMIYORUZ — siyah ekrandan kaçınmak için
+                          // Başarılı girişte AuthWrapper otomatik yönlendirir.
                         } catch (e) {
                           if (mounted) {
                             setState(() {
                               loading = false;
-                              error = 'Google giriş hatası: ${e.toString().length > 100 ? e.toString().substring(0, 100) : e}';
+                              error = 'Gmail giriş hatası: ${e.toString().length > 100 ? e.toString().substring(0, 100) : e}';
                             });
                           }
                         }
                       },
                     ),
                   ),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),

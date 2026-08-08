@@ -14,6 +14,7 @@ import '../models/fatura.dart';
 import '../models/harcama.dart';
 import '../models/malzeme.dart';
 import '../models/pratik_bilgi.dart';
+import '../main.dart' show firestoreDisabled;
 
 class StorageService {
   Future<String> get _localPath async {
@@ -299,8 +300,12 @@ class StorageService {
 
   // --- FULL CLOUD SYNC ---
   Future<void> syncEverythingWithCloud() async {
-    // Firebase başlatılmadıysa senkronizasyon yapma (Windows/Offline)
+    // Firebase başlatılmadıysa veya Firestore devre dışıysa sync yapma
     if (Firebase.apps.isEmpty) return;
+    if (firestoreDisabled) {
+      print("LOG: Firestore disabled (cache locked) - skipping cloud sync, using local data.");
+      return;
+    }
     
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -311,42 +316,35 @@ class StorageService {
       'malzemeler', 'pratik_bilgiler', 'ekipler'
     ];
 
-    try {
-      print("LOG: Starting parallel sync for ${collections.length} collections");
-      // Tüm fetch işlemlerini paralel başlatıyoruz
-      final syncTasks = collections.map((col) async {
-        try {
-          print("LOG: Syncing collection: $col");
-          final doc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .collection('data')
-              .doc(col)
-              .get()
-              .timeout(const Duration(seconds: 4)); // Her biri için ayrı timeout
+    print("LOG: Starting parallel sync for ${collections.length} collections");
+    for (final col in collections) {
+      try {
+        print("LOG: Syncing collection: $col");
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('data')
+            .doc(col)
+            .get()
+            .timeout(const Duration(seconds: 8));
 
-          if (doc.exists) {
-            final String cloudJson = doc.data()?['json'] ?? '';
-            if (cloudJson.isNotEmpty) {
-              final file = await _getFile('$col.json');
-              await file.writeAsString(cloudJson);
-              print("LOG: Collection $col sync successful");
-            } else {
-              print("LOG: Collection $col is empty in cloud");
-            }
+        if (doc.exists) {
+          final String cloudJson = doc.data()?['json'] ?? '';
+          if (cloudJson.isNotEmpty) {
+            final file = await _getFile('$col.json');
+            await file.writeAsString(cloudJson);
+            print("LOG: Collection $col sync successful");
           } else {
-            print("LOG: Collection $col does not exist in cloud");
+            print("LOG: Collection $col is empty in cloud");
           }
-        } catch (e) {
-          print("LOG: Sync error for $col: $e");
+        } else {
+          print("LOG: Collection $col does not exist in cloud");
         }
-      });
-
-      // Toplamda en fazla 5 saniye bekle, sonra devam et
-      await Future.wait(syncTasks).timeout(const Duration(seconds: 5));
-    } catch (e) {
-      print("Global sync timeout or error: $e");
+      } catch (e) {
+        print("LOG: Sync error for $col: $e");
+      }
     }
+    print("LOG: Sync complete");
   }
 
   // --- CLOUD SYNC ---
