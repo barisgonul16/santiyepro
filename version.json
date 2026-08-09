@@ -1,4 +1,4 @@
 {
-  "version": "2.1.0+1",
-  "notes": "v2.1 Güncellemesi:\n- Google Girişinde oturum kalıcılığı sağlandı (Çıkış yapmadığınız sürece şifre sormadan otomatik giriş yapılır).\n- Windows platformu için genel kararlılık ve DLL hata düzeltmeleri uygulandı.\n- Tüm platformlarda sürüm numaraları v2.1 olarak eşitlendi."
+  "version": "2.2.0+3",
+  "notes": "v2.2.0 Güncellemesi:\n- Günlük Rapor sekmesi eklendi (Şantiyelerin günlük raporları tablo halinde indirilebilir).\n- Rapor formatı yenilendi: Fotoğraflar doğrudan rapora gömüldü.\n- Rapordaki fotoğraflara dokunarak tam ekran büyütme özelliği eklendi.\n- Genel kararlılık ve performans iyileştirmeleri."
 }

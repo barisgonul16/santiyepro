@@ -26,8 +26,9 @@ class UpdateService {
       
       print("LOG: Mevcut Versiyon: $currentVersionStr+$currentBuildStr");
 
-      // 2. İnternetteki versiyon bilgisini çek
-      final response = await http.get(Uri.parse(_versionJsonUrl));
+      // 2. İnternetteki versiyon bilgisini çek (cache önlemek için timestamp eklendi)
+      final String cacheBustUrl = "$_versionJsonUrl?t=${DateTime.now().millisecondsSinceEpoch}";
+      final response = await http.get(Uri.parse(cacheBustUrl));
       
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
