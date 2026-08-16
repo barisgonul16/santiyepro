@@ -182,6 +182,8 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
           if (fb.isNotEmpty) fotografHtml = fb.toString();
         }
 
+        final String notlarHtml = kayit.notlar.isEmpty ? '-' : kayit.notlar.replaceAll('\n', '<br>');
+
         tableRows.write('''
           <tr>
             <td class="santiye">📍 ${proje.ad}</td>
@@ -190,6 +192,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
             <td>$betonHtml</td>
             <td>$vincHtml</td>
             <td>$yevmiyeHtml</td>
+            <td>$notlarHtml</td>
             <td class="foto">$fotografHtml</td>
           </tr>
         ''');
@@ -235,6 +238,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
         <th>Beton</th>
         <th>Vinç</th>
         <th>Yevmiye</th>
+        <th>Notlar</th>
         <th>Fotoğraflar</th>
       </tr>
     </thead>
@@ -615,6 +619,34 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                             ),
                                           ),
                                         ],
+                                      ),
+                                    ],
+
+                                    // Notlar
+                                    if (kayit.notlar.isNotEmpty) ...[
+                                      const SizedBox(height: 15),
+                                      const Divider(height: 10, color: Colors.white10),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.notes, size: 14, color: isDark ? Colors.indigoAccent : Colors.indigo),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Notlar',
+                                            style: TextStyle(
+                                              color: isDark ? Colors.white54 : Colors.black54,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        kayit.notlar,
+                                        style: TextStyle(
+                                          color: isDark ? Colors.white : Colors.black87,
+                                          fontSize: 13,
+                                        ),
                                       ),
                                     ],
 

@@ -13,6 +13,7 @@ class ProjelerSayfaPage extends StatelessWidget {
   final Function(String, GunlukKayit) onGunlukKayitEkle;
   final Function(String, int, GunlukKayit) onGunlukKayitGuncelle;
   final List<String> ekipler;
+  final Function(int, int) onReorder;
 
   const ProjelerSayfaPage({
     super.key,
@@ -24,6 +25,7 @@ class ProjelerSayfaPage extends StatelessWidget {
     required this.onGunlukKayitEkle,
     required this.onGunlukKayitGuncelle,
     required this.ekipler,
+    required this.onReorder,
   });
 
   @override
@@ -103,11 +105,11 @@ class ProjelerSayfaPage extends StatelessWidget {
                       )
                     : Builder(
                       builder: (context) {
-                        final siraliProjeler = [...projeler]..sort((a, b) {
-                          final aTamamlandi = a.durum == 'Tamamlandı' ? 1 : 0;
-                          final bTamamlandi = b.durum == 'Tamamlandı' ? 1 : 0;
-                          return aTamamlandi.compareTo(bTamamlandi);
-                        });
+                        final cardWidth = isMobile
+                            ? constraints.maxWidth - 30
+                            : (constraints.maxWidth - 100) / 3;
+                        final cardHeight = cardWidth / (isMobile ? 1.6 : 1.5);
+
                         return GridView.builder(
                           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: isMobile ? 1 : 3,
@@ -115,10 +117,47 @@ class ProjelerSayfaPage extends StatelessWidget {
                             mainAxisSpacing: 20,
                             childAspectRatio: isMobile ? 1.6 : 1.5,
                           ),
-                          itemCount: siraliProjeler.length,
+                          itemCount: projeler.length,
                           itemBuilder: (context, index) {
-                            final gercekIndex = projeler.indexOf(siraliProjeler[index]);
-                            return _buildProjeKart(context, gercekIndex, siraliProjeler[index], isMobile);
+                            final currentProje = projeler[index];
+                            return DragTarget<Proje>(
+                              onWillAccept: (data) => data != null && data.id != currentProje.id,
+                              onAccept: (draggedProje) {
+                                final draggedIndex = projeler.indexWhere((p) => p.id == draggedProje.id);
+                                if (draggedIndex != -1) {
+                                  onReorder(draggedIndex, index);
+                                }
+                              },
+                              builder: (context, candidateData, rejectedData) {
+                                final isOver = candidateData.isNotEmpty;
+                                return LongPressDraggable<Proje>(
+                                  data: currentProje,
+                                  feedback: Material(
+                                    color: Colors.transparent,
+                                    child: Opacity(
+                                      opacity: 0.8,
+                                      child: SizedBox(
+                                        width: cardWidth,
+                                        height: cardHeight,
+                                        child: _buildProjeKart(context, index, currentProje, isMobile),
+                                      ),
+                                    ),
+                                  ),
+                                  childWhenDragging: Opacity(
+                                    opacity: 0.3,
+                                    child: _buildProjeKart(context, index, currentProje, isMobile),
+                                  ),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    decoration: BoxDecoration(
+                                      border: isOver ? Border.all(color: Colors.blue, width: 2) : null,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: _buildProjeKart(context, index, currentProje, isMobile),
+                                  ),
+                                );
+                              },
+                            );
                           },
                         );
                       },

@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Large installer/build output files (exceed GitHub 100MB limit)
+/installers/
+/SantiyePro_Kurulum/
+*.msix
+*.zip
+*.apk
+*.aab
+build_log*.txt
+analyze_out*.txt
+analyze_output*.txt
+build_utf8.txt
+build_verbose.txt

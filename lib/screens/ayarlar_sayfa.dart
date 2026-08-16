@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/app_settings.dart';
 import '../services/settings_service.dart';
+import '../services/update_service.dart';
 
 class AyarlarSayfaPage extends StatefulWidget {
   final AppSettings currentSettings;
@@ -101,6 +102,49 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
     );
   }
 
+  void _sehirSecDialog(BuildContext context) {
+    final controller = TextEditingController(text: _settings.sehir);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        title: Text('Şehir Seçin', style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color)),
+        content: TextField(
+          controller: controller,
+          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+          decoration: const InputDecoration(
+            hintText: 'Şehir adı girin (Örn: Bursa)',
+            hintStyle: TextStyle(color: Colors.white30),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white30),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.blue),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                setState(() {
+                  _settings = _settings.copyWith(sehir: controller.text.trim());
+                });
+                _saveSettings();
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Kaydet', style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -142,6 +186,22 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
                 _settings.isDarkMode ? Icons.dark_mode : Icons.light_mode,
                 color: _settings.isDarkMode ? Colors.blue : Colors.orange,
               ),
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          // Hava Durumu Ayarları
+          _buildSectionTitle('Hava Durumu Bildirimi'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.wb_sunny_outlined, color: Colors.amber),
+              title: Text('Şehir', style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+              subtitle: Text(
+                _settings.sehir.isEmpty ? 'Seçilmedi (Varsayılan: Bursa)' : _settings.sehir,
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+              ),
+              trailing: const Icon(Icons.edit, color: Colors.blue),
+              onTap: () => _sehirSecDialog(context),
             ),
           ),
           const SizedBox(height: 30),
@@ -200,19 +260,34 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
           
           const SizedBox(height: 30),
           
-          // Versiyon Bilgisi
+          // Versiyon Bilgisi ve Manuel Güncelleme Kontrolü
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) {
-              if (snapshot.hasData) {
-                return Center(
-                  child: Text(
-                    "Sürüm: v${snapshot.data!.version}+${snapshot.data!.buildNumber}",
-                    style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
+              final versionText = snapshot.hasData
+                  ? "Sürüm: v${snapshot.data!.version}+${snapshot.data!.buildNumber}"
+                  : "";
+              return Column(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      UpdateService().checkForUpdates(context, showSnackBarIfUpdated: true);
+                    },
+                    icon: const Icon(Icons.system_update, color: Colors.blue),
+                    label: const Text('Güncellemeleri Kontrol Et'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                    ),
                   ),
-                );
-              }
-              return const SizedBox();
+                  const SizedBox(height: 12),
+                  if (versionText.isNotEmpty)
+                    Text(
+                      versionText,
+                      style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 12),
+                    ),
+                ],
+              );
             },
           ),
           const SizedBox(height: 20),

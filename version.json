@@ -1,4 +1,4 @@
 {
-  "version": "2.2.0+3",
-  "notes": "v2.2.0 Güncellemesi:\n- Günlük Rapor sekmesi eklendi (Şantiyelerin günlük raporları tablo halinde indirilebilir).\n- Rapor formatı yenilendi: Fotoğraflar doğrudan rapora gömüldü.\n- Rapordaki fotoğraflara dokunarak tam ekran büyütme özelliği eklendi.\n- Genel kararlılık ve performans iyileştirmeleri."
+  "version": "2.2.0+4",
+  "notes": "v2.2.0+4 Güncellemesi:\n- Projeleri sürükle-bırak (Drag & Drop) ile sıralama özelliği eklendi.\n- Günlük rapor sayfasındaki kartlara ve indirilen Word raporuna şantiye notları alanı eklendi.\n- Hava durumu entegrasyonu ile 7 günlük yağmur olasılığı kontrolü ve günde 1 bildirim özelliği eklendi."
 }

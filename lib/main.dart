@@ -37,6 +37,7 @@ import 'screens/login_sayfa.dart';
 import 'widgets/custom_bottom_nav_bar.dart';
 import 'services/storage_service.dart';
 import 'services/notification_service.dart';
+import 'services/weather_service.dart';
 import 'screens/profil_sayfa.dart';
 import 'screens/splash_screen.dart';
 import 'screens/ayarlar_sayfa.dart';
@@ -411,10 +412,16 @@ class _MainScreenState extends State<MainScreen> {
     await _loadSettings();
     await _loadAllData();
     
-    // Uygulama tamamen açıldıktan 2 saniye sonra güncelleme kontrolü yap
+    // Uygulama tamamen açıldıktan 2 saniye sonra güncelleme ve hava durumu kontrolü yap
     if (mounted) {
       Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) UpdateService().checkForUpdates(context);
+        if (mounted) {
+          UpdateService().checkForUpdates(context);
+          final sehir = _appSettings.sehir;
+          if (sehir.isNotEmpty) {
+            WeatherService().checkWeatherAndNotify(sehir);
+          }
+        }
       });
     }
   }
@@ -708,6 +715,14 @@ class _MainScreenState extends State<MainScreen> {
   void _projeDuzenle(int index, Proje yeniProje) {
     setState(() {
       projeler[index] = yeniProje;
+      _storageService.saveProjects(projeler);
+    });
+  }
+
+  void _onProjelerReorder(int oldIndex, int newIndex) {
+    setState(() {
+      final Proje item = projeler.removeAt(oldIndex);
+      projeler.insert(newIndex, item);
       _storageService.saveProjects(projeler);
     });
   }
@@ -1031,6 +1046,7 @@ class _MainScreenState extends State<MainScreen> {
           onGunlukKayitEkle: _gunlukKayitEkle,
           onGunlukKayitGuncelle: _gunlukKayitGuncelle,
           ekipler: ekipler,
+          onReorder: _onProjelerReorder,
         );
       case 2:
         return YevmiyelerSayfaPage(

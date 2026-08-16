@@ -17,7 +17,7 @@ class UpdateService {
   // GitHub Releases sayfası
   static const String _releasesUrl = "https://github.com/$_githubUser/$_repoName/releases/latest";
 
-  Future<void> checkForUpdates(BuildContext context) async {
+  Future<void> checkForUpdates(BuildContext context, {bool showSnackBarIfUpdated = false}) async {
     try {
       // 1. Mevcut uygulama versiyonunu al
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -66,12 +66,36 @@ class UpdateService {
           }
         } else {
           print("LOG: Uygulama güncel.");
+          if (showSnackBarIfUpdated && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Uygulamanız zaten en son sürümde (v$currentVersionStr+$currentBuildStr)."),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         }
       } else {
         print("LOG: Versiyon dosyası okunamadı: ${response.statusCode}");
+        if (showSnackBarIfUpdated && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Sunucudan versiyon bilgisi alınamadı (Kod: ${response.statusCode})."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
       print("LOG: Güncelleme kontrol hatası: $e");
+      if (showSnackBarIfUpdated && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Güncelleme kontrolünde hata oluştu: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
