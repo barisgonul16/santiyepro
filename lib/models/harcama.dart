@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class Harcama {
   final String id;
   final String fisYolu;
@@ -28,12 +30,12 @@ class Harcama {
       };
 
   factory Harcama.fromJson(Map<String, dynamic> json) => Harcama(
-        id: json['id'],
-        fisYolu: json['fisYolu'] ?? '',
-        tutar: (json['tutar'] ?? json['miktar'] ?? 0).toDouble(),
-        aciklama: json['aciklama'] ?? '',
-        kategori: json['kategori'] ?? 'Genel',
-        tarih: DateTime.parse(json['tarih']),
-        isReimbursement: json['isReimbursement'] ?? false,
+        id: jsonKimlik(json['id']),
+        fisYolu: jsonMetin(json['fisYolu']),
+        tutar: jsonOndalik(json['tutar'] ?? json['miktar']),
+        aciklama: jsonMetin(json['aciklama']),
+        kategori: jsonMetin(json['kategori'], 'Genel'),
+        tarih: jsonTarih(json['tarih'], 'tarih'),
+        isReimbursement: jsonMantik(json['isReimbursement']),
       );
 }

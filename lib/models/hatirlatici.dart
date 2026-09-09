@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'json_utils.dart';
 
 class Hatirlatici {
   String id;
@@ -26,14 +27,13 @@ class Hatirlatici {
       };
 
   factory Hatirlatici.fromJson(Map<String, dynamic> json) {
-    var timeParts = (json['saat'] as String).split(':');
     return Hatirlatici(
-      id: json['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      baslik: json['baslik'] ?? json['mesaj'] ?? 'Başlıksız',
-      aciklama: json['aciklama'] ?? '',
-      tarih: DateTime.parse(json['tarih']),
-      saat: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
-      tamamlandi: json['tamamlandi'],
+      id: jsonKimlik(json['id']),
+      baslik: jsonMetin(json['baslik'], jsonMetin(json['mesaj'], 'Başlıksız')),
+      aciklama: jsonMetin(json['aciklama']),
+      tarih: jsonTarih(json['tarih'], 'tarih'),
+      saat: jsonSaat(json['saat']),
+      tamamlandi: jsonMantik(json['tamamlandi']),
     );
   }
 }

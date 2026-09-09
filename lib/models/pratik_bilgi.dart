@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'json_utils.dart';
 
 class PratikBilgi {
   final String id;
@@ -21,9 +21,9 @@ class PratikBilgi {
       };
 
   factory PratikBilgi.fromJson(Map<String, dynamic> json) => PratikBilgi(
-        id: json['id'],
-        baslik: json['baslik'],
-        icerik: json['icerik'],
-        kategoriId: json['kategoriId'] ?? 0,
+        id: jsonKimlik(json['id']),
+        baslik: jsonMetin(json['baslik'], 'Başlıksız'),
+        icerik: jsonMetin(json['icerik']),
+        kategoriId: jsonTamsayi(json['kategoriId']),
       );
 }

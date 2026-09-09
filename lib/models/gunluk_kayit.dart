@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class VincBilgisi {
   String firmaAdi;
   String baslangic; // "HH:mm" formatında
@@ -20,10 +22,10 @@ class VincBilgisi {
 
   factory VincBilgisi.fromJson(Map<String, dynamic> json) {
     return VincBilgisi(
-      firmaAdi: json['firmaAdi'] ?? '',
-      baslangic: json['baslangic'] ?? '',
-      bitis: json['bitis'] ?? '',
-      mola: json['mola'] ?? 0,
+      firmaAdi: jsonMetin(json['firmaAdi']),
+      baslangic: jsonMetin(json['baslangic']),
+      bitis: jsonMetin(json['bitis']),
+      mola: jsonTamsayi(json['mola']),
     );
   }
 }
@@ -47,9 +49,9 @@ class YevmiyeBilgisi {
 
   factory YevmiyeBilgisi.fromJson(Map<String, dynamic> json) {
     return YevmiyeBilgisi(
-      ekipAdi: json['ekipAdi'] ?? '',
-      miktar: (json['miktar'] ?? 0.0).toDouble(),
-      aciklama: json['aciklama'] ?? '',
+      ekipAdi: jsonMetin(json['ekipAdi']),
+      miktar: jsonOndalik(json['miktar']),
+      aciklama: jsonMetin(json['aciklama']),
     );
   }
 }
@@ -166,36 +168,52 @@ class GunlukKayit {
       };
 
   factory GunlukKayit.fromJson(Map<String, dynamic> json) {
-    final vinclerJson = json['vincler'] as List?;
-    final List<VincBilgisi> parsedVincler = vinclerJson != null
-        ? vinclerJson.map((v) => VincBilgisi.fromJson(v as Map<String, dynamic>)).toList()
-        : [];
+    // Alt kayıtlardaki bozukluk tüm günü düşürmemeli: bozuk vinç/yevmiye
+    // satırı atlanır, günün geri kalanı korunur.
+    final vinclerJson = json['vincler'];
+    final List<VincBilgisi> parsedVincler = [];
+    if (vinclerJson is List) {
+      for (final v in vinclerJson) {
+        try {
+          parsedVincler.add(VincBilgisi.fromJson(Map<String, dynamic>.from(v as Map)));
+        } catch (_) {
+          // bozuk satır atlanır
+        }
+      }
+    }
 
-    final yevmiyelerJson = json['yevmiyeler'] as List?;
-    final List<YevmiyeBilgisi> parsedYevmiyeler = yevmiyelerJson != null
-        ? yevmiyelerJson.map((y) => YevmiyeBilgisi.fromJson(y as Map<String, dynamic>)).toList()
-        : [];
+    final yevmiyelerJson = json['yevmiyeler'];
+    final List<YevmiyeBilgisi> parsedYevmiyeler = [];
+    if (yevmiyelerJson is List) {
+      for (final y in yevmiyelerJson) {
+        try {
+          parsedYevmiyeler.add(YevmiyeBilgisi.fromJson(Map<String, dynamic>.from(y as Map)));
+        } catch (_) {
+          // bozuk satır atlanır
+        }
+      }
+    }
 
     return GunlukKayit(
-      tarih: DateTime.parse(json['tarih']),
-      kalipci: json['kalipci'] ?? 0,
-      demirci: json['demirci'] ?? 0,
-      diger: json['diger'] ?? 0,
-      yemekKalipci: json['yemekKalipci'] ?? 0,
-      yemekDemirci: json['yemekDemirci'] ?? 0,
-      yemekDiger: json['yemekDiger'] ?? 0,
-      kalipciYapilanIs: json['kalipciYapilanIs'] ?? '',
-      demirciYapilanIs: json['demirciYapilanIs'] ?? '',
-      notlar: json['notlar'] ?? '',
-      beton: json['beton'] ?? '',
-      fotografYollari: List<String>.from(json['fotografYollari'] ?? []),
-      vincFirmaAdi: json['vincFirmaAdi'] ?? '',
-      vincBaslangic: json['vincBaslangic'] ?? '',
-      vincBitis: json['vincBitis'] ?? '',
-      vincMola: json['vincMola'] ?? 0,
-      yevmiyeEkipAdi: json['yevmiyeEkipAdi'] ?? '',
-      yevmiyeMiktari: (json['yevmiyeMiktari'] ?? 0).toDouble(),
-      yevmiyeAciklama: json['yevmiyeAciklama'] ?? '',
+      tarih: jsonTarih(json['tarih'], 'tarih'),
+      kalipci: jsonTamsayi(json['kalipci']),
+      demirci: jsonTamsayi(json['demirci']),
+      diger: jsonTamsayi(json['diger']),
+      yemekKalipci: jsonTamsayi(json['yemekKalipci']),
+      yemekDemirci: jsonTamsayi(json['yemekDemirci']),
+      yemekDiger: jsonTamsayi(json['yemekDiger']),
+      kalipciYapilanIs: jsonMetin(json['kalipciYapilanIs']),
+      demirciYapilanIs: jsonMetin(json['demirciYapilanIs']),
+      notlar: jsonMetin(json['notlar']),
+      beton: jsonMetin(json['beton']),
+      fotografYollari: jsonMetinListesi(json['fotografYollari']),
+      vincFirmaAdi: jsonMetin(json['vincFirmaAdi']),
+      vincBaslangic: jsonMetin(json['vincBaslangic']),
+      vincBitis: jsonMetin(json['vincBitis']),
+      vincMola: jsonTamsayi(json['vincMola']),
+      yevmiyeEkipAdi: jsonMetin(json['yevmiyeEkipAdi']),
+      yevmiyeMiktari: jsonOndalik(json['yevmiyeMiktari']),
+      yevmiyeAciklama: jsonMetin(json['yevmiyeAciklama']),
       vincler: parsedVincler,
       yevmiyeler: parsedYevmiyeler,
     );

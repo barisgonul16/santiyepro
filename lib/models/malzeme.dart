@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class Malzeme {
   final String id;
   final String ad;
@@ -22,10 +24,10 @@ class Malzeme {
       };
 
   factory Malzeme.fromJson(Map<String, dynamic> json) => Malzeme(
-        id: json['id'],
-        ad: json['ad'],
-        konum: json['konum'],
-        durum: json['durum'],
-        fotoYolu: json['fotoYolu'] ?? '',
+        id: jsonKimlik(json['id']),
+        ad: jsonMetin(json['ad'], 'İsimsiz Malzeme'),
+        konum: jsonMetin(json['konum']),
+        durum: jsonMetin(json['durum'], 'Depoda'),
+        fotoYolu: jsonMetin(json['fotoYolu']),
       );
 }

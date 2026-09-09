@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'json_utils.dart';
 
 class Gorev {
   String ad;
@@ -20,12 +21,11 @@ class Gorev {
       };
 
   factory Gorev.fromJson(Map<String, dynamic> json) {
-    var timeParts = (json['saat'] as String).split(':');
     return Gorev(
-      ad: json['ad'],
-      tarih: DateTime.parse(json['tarih']),
-      saat: TimeOfDay(hour: int.parse(timeParts[0]), minute: int.parse(timeParts[1])),
-      tamamlandi: json['tamamlandi'],
+      ad: jsonMetin(json['ad'], 'İsimsiz Görev'),
+      tarih: jsonTarih(json['tarih'], 'tarih'),
+      saat: jsonSaat(json['saat']),
+      tamamlandi: jsonMantik(json['tamamlandi']),
     );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/app_settings.dart';
 import '../services/settings_service.dart';
+import '../services/storage_service.dart';
 import '../services/update_service.dart';
 
 class AyarlarSayfaPage extends StatefulWidget {
@@ -44,6 +46,88 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
   void initState() {
     super.initState();
     _settings = widget.currentSettings;
+  }
+
+  final _storageService = StorageService();
+  bool _yedeklemeCalisiyor = false;
+
+  void _bilgiGoster(String mesaj, Color renk) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mesaj),
+        backgroundColor: renk,
+        duration: const Duration(seconds: 5),
+      ),
+    );
+  }
+
+  /// Tüm verileri tek bir JSON dosyası olarak kullanıcının seçtiği klasöre yazar.
+  Future<void> _yedekAl() async {
+    final klasor = await FilePicker.platform.getDirectoryPath();
+    if (klasor == null) return;
+
+    setState(() => _yedeklemeCalisiyor = true);
+    try {
+      final yol = await _storageService.exportBackup(klasor);
+      final dosyaAdi = yol.split(RegExp(r'[\\/]')).last;
+      _bilgiGoster('Yedek oluşturuldu: $dosyaAdi', Colors.green);
+    } catch (e) {
+      _bilgiGoster('Yedek alınamadı: $e', Colors.red);
+    } finally {
+      if (mounted) setState(() => _yedeklemeCalisiyor = false);
+    }
+  }
+
+  /// Yedek dosyasından geri yükler. Mevcut veri üzerine yazılacağı için önce onay alınır.
+  Future<void> _yedektenGeriYukle() async {
+    final secim = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    final yol = secim?.files.single.path;
+    if (yol == null) return;
+
+    if (!mounted) return;
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Yedekten Geri Yükle'),
+        content: const Text(
+          'Bu işlem cihazdaki mevcut verilerin üzerine yazar ve yedekteki '
+          'veriyi buluta gönderir.\n\nMevcut verilerinizin bir kopyası '
+          'otomatik olarak saklanır, ancak yine de devam etmeden önce yeni '
+          'bir yedek almanız önerilir.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Geri Yükle'),
+          ),
+        ],
+      ),
+    );
+
+    if (onay != true) return;
+
+    setState(() => _yedeklemeCalisiyor = true);
+    try {
+      final sayi = await _storageService.importBackup(yol);
+      _bilgiGoster(
+        '$sayi veri grubu geri yüklendi. Değişikliklerin görünmesi için '
+        'uygulamayı yeniden başlatın.',
+        Colors.green,
+      );
+    } catch (e) {
+      _bilgiGoster('Geri yükleme başarısız: $e', Colors.red);
+    } finally {
+      if (mounted) setState(() => _yedeklemeCalisiyor = false);
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -241,6 +325,56 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
 
           const SizedBox(height: 30),
 
+          // Yedekleme
+          _buildSectionTitle('Veri Yedekleme'),
+          const SizedBox(height: 10),
+          Text(
+            'Tüm projeler, günlük kayıtlar, faturalar ve notlar tek bir dosyaya '
+            'yazılır. Dosyayı bilgisayarınızda veya bulut sürücünüzde saklayın.',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 15),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.save_alt, color: Colors.green),
+              title: Text(
+                'Yedek Al',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+              ),
+              subtitle: Text(
+                'Verileri bir klasöre kaydet',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+              ),
+              trailing: _yedeklemeCalisiyor
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chevron_right),
+              onTap: _yedeklemeCalisiyor ? null : _yedekAl,
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.restore_page, color: Colors.orange),
+              title: Text(
+                'Yedekten Geri Yükle',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+              ),
+              subtitle: Text(
+                'Mevcut verilerin üzerine yazar',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _yedeklemeCalisiyor ? null : _yedektenGeriYukle,
+            ),
+          ),
+
+          const SizedBox(height: 30),
 
           // Varsayılana Dön
           OutlinedButton.icon(

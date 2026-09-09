@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class Fatura {
   final String id;
   final String fotoYolu;
@@ -31,13 +33,13 @@ class Fatura {
       };
 
   factory Fatura.fromJson(Map<String, dynamic> json) => Fatura(
-        id: json['id'],
-        fotoYolu: json['fotoYolu'] ?? '',
-        firmaAdi: json['firmaAdi'] ?? json['santiyeAdi'] ?? '',
-        aciklama: json['aciklama'] ?? '',
-        tutar: (json['tutar'] ?? 0).toDouble(),
-        kdv: (json['kdv'] ?? 0).toDouble(),
-        toplamTutar: (json['toplamTutar'] ?? 0).toDouble(),
-        tarih: DateTime.parse(json['tarih']),
+        id: jsonKimlik(json['id']),
+        fotoYolu: jsonMetin(json['fotoYolu']),
+        firmaAdi: jsonMetin(json['firmaAdi'], jsonMetin(json['santiyeAdi'])),
+        aciklama: jsonMetin(json['aciklama']),
+        tutar: jsonOndalik(json['tutar']),
+        kdv: jsonOndalik(json['kdv']),
+        toplamTutar: jsonOndalik(json['toplamTutar']),
+        tarih: jsonTarih(json['tarih'], 'tarih'),
       );
 }

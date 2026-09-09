@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class Proje {
   String id;
   String ad;
@@ -29,15 +31,13 @@ class Proje {
 
   factory Proje.fromJson(Map<String, dynamic> json) {
     return Proje(
-      id: json['id'],
-      ad: json['ad'],
-      aciklama: json['aciklama'],
-      baslangicTarihi: DateTime.parse(json['baslangicTarihi']),
-      toplamGun: json['toplamGun'],
-      durum: json['durum'] ?? "Devam Ediyor",
-      sonGuncelleme: json['sonGuncelleme'] != null
-          ? DateTime.parse(json['sonGuncelleme'])
-          : null,
+      id: jsonKimlik(json['id']),
+      ad: jsonMetin(json['ad'], 'İsimsiz Proje'),
+      aciklama: jsonMetin(json['aciklama']),
+      baslangicTarihi: jsonTarih(json['baslangicTarihi'], 'baslangicTarihi'),
+      toplamGun: jsonTamsayi(json['toplamGun']),
+      durum: jsonMetin(json['durum'], 'Devam Ediyor'),
+      sonGuncelleme: jsonTarihOpsiyonel(json['sonGuncelleme']),
     );
   }
 }

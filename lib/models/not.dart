@@ -1,3 +1,5 @@
+import 'json_utils.dart';
+
 class Not {
   String baslik;
   String icerik;
@@ -19,12 +21,10 @@ class Not {
 
   factory Not.fromJson(Map<String, dynamic> json) {
     return Not(
-      baslik: json['baslik'],
-      icerik: json['icerik'],
-      olusturmaTarihi: DateTime.parse(json['olusturmaTarihi']),
-      guncellenmeTarihi: json['guncellenmeTarihi'] != null
-          ? DateTime.parse(json['guncellenmeTarihi'])
-          : null,
+      baslik: jsonMetin(json['baslik'], 'Başlıksız'),
+      icerik: jsonMetin(json['icerik']),
+      olusturmaTarihi: jsonTarih(json['olusturmaTarihi'], 'olusturmaTarihi'),
+      guncellenmeTarihi: jsonTarihOpsiyonel(json['guncellenmeTarihi']),
     );
   }
 }

@@ -44,12 +44,14 @@ import 'screens/ayarlar_sayfa.dart';
 import 'models/app_settings.dart';
 import 'services/settings_service.dart';
 import 'services/update_service.dart'; // import eklendi
+import 'config/app_config.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_colors.dart';
 
 import 'package:flutter/services.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'firebase_options.dart';
+import 'services/app_log.dart';
 
 /// Windows'ta Firestore cache kilitlendiyse true — sync tamamen atlanır
 bool firestoreDisabled = false;
@@ -59,70 +61,39 @@ void main() async {
 
   // Tüm yakalanmayan hataları yakala — uygulamanın sessizce kapanmasını önle
   FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('FLUTTER HATA: ${details.exception}');
-    debugPrint('STACK: ${details.stack}');
+    appLog('FLUTTER HATA: ${details.exception}');
+    appLog('STACK: ${details.stack}');
     // Uygulamayı kapatma, sadece logla
   };
 
   // Dart tarafındaki yakalanmayan async hatalar
   PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('PLATFORM HATA: $error');
-    debugPrint('STACK: $stack');
+    appLog('PLATFORM HATA: $error');
+    appLog('STACK: $stack');
     return true; // true = hatayı yönetiyoruz, uygulama kapanmasın
   };
 
   tz.initializeTimeZones();
   try {
-    print("LOG: Starting Firebase initialization...");
+    appLog("LOG: Starting Firebase initialization...");
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    print("LOG: Firebase initialization finished");
+    appLog("LOG: Firebase initialization finished");
 
     if (Platform.isWindows) {
-      print("LOG: Windows detected, disabling Firestore persistence...");
-      
-      // Firestore cache dizinini sil; silinememişse (dosya kilidi) sync atlanacak
-      bool cacheCleared = false;
-      try {
-        final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
-        if (localAppData.isNotEmpty) {
-          final firestoreDir = Directory('$localAppData\\firestore');
-          if (await firestoreDir.exists()) {
-            await firestoreDir.delete(recursive: true);
-            print("LOG: Firestore cache directory deleted successfully.");
-          }
-          cacheCleared = true;
-        }
-      } catch (e) {
-        print("LOG: Firestore cache locked by another process - cloud sync will be skipped: $e");
-        cacheCleared = false;
-      }
-
-      // Cache temizlenemediyse Firestore'u hiç başlatma (crash önlemi)
-      if (cacheCleared) {
-        FirebaseFirestore.instance.settings = const Settings(
-          persistenceEnabled: false,
-        );
-        print("LOG: Firestore persistence disabled successfully.");
-      } else {
-        // Bir önceki instance hâlâ çalışıyor olabilir; Firestore'u devre dışı bırak
-        firestoreDisabled = true;
-        print("LOG: Firestore disabled - using local cached data only.");
-      }
-      
-      print("LOG: Waiting 2 seconds for native plugins...");
-      await Future.delayed(const Duration(seconds: 2));
+      appLog("LOG: Windows detected - disabling Firestore cloud queries to prevent C++ SDK crash.");
+      firestoreDisabled = true;
     }
   } catch (e) {
-    print("LOG: Firebase init error: $e");
+    appLog("LOG: Firebase init error: $e");
   }
   
   try {
     await NotificationService().init();
     await NotificationService().requestPermissions();
   } catch (e) {
-    debugPrint("Notification init error: $e");
+    appLog("Notification init error: $e");
   }
 
   // Ekran yönü kilidi sadece mobil cihazlarda
@@ -268,23 +239,25 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 
   Future<void> _preloadData() async {
-    if (_startedLoading) return;
-    print("LOG: _preloadData started");
-    _startedLoading = true;
+    appLog("LOG: _preloadData started");
     
     try {
-      print("LOG: Syncing with cloud...");
-      await StorageService().syncEverythingWithCloud();
-      print("LOG: Sync complete");
+      appLog("LOG: Syncing with cloud...");
+      // Koleksiyonlar paralel çekiliyor (her biri 6 sn zaman aşımlı); buradaki
+      // süre yalnızca bir emniyet supabıdır, normalde devreye girmez.
+      await StorageService()
+          .syncEverythingWithCloud()
+          .timeout(const Duration(seconds: 12));
+      appLog("LOG: Sync complete");
     } catch (e) {
-      print("LOG: Preload data error: $e");
-    }
-    
-    if (mounted) {
-      print("LOG: Setting _isDataReady to true");
-      setState(() {
-        _isDataReady = true;
-      });
+      appLog("LOG: Preload data error: $e");
+    } finally {
+      if (mounted) {
+        appLog("LOG: Setting _isDataReady to true");
+        setState(() {
+          _isDataReady = true;
+        });
+      }
     }
   }
 
@@ -301,7 +274,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           }
         } catch (e) {
           // Firebase yok, çevrimdışı mod
-          debugPrint("Offline mode: Firebase not initialized.");
+          appLog("Offline mode: Firebase not initialized.");
           if (_splashAnimationComplete) {
             return const MainScreen();
           }
@@ -321,8 +294,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
         }
 
         // Giriş yapılmışsa veri yüklemeyi başlat
-        if (user != null && !_isDataReady) {
-          print("LOG: User logged in, but data not ready. Starting preload.");
+        if (user != null && !_isDataReady && !_startedLoading) {
+          _startedLoading = true;
+          appLog("LOG: User logged in, but data not ready. Starting preload.");
           _preloadData();
         }
 
@@ -411,7 +385,29 @@ class _MainScreenState extends State<MainScreen> {
     // Windows'ta çökme riskini azaltmak için burada tekrar çağırmıyoruz.
     await _loadSettings();
     await _loadAllData();
-    
+
+    // Derleme secrets.json olmadan yapıldıysa fotoğraf yükleme ve masaüstü
+    // Google girişi sessizce çalışmaz. Bunun fark edilmemesi mümkün olmasın.
+    if (mounted && AppConfig.eksikAyarlar.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red.shade900,
+          duration: const Duration(seconds: 15),
+          content: Text(
+            'Yapılandırma eksik: ${AppConfig.eksikAyarlar.join(", ")}. '
+            'Bu sürüm --dart-define-from-file=secrets.json olmadan derlenmiş; '
+            'fotoğraf yükleme çalışmayacak.',
+          ),
+        ),
+      );
+    }
+
+    // Veri yüklenirken bir sorun çıktıysa kullanıcı sessizce boş ekranla
+    // karşılaşmasın; ne olduğunu görebilsin.
+    if (mounted && StorageService.warnings.isNotEmpty) {
+      _veriUyarisiniGoster();
+    }
+
     // Uygulama tamamen açıldıktan 2 saniye sonra güncelleme ve hava durumu kontrolü yap
     if (mounted) {
       Future.delayed(const Duration(seconds: 2), () {
@@ -424,6 +420,93 @@ class _MainScreenState extends State<MainScreen> {
         }
       });
     }
+  }
+
+  /// Veri yükleme sırasında oluşan uyarıları kullanıcıya bildirir.
+  ///
+  /// Sorunlu koleksiyonlar buluta gönderilmediği için, kullanıcı uyarıyı
+  /// görmezden gelse bile buluttaki sağlam verisi korunur.
+  void _veriUyarisiniGoster() {
+    final uyarilar = List<StorageWarning>.from(StorageService.warnings);
+    if (uyarilar.isEmpty) return;
+
+    final adlar = uyarilar
+        .map((u) => StorageService.collectionNames[u.koleksiyon] ?? u.koleksiyon)
+        .toSet()
+        .join(', ');
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 10),
+        content: Text('Bazı veriler eksik yüklendi: $adlar'),
+        action: SnackBarAction(
+          label: 'Ayrıntı',
+          textColor: Colors.white,
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                backgroundColor: ThemeColors.cardBackground(dialogContext),
+                title: Text(
+                  'Veri Uyarıları',
+                  style: TextStyle(color: ThemeColors.textPrimary(dialogContext)),
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Aşağıdaki veriler tam okunamadı. Güvenlik gereği bu '
+                        'veriler buluta gönderilmiyor; buluttaki kaydınız '
+                        'olduğu gibi duruyor.',
+                        style: TextStyle(
+                          color: ThemeColors.textSecondary(dialogContext),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...uyarilar.map(
+                        (u) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                StorageService.collectionNames[u.koleksiyon] ??
+                                    u.koleksiyon,
+                                style: TextStyle(
+                                  color: ThemeColors.textPrimary(dialogContext),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                u.mesaj,
+                                style: TextStyle(
+                                  color: ThemeColors.textSecondary(dialogContext),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Kapat'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _loadAllData() async {
@@ -449,7 +532,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     } catch (e) {
-      debugPrint("Calendar sync error: $e");
+      appLog("Calendar sync error: $e");
     }
 
 

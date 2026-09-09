@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/json_utils.dart';
 import '../theme/theme_colors.dart';
 
 class HaritalarSayfaPage extends StatefulWidget {
@@ -40,10 +41,10 @@ class LocationItem {
 
   factory LocationItem.fromJson(Map<String, dynamic> json) {
     return LocationItem(
-      name: json['name'],
-      latitude: json['latitude'],
-      longitude: json['longitude'],
-      type: json['type'],
+      name: jsonMetin(json['name'], 'İsimsiz Konum'),
+      latitude: jsonOndalik(json['latitude']),
+      longitude: jsonOndalik(json['longitude']),
+      type: jsonMetin(json['type'], 'Diğer'),
     );
   }
 }
