@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../models/proje.dart';
 import '../models/gunluk_kayit.dart';
 import '../theme/theme_colors.dart';
+import 'proje_detay_sayfa.dart';
+import '../services/app_log.dart';
 
 class GunlukRaporSayfaPage extends StatefulWidget {
   final List<Proje> projeler;
@@ -176,7 +178,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
               if (path.toLowerCase().endsWith('.webp')) mime = 'image/webp';
               fb.write('<img src="data:$mime;base64,$b64" onclick="openModal(this.src)" style="max-width:180px;max-height:160px;margin:3px;border:1px solid #ccc;border-radius:4px;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" title="Büyütmek için tıklayın" />');
             } catch (e) {
-              print('Resim hatası: $e');
+              appLog('Resim hatası: $e');
             }
           }
           if (fb.isNotEmpty) fotografHtml = fb.toString();
@@ -672,15 +674,32 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                             final fPath = kayit.fotografYollari[fIndex];
                                             final isNetwork = fPath.startsWith('http://') || fPath.startsWith('https://');
 
-                                            return Container(
-                                              margin: const EdgeInsets.only(right: 8),
-                                              width: 60,
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.white12),
-                                                image: DecorationImage(
-                                                  image: (isNetwork ? NetworkImage(fPath) : FileImage(File(fPath))) as ImageProvider,
-                                                  fit: BoxFit.cover,
+                                            return GestureDetector(
+                                              onTap: () {
+                                                final photoList = kayit.fotografYollari.map((path) => <String, dynamic>{
+                                                  'tarih': kayit.tarih,
+                                                  'yol': path,
+                                                }).toList();
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => FotografGoruntulePage(
+                                                      fotograflar: photoList,
+                                                      baslangicIndex: fIndex,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              child: Container(
+                                                margin: const EdgeInsets.only(right: 8),
+                                                width: 60,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.white12),
+                                                  image: DecorationImage(
+                                                    image: (isNetwork ? NetworkImage(fPath) : FileImage(File(fPath))) as ImageProvider,
+                                                    fit: BoxFit.cover,
+                                                  ),
                                                 ),
                                               ),
                                             );

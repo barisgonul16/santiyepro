@@ -10,6 +10,7 @@ import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import '../services/app_log.dart';
 
 class VincFormControllers {
   final firmaAdiController = TextEditingController();
@@ -282,7 +283,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
       for (String p in fotograflar) {
         if (!ImageService.isNetworkUrl(p)) {
-          print("LOG: Fotoğraf yükleniyor: $p");
+          appLog("LOG: Fotoğraf yükleniyor: $p");
           String? url = await _imageService.uploadImage(p);
           if (url != null) {
             yuklenenYollar.add(url);
@@ -560,7 +561,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             kopyalananFotolar.add(yeniAd);
             fotoSayac++;
           } catch (e) {
-            print("Foto kopyalama hatası: $e");
+            appLog("Foto kopyalama hatası: $e");
           }
         }
 
@@ -898,34 +899,34 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         final hedefYol = "${hedefKlasor.path}/$yeniAd";
 
         try {
-          print("LOG: Aktarma basliyor: $kaynak");
+          appLog("LOG: Aktarma basliyor: $kaynak");
           if (ImageService.isNetworkUrl(kaynak)) {
-            print("LOG: Network URL tespit edildi, indiriliyor...");
+            appLog("LOG: Network URL tespit edildi, indiriliyor...");
             // URL ise indir
             final bytes = await _imageService.downloadImage(kaynak);
             if (bytes != null) {
-              print("LOG: Indirme basarili, yaziliyor: $hedefYol");
+              appLog("LOG: Indirme basarili, yaziliyor: $hedefYol");
               await File(hedefYol).writeAsBytes(bytes);
               basarili++;
             } else {
-              print("LOG: Indirme basarisiz: $kaynak");
+              appLog("LOG: Indirme basarisiz: $kaynak");
               hatali++;
             }
           } else {
-            print("LOG: Yerel dosya tespit edildi: $kaynak");
+            appLog("LOG: Yerel dosya tespit edildi: $kaynak");
             // Yerel dosya ise kopyala
             final kaynakDosya = File(kaynak);
             if (await kaynakDosya.exists()) {
               await kaynakDosya.copy(hedefYol);
               basarili++;
             } else {
-              print("LOG: Yerel dosya bulunamadi (Muhtemelen mobil yolu): $kaynak");
+              appLog("LOG: Yerel dosya bulunamadi (Muhtemelen mobil yolu): $kaynak");
               // Windows'ta olup mobildeki yerel yolu kopyalamaya çalışıyorsa burada durur
               hatali++;
             }
           }
         } catch (e) {
-          print("LOG: Aktarma hatası ($yeniAd): $e");
+          appLog("LOG: Aktarma hatası ($yeniAd): $e");
           hatali++;
         }
       }
@@ -1505,7 +1506,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                            onTap: () {
                              // Create photo list for viewing
                              final photosList = fotograflar.asMap().entries.map((e) => <String, dynamic>{
-                               'tarih': DateTime.now(),
+                               'tarih': secilenTarih,
                                'yol': e.value,
                              }).toList();
                              _fotografBuyut(context, photosList, index);
@@ -2233,14 +2234,27 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   // --- Yardımcı Widgetlar (Aynı Kalıyor) ---
   void _galeriGoster() {
     List<Map<String, dynamic>> tumFotograflar = [];
-    for (var kayit in widget.gunlukKayitlar) {
-      for (var foto in kayit.fotografYollari) {
-        tumFotograflar.add({'tarih': kayit.tarih, 'yol': foto});
+    if (widget.gunlukKayitlar != null) {
+      for (var kayit in widget.gunlukKayitlar) {
+        if (kayit.fotografYollari != null) {
+          for (var foto in kayit.fotografYollari) {
+            if (foto != null && foto.toString().trim().isNotEmpty) {
+              tumFotograflar.add({'tarih': kayit.tarih, 'yol': foto.toString()});
+            }
+          }
+        }
       }
     }
-    tumFotograflar.sort(
-      (a, b) => (b['tarih'] as DateTime).compareTo(a['tarih'] as DateTime),
-    );
+    tumFotograflar.sort((a, b) {
+      final tA = a['tarih'];
+      final tB = b['tarih'];
+      if (tA is DateTime && tB is DateTime) {
+        return tB.compareTo(tA);
+      }
+      if (tA is DateTime) return -1;
+      if (tB is DateTime) return 1;
+      return 0;
+    });
 
     Navigator.push(
       context,
@@ -2263,13 +2277,49 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   ),
                   itemCount: tumFotograflar.length,
                   itemBuilder: (context, index) {
+                    if (index < 0 || index >= tumFotograflar.length) return const SizedBox();
                     final foto = tumFotograflar[index];
-                    final yol = foto['yol'] as String;
+                    final yol = (foto['yol'] ?? '').toString();
+                    final tarih = foto['tarih'];
+                    final tarihStr = tarih is DateTime
+                        ? DateFormat('dd.MM.yyyy').format(tarih)
+                        : (tarih != null ? tarih.toString() : '');
                     return InkWell(
                       onTap: () => _fotografBuyut(context, tumFotograflar, index),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: ImageService.buildImage(yol, fit: BoxFit.cover),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            ImageService.buildImage(yol, fit: BoxFit.cover),
+                            if (tarihStr.isNotEmpty)
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+                                  color: Colors.black.withOpacity(0.65),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.calendar_today, color: Colors.amber, size: 10),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        tarihStr,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -2284,12 +2334,14 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     List<Map<String, dynamic>> tumFotograflar,
     int baslangicIndex,
   ) {
+    if (tumFotograflar.isEmpty) return;
+    final safeIndex = baslangicIndex.clamp(0, tumFotograflar.length - 1);
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => _FotografGoruntulePage(
+        builder: (context) => FotografGoruntulePage(
           fotograflar: tumFotograflar,
-          baslangicIndex: baslangicIndex,
+          baslangicIndex: safeIndex,
         ),
       ),
     );
@@ -2477,51 +2529,93 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   }
 }
 
-class _FotografGoruntulePage extends StatefulWidget {
+class FotografGoruntulePage extends StatefulWidget {
   final List<Map<String, dynamic>> fotograflar;
   final int baslangicIndex;
 
-  const _FotografGoruntulePage({
+  const FotografGoruntulePage({
+    super.key,
     required this.fotograflar,
     required this.baslangicIndex,
   });
 
   @override
-  State<_FotografGoruntulePage> createState() => _FotografGoruntulePageState();
+  State<FotografGoruntulePage> createState() => _FotografGoruntulePageState();
 }
 
-class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
+class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
   late int mevcutIndex;
   late PageController _pageController;
   bool _showAppBar = true;
 
+  String _formatTarih(dynamic tarih) {
+    if (tarih == null) return '';
+    if (tarih is DateTime) {
+      return DateFormat('dd.MM.yyyy').format(tarih);
+    }
+    if (tarih is String) {
+      try {
+        final parsed = DateTime.parse(tarih);
+        return DateFormat('dd.MM.yyyy').format(parsed);
+      } catch (_) {
+        return tarih;
+      }
+    }
+    return tarih.toString();
+  }
+
   @override
   void initState() {
     super.initState();
-    mevcutIndex = widget.baslangicIndex;
-    _pageController = PageController(initialPage: widget.baslangicIndex);
-    // Fotoğraf görüntüleme ekranında tüm yönlere izin ver
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    if (widget.fotograflar.isEmpty) {
+      mevcutIndex = 0;
+      _pageController = PageController();
+    } else {
+      mevcutIndex = widget.baslangicIndex.clamp(0, widget.fotograflar.length - 1);
+      _pageController = PageController(initialPage: mevcutIndex);
+    }
+    try {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    // Çıkışta sadece dikey moda geri dön
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    try {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+    } catch (_) {}
     _pageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.fotograflar.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black45,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text('Görüntülenecek fotoğraf yok', style: TextStyle(color: Colors.white54)),
+        ),
+      );
+    }
+
     final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final safeIndex = mevcutIndex.clamp(0, widget.fotograflar.length - 1);
+    final String tarihStr = _formatTarih(widget.fotograflar[safeIndex]['tarih']);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -2535,19 +2629,35 @@ class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
-                '${mevcutIndex + 1} / ${widget.fotograflar.length}',
+                '${safeIndex + 1} / ${widget.fotograflar.length}',
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               actions: [
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 15),
-                    child: Text(
-                      DateFormat('dd/MM/yyyy').format(widget.fotograflar[mevcutIndex]['tarih'] as DateTime),
-                      style: const TextStyle(color: Colors.white70, fontSize: 14),
+                if (tarihStr.isNotEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 15),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black38,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_today, color: Colors.amber, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              tarihStr,
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
               ],
             )
           : null,
@@ -2563,12 +2673,16 @@ class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
               controller: _pageController,
               itemCount: widget.fotograflar.length,
               onPageChanged: (index) {
-                setState(() {
-                  mevcutIndex = index;
-                });
+                if (mounted) {
+                  setState(() {
+                    mevcutIndex = index;
+                  });
+                }
               },
               itemBuilder: (context, index) {
-                final yol = widget.fotograflar[index]['yol'] as String;
+                if (index < 0 || index >= widget.fotograflar.length) return const SizedBox();
+                final item = widget.fotograflar[index];
+                final yol = (item['yol'] ?? '').toString();
                 return Center(
                   child: InteractiveViewer(
                     minScale: 0.5,
@@ -2583,38 +2697,88 @@ class _FotografGoruntulePageState extends State<_FotografGoruntulePage> {
                 );
               },
             ),
-            // Portre modunda okları göster, manzara modunda gizle (veya tam tersi tercih edilebilir)
-            if (!isLandscape && mevcutIndex > 0)
+
+            // Fotoğraf Üzerine Tarih Rozeti (Overlay Badge directly over photo)
+            if (tarihStr.isNotEmpty && _showAppBar)
+              Positioned(
+                bottom: isLandscape ? 20 : 35,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.amber.withOpacity(0.6), width: 1.2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black45,
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today, color: Colors.amber, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          tarihStr,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // Portre modunda okları göster, manzara modunda gizle
+            if (!isLandscape && safeIndex > 0)
               Positioned(
                 left: 10,
                 top: 0,
                 bottom: 0,
                 child: Center(
                   child: IconButton(
-                    onPressed: () => _pageController.previousPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    ),
+                    onPressed: () {
+                      if (_pageController.hasClients) {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.arrow_back_ios, color: Colors.white54, size: 40),
                   ),
                 ),
               ),
-            if (!isLandscape && mevcutIndex < widget.fotograflar.length - 1)
+            if (!isLandscape && safeIndex < widget.fotograflar.length - 1)
               Positioned(
                 right: 10,
                 top: 0,
                 bottom: 0,
                 child: Center(
                   child: IconButton(
-                    onPressed: () => _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    ),
+                    onPressed: () {
+                      if (_pageController.hasClients) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 40),
                   ),
                 ),
               ),
-            // Manzara modunda geri çıkış butonu (AppBar kapalıyken gerekli olabilir)
+            // Manzara modunda geri çıkış butonu
             if (isLandscape && !_showAppBar)
               Positioned(
                 top: 20,
