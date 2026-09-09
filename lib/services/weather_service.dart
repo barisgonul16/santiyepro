@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
+import 'app_log.dart';
 
 class WeatherService {
   Future<void> checkWeatherAndNotify(String cityName) async {
@@ -15,7 +16,7 @@ class WeatherService {
       final lastNotificationDate = prefs.getString('last_weather_notification_date');
       
       if (lastNotificationDate == todayStr) {
-        debugPrint("LOG: Weather notification already sent today ($todayStr). Skipping check.");
+        appLog("LOG: Weather notification already sent today ($todayStr). Skipping check.");
         return;
       }
 
@@ -79,7 +80,7 @@ class WeatherService {
         }
       }
     } catch (e) {
-      debugPrint("LOG: Weather check error: $e");
+      appLog("LOG: Weather check error: $e");
     }
   }
 }

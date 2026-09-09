@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
@@ -25,20 +25,45 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.10.1'
+          # Yerel geliştirme makinesindeki sürümle aynı tutulur.
+          # Eski değer ('3.10.1') Flutter değil Dart SDK sürümüydü ve geçersizdi.
+          flutter-version: '3.47.1'
           channel: 'stable'
 
       - name: Install dependencies
         run: flutter pub get
 
+      # Gizli değerler depoda tutulmaz; GitHub Secrets'tan derleme anında yazılır.
+      # Repo > Settings > Secrets and variables > Actions altında tanımlayın.
+      - name: Create secrets.json
+        shell: bash
+        run: |
+          cat > secrets.json <<EOF
+          {
+            "GOOGLE_CLIENT_ID": "${{ secrets.GOOGLE_CLIENT_ID }}",
+            "GOOGLE_CLIENT_SECRET": "${{ secrets.GOOGLE_CLIENT_SECRET }}",
+            "CLOUDINARY_CLOUD_NAME": "${{ secrets.CLOUDINARY_CLOUD_NAME }}",
+            "CLOUDINARY_UPLOAD_PRESET": "${{ secrets.CLOUDINARY_UPLOAD_PRESET }}"
+          }
+          EOF
+
+      # Şimdilik yalnızca gerçek hatalar sürümü durdurur. Kalan 184 bilgi/uyarı
+      # (deprecated API'ler, kullanılmayan importlar) temizlendikçe bu bayraklar
+      # kaldırılıp analiz tam katı hale getirilmelidir.
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Test
+        run: flutter test
+
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define-from-file=secrets.json
 
       - name: Build Windows
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define-from-file=secrets.json
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
             build/app/outputs/flutter-apk/app-release.apk

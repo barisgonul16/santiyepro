@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'app_log.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -21,7 +22,7 @@ class NotificationService {
       final dynamic timeZoneName = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timeZoneName.toString()));
     } catch (e) {
-      print("Timezone error: $e. Using Europe/Istanbul as fallback.");
+      appLog("Timezone error: $e. Using Europe/Istanbul as fallback.");
       try {
         tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
       } catch (_) {
@@ -56,7 +57,7 @@ class NotificationService {
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (details) {
-        print("Notification tapped: ${details.payload}");
+        appLog("Notification tapped: ${details.payload}");
       },
     );
 
@@ -80,7 +81,7 @@ class NotificationService {
 
   Future<void> scheduleNotification(
       int id, String title, String body, DateTime scheduledTime) async {
-    print("Scheduling notification: $title at $scheduledTime (ID: $id)");
+    appLog("Scheduling notification: $title at $scheduledTime (ID: $id)");
     
     final int safeId = id.abs() % 2147483647;
     final now = tz.TZDateTime.now(tz.local);
@@ -95,7 +96,7 @@ class NotificationService {
     );
 
     if (scheduledTZTime.isBefore(now)) {
-      print("Warning: Scheduled time is in the past.");
+      appLog("Warning: Scheduled time is in the past.");
       return;
     }
 
@@ -115,7 +116,7 @@ class NotificationService {
         // uiLocalNotificationDateInterpretation removed as it causes build error
       );
     } catch (e) {
-      print("Error scheduling notification: $e");
+      appLog("Error scheduling notification: $e");
     }
   }
 
@@ -144,7 +145,7 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.alarmClock,
       );
     } catch (e) {
-      print("Test schedule error: $e");
+      appLog("Test schedule error: $e");
     }
   }
 
@@ -189,7 +190,7 @@ class NotificationService {
       try {
         await androidImplementation.requestNotificationsPermission();
       } catch (e) {
-        print("Notification permission request failed: $e");
+        appLog("Notification permission request failed: $e");
       }
     }
   }

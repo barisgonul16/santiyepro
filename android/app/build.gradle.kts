@@ -1,3 +1,21 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+// Release imzalama anahtarı. android/key.properties dosyası VARSA release
+// derlemesi gerçek anahtarla imzalanır; YOKSA eskisi gibi debug anahtarıyla
+// imzalanır. Böylece anahtarı olmayan bir makinede derleme kırılmaz.
+//
+// DİKKAT: İmzalama anahtarını değiştirmek, mevcut kurulu uygulamaların
+// üzerine güncelleme yapılmasını ENGELLER (imza uyuşmazlığı). Geçiş için
+// kullanıcıların önce Ayarlar > Yedek Al ile yedek alması, uygulamayı
+// kaldırıp yeniden kurması ve yedeği geri yüklemesi gerekir.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+val releaseKeyVar = keystorePropertiesFile.exists()
+if (releaseKeyVar) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -33,11 +51,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (releaseKeyVar) {
+            create("release") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseKeyVar) {
+                signingConfigs.getByName("release")
+            } else {
+                // Anahtar yok: mevcut davranış korunur.
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

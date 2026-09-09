@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/theme_colors.dart';
+import 'app_log.dart';
 
 class UpdateService {
   // GITHUB REPO AYARLARI
@@ -24,7 +25,7 @@ class UpdateService {
       String currentVersionStr = packageInfo.version;
       String currentBuildStr = packageInfo.buildNumber;
       
-      print("LOG: Mevcut Versiyon: $currentVersionStr+$currentBuildStr");
+      appLog("LOG: Mevcut Versiyon: $currentVersionStr+$currentBuildStr");
 
       // 2. İnternetteki versiyon bilgisini çek (cache önlemek için timestamp eklendi)
       final String cacheBustUrl = "$_versionJsonUrl?t=${DateTime.now().millisecondsSinceEpoch}";
@@ -46,7 +47,7 @@ class UpdateService {
         
         int currentBuildNum = int.tryParse(currentBuildStr) ?? 0;
         
-        print("LOG: Son Versiyon: $latestVersionStr+$latestBuildNum");
+        appLog("LOG: Son Versiyon: $latestVersionStr+$latestBuildNum");
 
         // 3. Karşılaştırma - önce semantic version, sonra build number
         Version currentVersion = Version.parse(currentVersionStr);
@@ -65,7 +66,7 @@ class UpdateService {
             _showUpdateDialog(context, latestVersionFull, releaseNotes, currentVersion);
           }
         } else {
-          print("LOG: Uygulama güncel.");
+          appLog("LOG: Uygulama güncel.");
           if (showSnackBarIfUpdated && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -76,7 +77,7 @@ class UpdateService {
           }
         }
       } else {
-        print("LOG: Versiyon dosyası okunamadı: ${response.statusCode}");
+        appLog("LOG: Versiyon dosyası okunamadı: ${response.statusCode}");
         if (showSnackBarIfUpdated && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -87,7 +88,7 @@ class UpdateService {
         }
       }
     } catch (e) {
-      print("LOG: Güncelleme kontrol hatası: $e");
+      appLog("LOG: Güncelleme kontrol hatası: $e");
       if (showSnackBarIfUpdated && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

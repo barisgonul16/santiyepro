@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_settings.dart';
+import 'app_log.dart';
 
 class SettingsService {
   static const String _settingsKey = 'app_settings';
@@ -15,7 +16,7 @@ class SettingsService {
         return AppSettings.fromJson(json);
       }
     } catch (e) {
-      print('Error loading settings: $e');
+      appLog('Error loading settings: $e');
     }
     
     // Varsayılan ayarlar
@@ -28,7 +29,7 @@ class SettingsService {
       final String settingsJson = jsonEncode(settings.toJson());
       await prefs.setString(_settingsKey, settingsJson);
     } catch (e) {
-      print('Error saving settings: $e');
+      appLog('Error saving settings: $e');
     }
   }
 }

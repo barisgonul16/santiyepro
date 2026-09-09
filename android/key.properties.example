@@ -1,0 +1,15 @@
+# Bu dosyayi 'key.properties' olarak kopyalayin ve kendi degerlerinizi yazin.
+# key.properties ve .jks dosyalari git tarafindan yok sayilir - ASLA commit'lemeyin.
+#
+# Anahtar olusturma komutu (bir kere calistirilir, sifreyi siz belirlersiniz):
+#
+#   keytool -genkey -v -keystore C:\Users\baris\santiyepro-release.jks ^
+#           -keyalg RSA -keysize 2048 -validity 10000 -alias santiyepro
+#
+# Olusan .jks dosyasini ve sifresini KAYBETMEYIN. Kaybederseniz mevcut
+# kurulumlarin uzerine bir daha guncelleme yayinlayamazsiniz.
+
+storeFile=C:\\Users\\baris\\santiyepro-release.jks
+storePassword=BURAYA_KEYSTORE_SIFRESI
+keyAlias=santiyepro
+keyPassword=BURAYA_ANAHTAR_SIFRESI

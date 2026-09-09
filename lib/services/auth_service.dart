@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../config/app_config.dart';
 import 'storage_service.dart';
 import 'dart:convert';
 
@@ -10,14 +10,16 @@ import 'dart:io';
 
 import 'package:google_sign_in/google_sign_in.dart' as official;
 import 'package:google_sign_in_all_platforms/google_sign_in_all_platforms.dart' as gsas;
+import 'app_log.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final official.GoogleSignIn _googleSignIn = official.GoogleSignIn(
     scopes: ['email'],
-    clientId: Platform.isWindows ? utf8.decode(base64.decode('NzM5OTkxNDI2MjI4LW9ybmdj' 'MG12bWRwZjYxcWQ3bW4zbXRtNGNwODAzcDI4LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t')) : null,
+    clientId: Platform.isWindows && AppConfig.googleClientId.isNotEmpty
+        ? AppConfig.googleClientId
+        : null,
   );
 
   // Windows için statik instance (çünkü paket tekrar ilklendirmeyi sevmiyor)
@@ -25,8 +27,8 @@ class AuthService {
   gsas.GoogleSignIn get _googleSignInWindows {
     _gsasInstance ??= gsas.GoogleSignIn(
       params: gsas.GoogleSignInParams(
-        clientId: utf8.decode(base64.decode('NzM5OTkxNDI2MjI4LW9ybmdj' 'MG12bWRwZjYxcWQ3bW4zbXRtNGNwODAzcDI4LmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29t')),
-        clientSecret: utf8.decode(base64.decode('R09DU1BYLTc0SHNf' 'NkVyLWJoNnc5SzhUQmVuTC1TOEk3bkQ=')),
+        clientId: AppConfig.googleClientId,
+        clientSecret: AppConfig.googleClientSecret,
         redirectPort: 8890,
         scopes: ['email', 'profile'],
       ),
@@ -45,7 +47,7 @@ class AuthService {
       UserCredential result = await _auth.signInWithEmailAndPassword(email: email, password: password);
       return result.user;
     } catch (e) {
-      print("Sign in error: $e");
+      appLog("Sign in error: $e");
       return null;
     }
   }
@@ -70,26 +72,26 @@ class AuthService {
       }
       return user;
     } catch (e) {
-      print("Register error: $e");
+      appLog("Register error: $e");
       return null;
     }
   }  // Sign in with Google
   Future<User?> signInWithGoogle() async {
-    print("LOG: signInWithGoogle started");
+    appLog("LOG: signInWithGoogle started");
     String? accessToken;
     String? idToken;
 
     try {
       if (Platform.isWindows) {
-        print("LOG: Windows platform detected, forcing fresh session...");
+        appLog("LOG: Windows platform detected, forcing fresh session...");
         try {
           // Önemli: Eski/Süresi dolmuş tokenları temizlemek için önce çıkış yapıyoruz
           try {
-            print("LOG: Clearing cache...");
+            appLog("LOG: Clearing cache...");
             await _googleSignInWindows.signOut();
           } catch (_) {}
 
-          print("LOG: googleSignInWindows.signIn() - BROWSER SHOULD OPEN...");
+          appLog("LOG: googleSignInWindows.signIn() - BROWSER SHOULD OPEN...");
           final response = await _googleSignInWindows.signIn().timeout(
             const Duration(seconds: 60),
             onTimeout: () {
@@ -98,33 +100,21 @@ class AuthService {
           );
           
           if (response == null) {
-            print("LOG: User cancelled sign-in");
+            appLog("LOG: User cancelled sign-in");
             return null;
           }
           accessToken = response.accessToken;
           idToken = response.idToken;
-          print("LOG: Tokens received successfully");
+          appLog("LOG: Tokens received successfully");
 
-          // --- TEŞHİS: TOKEN AYRIŞTIRMA ---
-          try {
-            final parts = idToken!.split('.');
-            if (parts.length > 1) {
-              final payload = parts[1];
-              final String decoded = utf8.decode(base64Url.decode(base64Url.normalize(payload)));
-              print("---------------------------------------");
-              print("LOG: ID TOKEN İÇERİĞİ (KONTROL EDİN):");
-              print(decoded);
-              print("---------------------------------------");
-            }
-          } catch (e) {
-            print("LOG: Token ayrıştırma hatası: $e");
-          }
+          // Not: ID token içeriğini çözüp loglayan teşhis bloğu kaldırıldı —
+          // kullanıcının e-postası ve kimlik bilgileri log'a yazılıyordu.
         } catch (e) {
-          print("LOG: Windows sign-in error: $e");
+          appLog("LOG: Windows sign-in error: $e");
           rethrow;
         }
       } else {
-        print("LOG: Platform is not Windows, using official GoogleSignIn");
+        appLog("LOG: Platform is not Windows, using official GoogleSignIn");
         final official.GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
         if (googleUser == null) return null;
 
@@ -134,54 +124,51 @@ class AuthService {
       }
 
       if (idToken == null) {
-        print("LOG: Error - idToken is null");
+        appLog("LOG: Error - idToken is null");
         return null;
       }
 
-      print("LOG: Diagnostic - Firebase Project: ${_auth.app.options.projectId}");
-      print("LOG: Diagnostic - API Key: ${_auth.app.options.apiKey}");
-
-      print("LOG: Final signing in to Firebase...");
+      appLog("LOG: Final signing in to Firebase...");
       final AuthCredential credential = GoogleAuthProvider.credential(
         idToken: idToken,
         accessToken: accessToken,
       );
 
       UserCredential result = await _auth.signInWithCredential(credential);
-      print("LOG: Firebase sign-in successful: ${result.user?.email}");
+      appLog("LOG: Firebase sign-in successful: ${result.user?.email}");
       return result.user;
     } catch (e, stack) {
-      print("LOG: Final sign-in error: $e");
-      print("LOG: Stacktrace: $stack");
+      appLog("LOG: Final sign-in error: $e");
+      appLog("LOG: Stacktrace: $stack");
       rethrow;
     }
   }
 
   // Sign in with Google Silently
   Future<User?> signInWithGoogleSilently() async {
-    print("LOG: signInWithGoogleSilently started");
+    appLog("LOG: signInWithGoogleSilently started");
     String? accessToken;
     String? idToken;
 
     try {
       if (Platform.isWindows) {
-        print("LOG: Windows platform detected, attempting silent sign-in...");
+        appLog("LOG: Windows platform detected, attempting silent sign-in...");
         dynamic response;
         try {
           response = await _googleSignInWindows.signInOffline();
         } catch (e) {
-          print("LOG: Windows signInOffline error: $e");
+          appLog("LOG: Windows signInOffline error: $e");
         }
 
         if (response == null) {
-          print("LOG: No cached credentials found for Windows");
+          appLog("LOG: No cached credentials found for Windows");
           return null;
         }
 
         accessToken = response.accessToken;
         idToken = response.idToken;
       } else {
-        print("LOG: Mobile/Web platform, trying official signInSilently");
+        appLog("LOG: Mobile/Web platform, trying official signInSilently");
         final official.GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
         if (googleUser == null) return null;
 
@@ -191,7 +178,7 @@ class AuthService {
       }
 
       if (idToken == null) {
-        print("LOG: Silent sign-in failed: idToken is null");
+        appLog("LOG: Silent sign-in failed: idToken is null");
         return null;
       }
 
@@ -201,10 +188,10 @@ class AuthService {
       );
 
       UserCredential result = await _auth.signInWithCredential(credential);
-      print("LOG: Firebase silent sign-in successful: ${result.user?.email}");
+      appLog("LOG: Firebase silent sign-in successful: ${result.user?.email}");
       return result.user;
     } catch (e) {
-      print("LOG: Silent sign-in error: $e");
+      appLog("LOG: Silent sign-in error: $e");
       return null;
     }
   }
@@ -215,9 +202,9 @@ class AuthService {
       if (Platform.isWindows) {
         try {
           await _googleSignInWindows.signOut();
-          print("LOG: googleSignInWindows signed out.");
+          appLog("LOG: googleSignInWindows signed out.");
         } catch (e) {
-          print("googleSignInWindows sign out error: $e");
+          appLog("googleSignInWindows sign out error: $e");
         }
       } else {
         // Initialize GoogleSignIn locally for sign out if it was used
@@ -225,28 +212,28 @@ class AuthService {
         if (await googleSignIn.isSignedIn()) {
           try {
             await googleSignIn.signOut();
-            print("LOG: official.GoogleSignIn signed out.");
+            appLog("LOG: official.GoogleSignIn signed out.");
           } catch (e) {
-            print("Google sign out error: $e");
+            appLog("Google sign out error: $e");
           }
         }
       }
     } catch (e) {
-      print("Google sign out error: $e");
+      appLog("Google sign out error: $e");
     }
 
     // Clear local data on sign out
     try {
       await StorageService().clearLocalData();
     } catch (e) {
-      print("Clear local data error: $e");
+      appLog("Clear local data error: $e");
     }
 
     try {
       await _auth.signOut();
-      print("LOG: Firebase signed out.");
+      appLog("LOG: Firebase signed out.");
     } catch (e) {
-      print("Firebase sign out error: $e");
+      appLog("Firebase sign out error: $e");
     }
   }
 
@@ -263,7 +250,7 @@ class AuthService {
       }
       return true;
     } catch (e) {
-      print("Update name error: $e");
+      appLog("Update name error: $e");
       return false;
     }
   }
@@ -279,7 +266,7 @@ class AuthService {
       }
       return true;
     } catch (e) {
-      print("Update extra info error: $e");
+      appLog("Update extra info error: $e");
       return false;
     }
   }
@@ -294,7 +281,7 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print("Get user data error: $e");
+      appLog("Get user data error: $e");
       return null;
     }
   }
@@ -305,7 +292,7 @@ class AuthService {
       await _auth.currentUser?.updatePassword(newPassword);
       return true;
     } catch (e) {
-      print("Update password error: $e");
+      appLog("Update password error: $e");
       return false;
     }
   }
@@ -316,7 +303,7 @@ class AuthService {
       await _auth.currentUser?.verifyBeforeUpdateEmail(newEmail);
       return true;
     } catch (e) {
-      print("Update email error: $e");
+      appLog("Update email error: $e");
       return false;
     }
   }

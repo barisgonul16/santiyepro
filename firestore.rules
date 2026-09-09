@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// ŞantiyePro Firestore güvenlik kuralları
+//
+// Veri düzeni:
+//   users/{uid}                     -> profil (ad, e-posta, doğum tarihi)
+//   users/{uid}/data/{koleksiyon}   -> uygulama verisi (tek alanda JSON metni)
+//
+// Temel kural: bir kullanıcı YALNIZCA kendi belgelerine erişebilir.
+// Konsolda "test modu" kuralları (herkese açık okuma/yazma) kalmış olabilir;
+// bu dosya onun yerine geçmelidir.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == userId;
+
+      // Alt koleksiyonlar (data/... dahil) aynı kurala tabidir.
+      match /{belge=**} {
+        allow read, write: if request.auth != null
+                           && request.auth.uid == userId;
+      }
+    }
+
+    // Yukarıda eşleşmeyen her şey reddedilir (varsayılan davranış).
+  }
+}

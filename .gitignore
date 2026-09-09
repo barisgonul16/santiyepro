@@ -56,3 +56,9 @@ analyze_out*.txt
 analyze_output*.txt
 build_utf8.txt
 build_verbose.txt
+
+# Yerel gizli yapılandırma - ASLA commit'lenmez
+secrets.json
+android/key.properties
+*.jks
+*.keystore

@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../theme/theme_colors.dart';
 import '../services/storage_service.dart';
 import 'login_sayfa.dart';
+import '../services/app_log.dart';
 
 class ProfilSayfa extends StatefulWidget {
   const ProfilSayfa({super.key});
@@ -42,7 +43,7 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
         });
       }
     } catch (e) {
-      print("Error loading user data: $e");
+      appLog("Error loading user data: $e");
     }
   }
 
