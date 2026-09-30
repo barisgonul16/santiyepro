@@ -5,7 +5,6 @@ import 'dart:io';
 import 'package:excel/excel.dart' as xls;
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart'; 
-import 'package:syncfusion_flutter_xlsio/xlsio.dart' as sf;
 import '../models/fatura.dart';
 import '../models/harcama.dart';
 import '../models/proje.dart';
@@ -437,58 +436,83 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
     try {
       await hedefKlasor.create(recursive: true);
       
-      // Syncfusion Excel Oluştur
-      final sf.Workbook workbook = sf.Workbook();
-      final sf.Worksheet sheet = workbook.worksheets[0];
-      sheet.name = typeStr;
+      // Excel ücretsiz `excel` paketiyle oluşturuluyor.
+      //
+      // Fotoğraflar Excel'in içine gömülmüyor (ücretsiz paket bunu
+      // desteklemiyor). Her fotoğraf Excel dosyasının YANINA ayrı dosya olarak
+      // kaydediliyor ve "RESMİ GÖR" hücresi HYPERLINK formülüyle o dosyaya
+      // bağlanıyor. Excel ile fotoğraflar aynı klasörde durduğu sürece
+      // bağlantıya tıklayınca fotoğraf açılır.
+      final excel = xls.Excel.createExcel();
+      final sheet = excel[typeStr];
+      excel.delete('Sheet1');
+      final baslikStili = xls.CellStyle(bold: true);
+
+      void baslikYaz(List<String> basliklar) {
+        for (var sutun = 0; sutun < basliklar.length; sutun++) {
+          final hucre = sheet.cell(
+              xls.CellIndex.indexByColumnRow(columnIndex: sutun, rowIndex: 0));
+          hucre.value = xls.TextCellValue(basliklar[sutun]);
+          hucre.cellStyle = baslikStili;
+        }
+      }
+
+      void yaz(int satir, int sutun, xls.CellValue deger) {
+        sheet
+            .cell(xls.CellIndex.indexByColumnRow(
+                columnIndex: sutun, rowIndex: satir))
+            .value = deger;
+      }
+
+      String dosyaAdiTemizle(String metin) =>
+          metin.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+
+      /// Fotoğrafı indirip klasöre kaydeder; bağlantıyı ve dosya adını
+      /// satıra yazar. Başarılıysa true döner.
+      Future<bool> fotografiEkle({
+        required String kaynak,
+        required String dosyaAdiKoku,
+        required int satir,
+        required int baglantiSutunu,
+      }) async {
+        final bytes = await (ImageService.isNetworkUrl(kaynak)
+            ? ImageService().downloadImage(kaynak)
+            : File(kaynak).readAsBytes());
+        if (bytes == null) return false;
+
+        final uzanti = kaynak.split('.').last.split('?').first.toLowerCase();
+        final fotoAdi = "$dosyaAdiKoku.$uzanti";
+        await File("${hedefKlasor.path}/$fotoAdi").writeAsBytes(bytes);
+
+        // Excel formül metninde çift tırnak, iki çift tırnakla yazılır.
+        final formulAdi = fotoAdi.replaceAll('"', '""');
+        yaz(satir, baglantiSutunu,
+            xls.FormulaCellValue('HYPERLINK("$formulAdi","RESMİ GÖR")'));
+        yaz(satir, baglantiSutunu + 1, xls.TextCellValue(fotoAdi));
+        return true;
+      }
 
       if (isFatura) {
-        // BAŞLIKLAR
-        sheet.getRangeByIndex(1, 1).setText("Firma/Şantiye");
-        sheet.getRangeByIndex(1, 2).setText("Tarih");
-        sheet.getRangeByIndex(1, 3).setText("Toplam");
-        sheet.getRangeByIndex(1, 4).setText("Açıklama");
-        sheet.getRangeByIndex(1, 5).setText("Fotoğraf");
-        sheet.getRangeByIndex(1, 6).setText("Dosya Adı");
+        baslikYaz(["Firma/Şantiye", "Tarih", "Toplam", "Açıklama", "Fotoğraf", "Dosya Adı"]);
 
         int photoCount = 0;
         for (int i = 0; i < veri.length; i++) {
           final item = veri[i];
-          final row = i + 2;
+          final satir = i + 1;
           if (item is Fatura) {
             final tarihStr = "${item.tarih.day}.${item.tarih.month.toString().padLeft(2, '0')}.${item.tarih.year}";
-            
-            sheet.getRangeByIndex(row, 1).setText(item.firmaAdi);
-            sheet.getRangeByIndex(row, 2).setText(tarihStr);
-            sheet.getRangeByIndex(row, 3).setNumber(item.toplamTutar);
-            sheet.getRangeByIndex(row, 4).setText(item.aciklama);
+
+            yaz(satir, 0, xls.TextCellValue(item.firmaAdi));
+            yaz(satir, 1, xls.TextCellValue(tarihStr));
+            yaz(satir, 2, xls.DoubleCellValue(item.toplamTutar));
+            yaz(satir, 3, xls.TextCellValue(item.aciklama));
 
             if (item.fotoYolu.isNotEmpty) {
               try {
-                final bytes = await (ImageService.isNetworkUrl(item.fotoYolu) 
-                    ? ImageService().downloadImage(item.fotoYolu) 
-                    : File(item.fotoYolu).readAsBytes());
-                
-                if (bytes != null) {
+                final kok = "fatura_${dosyaAdiTemizle(item.firmaAdi)}_$tarihStr.${photoCount + 1}";
+                if (await fotografiEkle(
+                    kaynak: item.fotoYolu, dosyaAdiKoku: kok, satir: satir, baglantiSutunu: 4)) {
                   photoCount++;
-                  final String sheetName = "F-$photoCount";
-                  final sf.Worksheet photoSheet = workbook.worksheets.addWithName(sheetName);
-                  
-                  photoSheet.getRangeByIndex(1, 1).setText("${item.firmaAdi} - $tarihStr");
-                  photoSheet.getRangeByIndex(1, 1).cellStyle.bold = true;
-                  photoSheet.pictures.addStream(2, 1, bytes);
-                  
-                  // Ana sayfadan bu sayfaya link ver
-                  final sf.Range range = sheet.getRangeByIndex(row, 5);
-                  final sf.Hyperlink hyperlink = sheet.hyperlinks.add(range, sf.HyperlinkType.workbook, "'$sheetName'!A1");
-                  hyperlink.textToDisplay = "RESMİ GÖR";
-                  
-                  final safeFirma = item.firmaAdi.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
-                  final uzanti = item.fotoYolu.split('.').last.split('?').first.toLowerCase();
-                  final fotoAdi = "fatura_${safeFirma}_$tarihStr.$photoCount.$uzanti";
-                  sheet.getRangeByIndex(row, 6).setText(fotoAdi);
-                  
-                  await File("${hedefKlasor.path}/$fotoAdi").writeAsBytes(bytes);
                   photoSuccessCount++;
                 }
               } catch (e) {
@@ -500,15 +524,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
           }
         }
       } else {
-        // HARCAMALAR
-        sheet.getRangeByIndex(1, 1).setText("Tarih");
-        sheet.getRangeByIndex(1, 2).setText("Tip");
-        sheet.getRangeByIndex(1, 3).setText("Kategori");
-        sheet.getRangeByIndex(1, 4).setText("Tutar");
-        sheet.getRangeByIndex(1, 5).setText("Açıklama");
-        sheet.getRangeByIndex(1, 6).setText("Bakiye");
-        sheet.getRangeByIndex(1, 7).setText("Fotoğraf");
-        sheet.getRangeByIndex(1, 8).setText("Dosya Adı");
+        baslikYaz(["Tarih", "Tip", "Kategori", "Tutar", "Açıklama", "Bakiye", "Fotoğraf", "Dosya Adı"]);
 
         final sortedList = List<Harcama>.from(widget.harcamalar)
           ..sort((a, b) => a.tarih.compareTo(b.tarih));
@@ -517,46 +533,28 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
         int photoCount = 0;
         for (int i = 0; i < sortedList.length; i++) {
           final item = sortedList[i];
-          final row = i + 2;
+          final satir = i + 1;
           final amount = item.tutar;
           item.isReimbursement ? cumulative += amount : cumulative -= amount;
-          
+
           final tarihStr = "${item.tarih.day}.${item.tarih.month.toString().padLeft(2, '0')}.${item.tarih.year}";
-          
-          sheet.getRangeByIndex(row, 1).setText(tarihStr);
-          sheet.getRangeByIndex(row, 2).setText(item.isReimbursement ? "Alınan Para" : "Harcama");
-          sheet.getRangeByIndex(row, 3).setText(item.kategori);
-          sheet.getRangeByIndex(row, 4).setNumber(amount);
-          sheet.getRangeByIndex(row, 5).setText(item.aciklama);
-          sheet.getRangeByIndex(row, 6).setNumber(cumulative);
+
+          yaz(satir, 0, xls.TextCellValue(tarihStr));
+          yaz(satir, 1, xls.TextCellValue(item.isReimbursement ? "Alınan Para" : "Harcama"));
+          yaz(satir, 2, xls.TextCellValue(item.kategori));
+          yaz(satir, 3, xls.DoubleCellValue(amount));
+          yaz(satir, 4, xls.TextCellValue(item.aciklama));
+          yaz(satir, 5, xls.DoubleCellValue(cumulative));
 
           if (item.fisYolu.isNotEmpty) {
             try {
-              final bytes = await (ImageService.isNetworkUrl(item.fisYolu) 
-                  ? ImageService().downloadImage(item.fisYolu) 
-                  : File(item.fisYolu).readAsBytes());
-              
-              if (bytes != null) {
+              final kisaAciklama = item.aciklama.length > 20
+                  ? item.aciklama.substring(0, 20)
+                  : item.aciklama;
+              final kok = "harcama_${dosyaAdiTemizle(kisaAciklama)}_$tarihStr.${photoCount + 1}";
+              if (await fotografiEkle(
+                  kaynak: item.fisYolu, dosyaAdiKoku: kok, satir: satir, baglantiSutunu: 6)) {
                 photoCount++;
-                final String sheetName = "H-$photoCount";
-                final sf.Worksheet photoSheet = workbook.worksheets.addWithName(sheetName);
-
-                photoSheet.getRangeByIndex(1, 1).setText("${item.aciklama} - $tarihStr");
-                photoSheet.getRangeByIndex(1, 1).cellStyle.bold = true;
-                photoSheet.pictures.addStream(2, 1, bytes);
-
-                final sf.Range range = sheet.getRangeByIndex(row, 7);
-                final sf.Hyperlink hyperlink = sheet.hyperlinks.add(range, sf.HyperlinkType.workbook, "'$sheetName'!A1");
-                hyperlink.textToDisplay = "RESMİ GÖR";
-
-                final safeAciklama = item.aciklama.length > 20 
-                    ? item.aciklama.substring(0, 20).replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-                    : item.aciklama.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
-                final uzanti = item.fisYolu.split('.').last.split('?').first.toLowerCase();
-                final fotoAdi = "harcama_${safeAciklama}_$tarihStr.$photoCount.$uzanti";
-                sheet.getRangeByIndex(row, 8).setText(fotoAdi);
-
-                await File("${hedefKlasor.path}/$fotoAdi").writeAsBytes(bytes);
                 photoSuccessCount++;
               }
             } catch (e) {
@@ -568,9 +566,11 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
         }
       }
 
-      final List<int> bytes = workbook.saveAsStream();
-      workbook.dispose();
-      
+      final bytes = excel.save();
+      if (bytes == null) {
+        throw Exception('Excel dosyası oluşturulamadı.');
+      }
+
       final excelFile = File("${hedefKlasor.path}/$typeStr.xlsx");
       await excelFile.writeAsBytes(bytes);
 
