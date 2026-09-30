@@ -53,7 +53,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'firebase_options.dart';
 import 'services/app_log.dart';
 
-/// Windows'ta Firestore cache kilitlendiyse true — sync tamamen atlanır
+/// Windows'ta Firestore önbelleği kilitliyse true — o oturumda bulut senkronu tamamen atlanır
 bool firestoreDisabled = false;
 
 void main() async {
@@ -82,8 +82,44 @@ void main() async {
     appLog("LOG: Firebase initialization finished");
 
     if (Platform.isWindows) {
-      appLog("LOG: Windows detected - disabling Firestore cloud queries to prevent C++ SDK crash.");
-      firestoreDisabled = true;
+      // Yayındaki 2.2.0+4 sürümünün davranışı: bulut açık kalır; yalnızca
+      // Firestore önbelleği kilitliyse (uygulamanın ikinci bir kopyası açık)
+      // o oturum için bulut kapatılır. Silinen klasör Firestore SDK'sının
+      // kendi önbelleğidir, kullanıcı verisi değildir (o Belgeler'deki JSON
+      // dosyalarında durur).
+      appLog("LOG: Windows detected, disabling Firestore persistence...");
+
+      bool cacheCleared = false;
+      try {
+        final localAppData = Platform.environment['LOCALAPPDATA'] ?? '';
+        if (localAppData.isNotEmpty) {
+          final firestoreDir = Directory('$localAppData\\firestore');
+          if (await firestoreDir.exists()) {
+            await firestoreDir.delete(recursive: true);
+            appLog("LOG: Firestore cache directory deleted successfully.");
+          }
+          cacheCleared = true;
+        }
+      } catch (e) {
+        appLog("LOG: Firestore cache locked by another process - cloud sync will be skipped: $e");
+        cacheCleared = false;
+      }
+
+      if (cacheCleared) {
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: false,
+        );
+        appLog("LOG: Firestore persistence disabled successfully.");
+      } else {
+        // Bir önceki kopya hâlâ çalışıyor olabilir; bu oturumda bulut
+        // kapalı. StorageService bu bayrakla hem indirmeyi hem yüklemeyi
+        // atlar, böylece eski yerel veri buluta yazılmaz.
+        firestoreDisabled = true;
+        appLog("LOG: Firestore disabled - using local cached data only.");
+      }
+
+      appLog("LOG: Waiting 2 seconds for native plugins...");
+      await Future.delayed(const Duration(seconds: 2));
     }
   } catch (e) {
     appLog("LOG: Firebase init error: $e");
