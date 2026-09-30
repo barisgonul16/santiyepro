@@ -13,6 +13,14 @@ class ImageService {
   static String get _baseUrl =>
       'https://api.cloudinary.com/v1_1/${AppConfig.cloudinaryCloudName}/image/upload';
 
+  /// Tek fotoğraf için yükleme sınırı. Şantiye fotoğrafları tipik olarak
+  /// 2-5 MB; 15 MB üstü neredeyse kesinlikle yanlış seçilmiş bir dosyadır.
+  static const int _maksYuklemeBoyutu = 15 * 1024 * 1024;
+
+  static const Set<String> _izinliUzantilar = {
+    '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif',
+  };
+
   Future<String?> uploadImage(String localPath) async {
     if (!AppConfig.cloudinaryHazir) {
       appLog('LOG: Cloudinary yapılandırılmamış — fotoğraf buluta yüklenemiyor. '
@@ -23,6 +31,22 @@ class ImageService {
       File file = File(localPath);
       if (!await file.exists()) {
         appLog('LOG: Image upload error - File does not exist at $localPath');
+        return null;
+      }
+
+      // Cloudinary ücretsiz kotası bant genişliği üzerinden sayılıyor.
+      // Yanlışlıkla seçilen dev bir dosya (ekran kaydı, RAW fotoğraf) aylık
+      // kotayı tek başına yiyebilir; bu yüzden yüklemeden önce sınırlanıyor.
+      final int boyut = await file.length();
+      if (boyut > _maksYuklemeBoyutu) {
+        appLog('LOG: Fotograf cok buyuk (${(boyut / 1024 / 1024).toStringAsFixed(1)} MB) '
+            've yuklenmedi. Sinir: ${_maksYuklemeBoyutu ~/ (1024 * 1024)} MB.');
+        return null;
+      }
+
+      final String uzanti = path.extension(localPath).toLowerCase();
+      if (!_izinliUzantilar.contains(uzanti)) {
+        appLog('LOG: Desteklenmeyen dosya turu ($uzanti), yuklenmedi.');
         return null;
       }
 
