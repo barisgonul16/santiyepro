@@ -13,9 +13,11 @@ class ImageService {
   static String get _baseUrl =>
       'https://api.cloudinary.com/v1_1/${AppConfig.cloudinaryCloudName}/image/upload';
 
-  /// Tek fotoğraf için yükleme sınırı. Şantiye fotoğrafları tipik olarak
-  /// 2-5 MB; 15 MB üstü neredeyse kesinlikle yanlış seçilmiş bir dosyadır.
-  static const int _maksYuklemeBoyutu = 15 * 1024 * 1024;
+  /// Tek fotoğraf için yükleme sınırı. Cloudinary ücretsiz planının görsel
+  /// başına sınırıyla birebir aynı (10 MB = 10485760 bayt); üstündeki dosyayı
+  /// Cloudinary zaten reddeder, göndermek sadece kullanıcının mobil verisini
+  /// boşa harcar.
+  static const int _maksYuklemeBoyutu = 10 * 1024 * 1024;
 
   static const Set<String> _izinliUzantilar = {
     '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif',
