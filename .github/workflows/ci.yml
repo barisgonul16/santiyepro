@@ -1,0 +1,45 @@
+name: Kontrol
+
+# Bu is akisi SADECE kontrol eder: kod derlenebiliyor mu, testler geciyor mu.
+# Hicbir sey derlemez, hicbir surum yayinlamaz, surum sayfasina dokunmaz.
+#
+# Surumler yerel bilgisayarda derlenip GitHub Releases'e elle yukleniyor:
+#   flutter build windows --release --dart-define-from-file=secrets.json
+#   flutter build apk     --release --dart-define-from-file=secrets.json
+#
+# Onceki release.yml kaldirildi: 10 calismanin 10'u da gecersiz Flutter
+# surumu yuzunden basarisizdi. Surum duzeltilince calisir hale gelecekti,
+# ama sifresiz, farkli anahtarla imzali bir APK'yi ve DLL'siz tek bir exe'yi
+# elle yuklenen dosyalarin uzerine yayinlayacakti.
+#
+# Acik depoda ucretsiz. Etiket (tag) eklemek bu is akisini TETIKLEMEZ.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  kontrol:
+    name: Analiz ve test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # Yerel gelistirme makinesiyle ayni surum.
+          flutter-version: '3.47.1'
+          channel: 'stable'
+
+      - name: Bagimliliklar
+        run: flutter pub get
+
+      # Simdilik yalnizca gercek hatalar kirmizi yapar. Kalan bilgi/uyari
+      # mesajlari temizlendikce bu bayraklar kaldirilip analiz sikilastirilmali.
+      - name: Analiz
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Test
+        run: flutter test
