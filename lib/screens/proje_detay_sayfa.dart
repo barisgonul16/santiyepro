@@ -117,7 +117,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   late DateTime puantajBaslangicTarihi;
   late DateTime puantajBitisTarihi;
   String tarihFiltreSecenegi =
-      'proje_baslangic'; // 'proje_baslangic' veya 'ozel'
+      'proje_baslangic'; // 'ay', 'ozel' veya 'proje_baslangic' (Tümü)
+  DateTime? _puantajAyi; // tarihFiltreSecenegi == 'ay' iken seçili ay
 
   @override
   void initState() {
@@ -1815,7 +1816,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             if (ayKayitlari.isEmpty)
               Text('Bu ay kayıt yok.', style: TextStyle(color: ThemeColors.textSecondary(context)))
             else
-              _buildOzetKutulari(ozet),
+              _buildOzetIzgarasi(ozet),
             const SizedBox(height: 16),
             Text('Son kayıtlar', style: baslikStili),
             const SizedBox(height: 6),
@@ -1851,37 +1852,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildOzetKutulari(_PuantajOzeti ozet) {
-    Widget kutu(String deger, String etiket, Color renk) => Container(
-          width: 96,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          decoration: BoxDecoration(
-            color: renk.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              Text(deger, style: TextStyle(color: renk, fontSize: 17, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 2),
-              Text(etiket, textAlign: TextAlign.center, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
-            ],
-          ),
-        );
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        kutu('${ozet.kayitGunu}', 'kayıtlı gün', Colors.lightBlueAccent),
-        kutu('${ozet.kalipci}', 'kalıpçı\nadam-gün', Colors.orangeAccent),
-        kutu('${ozet.demirci}', 'demirci\nadam-gün', Colors.orangeAccent),
-        if (ozet.diger > 0) kutu('${ozet.diger}', 'diğer\nadam-gün', Colors.orangeAccent),
-        kutu(_PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati', Colors.amber),
-        kutu(_PuantajOzeti.sayi(ozet.yevmiye), 'yevmiye', Colors.purpleAccent),
-        kutu('${ozet.fotograf}', 'fotoğraf', Colors.greenAccent),
-      ],
     );
   }
 
@@ -2172,17 +2142,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  void _puantajFiltresiSec(String secenek) {
+  void _puantajFiltresiSec(String secenek, {DateTime? ay}) {
     final simdi = DateTime.now();
     setState(() {
       tarihFiltreSecenegi = secenek;
       switch (secenek) {
-        case 'bu_ay':
-          puantajBaslangicTarihi = DateTime(simdi.year, simdi.month, 1);
-          puantajBitisTarihi = simdi;
-        case 'gecen_ay':
-          puantajBaslangicTarihi = DateTime(simdi.year, simdi.month - 1, 1);
-          puantajBitisTarihi = DateTime(simdi.year, simdi.month, 0);
+        case 'ay':
+          _puantajAyi = ay;
+          puantajBaslangicTarihi = DateTime(ay!.year, ay.month, 1);
+          puantajBitisTarihi = DateTime(ay.year, ay.month + 1, 0);
         case 'proje_baslangic':
           puantajBaslangicTarihi = widget.proje.baslangicTarihi;
           puantajBitisTarihi = simdi;
@@ -2191,15 +2159,103 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     });
   }
 
-  Widget _ozetEtiketi(String metin, Color renk) {
+  /// Proje başlangıcından (ya da ilk kayıttan) bu aya kadar ayları,
+  /// yeniden eskiye listeleyen açılır menü.
+  Widget _buildAySecici() {
+    const aylar = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
+    final simdi = DateTime.now();
+    var ilk = DateTime(widget.proje.baslangicTarihi.year, widget.proje.baslangicTarihi.month);
+    for (final k in widget.gunlukKayitlar) {
+      final ay = DateTime(k.tarih.year, k.tarih.month);
+      if (ay.isBefore(ilk)) ilk = ay;
+    }
+    final secenekler = <DateTime>[];
+    for (var ay = DateTime(simdi.year, simdi.month);
+        !ay.isBefore(ilk);
+        ay = DateTime(ay.year, ay.month - 1)) {
+      secenekler.add(ay);
+    }
+    final secili = tarihFiltreSecenegi == 'ay';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: renk.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: renk.withOpacity(0.4)),
+        color: secili ? Colors.cyan.withOpacity(0.25) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: secili ? Colors.cyan : ThemeColors.textTertiary(context)),
       ),
-      child: Text(metin, style: TextStyle(color: renk, fontSize: 13, fontWeight: FontWeight.bold)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<DateTime>(
+          value: secili ? _puantajAyi : null,
+          isDense: true,
+          hint: Text('Ay seç', style: TextStyle(color: ThemeColors.textPrimary(context))),
+          dropdownColor: ThemeColors.cardBackground(context),
+          style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
+          items: [
+            for (final ay in secenekler)
+              DropdownMenuItem(value: ay, child: Text('${aylar[ay.month - 1]} ${ay.year}')),
+          ],
+          onChanged: (ay) {
+            if (ay != null) _puantajFiltresiSec('ay', ay: ay);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Toplamlar: sade kutular, büyük beyaz sayı ve altında gri açıklama.
+  Widget _buildOzetIzgarasi(_PuantajOzeti ozet, {bool fotografGoster = true}) {
+    final kutular = <List<Object>>[
+      [Icons.event_available, '${ozet.kayitGunu}', 'kayıtlı gün'],
+      [Icons.construction, '${ozet.kalipci}', 'kalıpçı (adam-gün)'],
+      [Icons.hardware, '${ozet.demirci}', 'demirci (adam-gün)'],
+      if (ozet.diger > 0) [Icons.groups, '${ozet.diger}', 'diğer (adam-gün)'],
+      [Icons.functions, '${ozet.toplamAdamGun}', 'toplam adam-gün'],
+      [Icons.precision_manufacturing, _PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati'],
+      [Icons.payments, _PuantajOzeti.sayi(ozet.yevmiye), 'yevmiye'],
+      if (fotografGoster) [Icons.photo_camera, '${ozet.fotograf}', 'fotoğraf'],
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const bosluk = 6.0;
+        final sutun = constraints.maxWidth < 500 ? 3 : 4;
+        final genislik = (constraints.maxWidth - bosluk * (sutun - 1)) / sutun;
+        return Wrap(
+          spacing: bosluk,
+          runSpacing: bosluk,
+          children: [
+            for (final k in kutular)
+              Container(
+                width: genislik,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: ThemeColors.isDark(context) ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(k[0] as IconData, size: 16, color: ThemeColors.textTertiary(context)),
+                        const SizedBox(width: 6),
+                        Text(k[1] as String,
+                            style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(k[2] as String,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -2240,7 +2296,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filtre: tek satırda hazır aralıklar, gerekirse özel tarih
+          // Filtre: ay seçimi, Tümü, Özel tarih aralığı
           Container(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             decoration: BoxDecoration(
@@ -2255,20 +2311,22 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     Expanded(
                       child: Wrap(
                         spacing: 6,
-                        runSpacing: 4,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          for (final secenek in const [
-                            ['bu_ay', 'Bu ay'],
-                            ['gecen_ay', 'Geçen ay'],
-                            ['proje_baslangic', 'Tümü'],
-                            ['ozel', 'Özel'],
-                          ])
-                            ChoiceChip(
-                              label: Text(secenek[1]),
-                              selected: tarihFiltreSecenegi == secenek[0],
-                              onSelected: (_) => _puantajFiltresiSec(secenek[0]),
-                              visualDensity: VisualDensity.compact,
-                            ),
+                          _buildAySecici(),
+                          ChoiceChip(
+                            label: const Text('Özel tarih'),
+                            selected: tarihFiltreSecenegi == 'ozel',
+                            onSelected: (_) => _puantajFiltresiSec('ozel'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          ChoiceChip(
+                            label: const Text('Tümü'),
+                            selected: tarihFiltreSecenegi == 'proje_baslangic',
+                            onSelected: (_) => _puantajFiltresiSec('proje_baslangic'),
+                            visualDensity: VisualDensity.compact,
+                          ),
                         ],
                       ),
                     ),
@@ -2328,19 +2386,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           const SizedBox(height: 8),
 
           // Seçili aralığın toplamları: tabloların en altına inmeden görünsün
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _ozetEtiketi('${ozet.kayitGunu} gün', Colors.lightBlueAccent),
-              _ozetEtiketi('Kalıpçı ${ozet.kalipci}', Colors.orangeAccent),
-              _ozetEtiketi('Demirci ${ozet.demirci}', Colors.orangeAccent),
-              if (ozet.diger > 0) _ozetEtiketi('Diğer ${ozet.diger}', Colors.orangeAccent),
-              _ozetEtiketi('Toplam ${ozet.toplamAdamGun} adam-gün', Colors.blueAccent),
-              _ozetEtiketi('Vinç ${_PuantajOzeti.sayi(ozet.vincSaat)} sa', Colors.amber),
-              _ozetEtiketi('Yevmiye ${_PuantajOzeti.sayi(ozet.yevmiye)}', Colors.purpleAccent),
-            ],
-          ),
+          _buildOzetIzgarasi(ozet, fotografGoster: false),
 
           const SizedBox(height: 8),
           // Tablo Alanı

@@ -28,291 +28,292 @@ class ProjelerSayfaPage extends StatelessWidget {
     required this.onReorder,
   });
 
+  static const _aylarKisa = [
+    'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
+    'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final devamEdenler = projeler.where((p) => p.durum != 'Tamamlandı').toList();
+    final tamamlananlar = projeler.where((p) => p.durum == 'Tamamlandı').toList();
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 800; // Increased breakpoint for grid
+        final isMobile = constraints.maxWidth < 800;
+        final sutun = isMobile ? 1 : (constraints.maxWidth < 1300 ? 2 : 3);
 
-        return Container(
-          padding: EdgeInsets.all(isMobile ? 15 : 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              if (isMobile)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Projeler',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: ThemeColors.textPrimary(context),
-                      ),
+        return ListView(
+          padding: EdgeInsets.all(isMobile ? 12 : 30),
+          children: [
+            // Başlık
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Projeler',
+                    style: TextStyle(
+                      fontSize: isMobile ? 26 : 32,
+                      fontWeight: FontWeight.bold,
+                      color: ThemeColors.textPrimary(context),
                     ),
-                    const SizedBox(height: 15),
-                    ElevatedButton.icon(
-                      onPressed: () => _projeEkleDialog(context),
-                      icon: Icon(Icons.add),
-                      label: const Text('Yeni Proje'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ],
-                )
-              else
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Projeler',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: ThemeColors.textPrimary(context),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => _projeEkleDialog(context),
-                      icon: Icon(Icons.add),
-                      label: const Text('Yeni Proje'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              const SizedBox(height: 30),
-              
-              // Grid
-              Expanded(
-                child: projeler.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Henüz proje eklenmemiş',
-                          style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 16),
-                        ),
-                      )
-                    : Builder(
-                      builder: (context) {
-                        final cardWidth = isMobile
-                            ? constraints.maxWidth - 30
-                            : (constraints.maxWidth - 100) / 3;
-                        final cardHeight = cardWidth / (isMobile ? 1.6 : 1.5);
-
-                        return GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: isMobile ? 1 : 3,
-                            crossAxisSpacing: 20,
-                            mainAxisSpacing: 20,
-                            childAspectRatio: isMobile ? 1.6 : 1.5,
-                          ),
-                          itemCount: projeler.length,
-                          itemBuilder: (context, index) {
-                            final currentProje = projeler[index];
-                            return DragTarget<Proje>(
-                              onWillAccept: (data) => data != null && data.id != currentProje.id,
-                              onAccept: (draggedProje) {
-                                final draggedIndex = projeler.indexWhere((p) => p.id == draggedProje.id);
-                                if (draggedIndex != -1) {
-                                  onReorder(draggedIndex, index);
-                                }
-                              },
-                              builder: (context, candidateData, rejectedData) {
-                                final isOver = candidateData.isNotEmpty;
-                                return LongPressDraggable<Proje>(
-                                  data: currentProje,
-                                  feedback: Material(
-                                    color: Colors.transparent,
-                                    child: Opacity(
-                                      opacity: 0.8,
-                                      child: SizedBox(
-                                        width: cardWidth,
-                                        height: cardHeight,
-                                        child: _buildProjeKart(context, index, currentProje, isMobile),
-                                      ),
-                                    ),
-                                  ),
-                                  childWhenDragging: Opacity(
-                                    opacity: 0.3,
-                                    child: _buildProjeKart(context, index, currentProje, isMobile),
-                                  ),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    decoration: BoxDecoration(
-                                      border: isOver ? Border.all(color: Colors.blue, width: 2) : null,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: _buildProjeKart(context, index, currentProje, isMobile),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
+                ElevatedButton.icon(
+                  onPressed: () => _projeEkleDialog(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Yeni Proje'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            if (projeler.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 60),
+                child: Center(
+                  child: Text(
+                    'Henüz proje eklenmemiş',
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 16),
+                  ),
+                ),
+              )
+            else ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 6),
+                child: Text(
+                  'Devam eden · ${devamEdenler.length}',
+                  style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
+                ),
               ),
+              _buildProjeIzgarasi(context, devamEdenler, sutun),
+              if (tamamlananlar.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+                    childrenPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.check_circle_outline, color: ThemeColors.textTertiary(context)),
+                    title: Text(
+                      'Tamamlananlar (${tamamlananlar.length})',
+                      style: TextStyle(color: ThemeColors.textSecondary(context), fontWeight: FontWeight.bold),
+                    ),
+                    children: [_buildProjeIzgarasi(context, tamamlananlar, sutun)],
+                  ),
+                ),
+              ],
             ],
-          ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildProjeKart(BuildContext context, int index, Proje proje, bool isMobile) {
-    final ilerleme = _ilerlemeHesapla(proje);
-    final kayitlar = projeGunlukKayitlari[proje.id] ?? [];
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProjeDetaySayfa(
-              proje: proje,
-              gunlukKayitlar: kayitlar,
-              onKayitEkle: (kayit) => onGunlukKayitEkle(proje.id, kayit),
-              onKayitGuncelle: (i, kayit) =>
-                  onGunlukKayitGuncelle(proje.id, i, kayit),
-              projeGunlukKayitlari: projeGunlukKayitlari,
-              ekipler: ekipler,
-            ),
-          ),
+  /// Satır kartlarından oluşan ızgara. Uzun basıp sürükleyerek sıralama
+  /// korunur; sıralama her zaman tüm listedeki konumlarla yapılır.
+  Widget _buildProjeIzgarasi(BuildContext context, List<Proje> liste, int sutun) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: sutun,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 8,
+        mainAxisExtent: 100,
+      ),
+      itemCount: liste.length,
+      itemBuilder: (context, i) {
+        final proje = liste[i];
+        final index = projeler.indexOf(proje);
+        return DragTarget<Proje>(
+          onWillAcceptWithDetails: (d) => d.data.id != proje.id,
+          onAcceptWithDetails: (d) {
+            final eskiIndex = projeler.indexWhere((p) => p.id == d.data.id);
+            if (eskiIndex != -1) onReorder(eskiIndex, index);
+          },
+          builder: (context, adaylar, _) {
+            final kart = _buildProjeKart(context, index, proje);
+            return LongPressDraggable<Proje>(
+              data: proje,
+              feedback: Material(
+                color: Colors.transparent,
+                child: Opacity(
+                  opacity: 0.85,
+                  child: SizedBox(width: 340, height: 100, child: kart),
+                ),
+              ),
+              childWhenDragging: Opacity(opacity: 0.3, child: kart),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  border: adaylar.isNotEmpty ? Border.all(color: Colors.blue, width: 2) : null,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: kart,
+              ),
+            );
+          },
         );
       },
-      child: Container(
-        padding: EdgeInsets.all(isMobile ? 15 : 20),
-        decoration: BoxDecoration(
-          color: proje.durum == "Tamamlandı" 
-              ? Colors.green.withOpacity(0.2) 
-              : Colors.grey.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: proje.durum == "Tamamlandı" 
-                ? Colors.green.withOpacity(0.5) 
-                : Colors.grey.withOpacity(0.5), 
-            width: 2
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    proje.ad,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: proje.durum == "Tamamlandı" ? Colors.white : ThemeColors.textPrimary(context),
+    );
+  }
+
+  Widget _buildProjeKart(BuildContext context, int index, Proje proje) {
+    final kayitlar = projeGunlukKayitlari[proje.id] ?? [];
+    final tamamlandi = proje.durum == 'Tamamlandı';
+    final oran = _ilerlemeHesapla(proje);
+
+    DateTime? sonKayit;
+    for (final k in kayitlar) {
+      if (sonKayit == null || k.tarih.isAfter(sonKayit)) sonKayit = k.tarih;
+    }
+    final bugun = DateTime.now();
+    final gunFarki = sonKayit == null
+        ? null
+        : DateTime(bugun.year, bugun.month, bugun.day)
+            .difference(DateTime(sonKayit.year, sonKayit.month, sonKayit.day))
+            .inDays;
+    // Yeşil: dün/bugün, turuncu: birkaç gündür yok, gri: uzun süredir yok.
+    final sonKayitRengi = tamamlandi || gunFarki == null || gunFarki > 30
+        ? ThemeColors.textTertiary(context)
+        : (gunFarki <= 1 ? Colors.greenAccent : Colors.amber);
+    final b = proje.baslangicTarihi;
+    final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12);
+
+    return Material(
+      color: ThemeColors.cardBackground(context),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProjeDetaySayfa(
+                proje: proje,
+                gunlukKayitlar: kayitlar,
+                onKayitEkle: (kayit) => onGunlukKayitEkle(proje.id, kayit),
+                onKayitGuncelle: (i, kayit) =>
+                    onGunlukKayitGuncelle(proje.id, i, kayit),
+                projeGunlukKayitlari: projeGunlukKayitlari,
+                ekipler: ekipler,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 4, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      proje.ad,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: tamamlandi ? ThemeColors.textSecondary(context) : ThemeColors.textPrimary(context),
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
+                  Text(
+                    sonKayit == null
+                        ? 'kayıt yok'
+                        : 'son kayıt ${sonKayit.day} ${_aylarKisa[sonKayit.month - 1]}',
+                    style: TextStyle(color: sonKayitRengi, fontSize: 12),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    height: 32,
+                    child: PopupMenuButton(
+                      padding: EdgeInsets.zero,
+                      color: ThemeColors.cardBackground(context),
+                      icon: Icon(Icons.more_vert, size: 20, color: ThemeColors.textSecondary(context)),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          child: Text('Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                          onTap: () => Future.delayed(
+                            Duration.zero,
+                            () => _projeDuzenleDialog(context, index, proje),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          child: const Text('Sil', style: TextStyle(color: Colors.red)),
+                          onTap: () => Future.delayed(
+                            Duration.zero,
+                            () => _projeSilDialog(context, index, proje.ad),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Text(
+                  [
+                    if (proje.aciklama.trim().isNotEmpty) proje.aciklama.trim(),
+                    '${kayitlar.length} kayıt',
+                    'başlangıç ${b.day} ${_aylarKisa[b.month - 1]} ${b.year}',
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ikincil,
                 ),
-                PopupMenuButton(
-                  color: ThemeColors.cardBackground(context),
-                  icon: Icon(Icons.more_vert, color: proje.durum == "Tamamlandı" ? Colors.white70 : ThemeColors.textSecondary(context)),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      child: Text(
-                        'Düzenle',
-                        style: TextStyle(color: ThemeColors.textPrimary(context)),
-                      ),
-                      onTap: () => Future.delayed(
-                        Duration.zero,
-                        () => _projeDuzenleDialog(context, index, proje),
+              ),
+              const Spacer(),
+              // Tamamlanan projede takvim sayacı anlamsız (bittikten sonra da
+              // sayar), yalnızca planlanan süre gösterilir.
+              if (tamamlandi)
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 16, color: Colors.green.shade400),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Tamamlandı · planlanan ${proje.toplamGun} gün',
+                      style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                )
+              else
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: oran,
+                          minHeight: 5,
+                          backgroundColor: ThemeColors.border(context),
+                          color: proje.sureAsildi ? Colors.redAccent : Colors.blue,
+                        ),
                       ),
                     ),
-                    PopupMenuItem(
-                      child: const Text(
-                        'Sil',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                      onTap: () => Future.delayed(
-                        Duration.zero,
-                        () => _projeSilDialog(context, index, proje.ad),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${proje.sureMetni} · %${(oran * 100).round()}',
+                      style: TextStyle(
+                        color: proje.sureAsildi ? Colors.redAccent : ThemeColors.textPrimary(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              proje.aciklama,
-              style: TextStyle(
-                color: proje.durum == "Tamamlandı" ? Colors.white70 : ThemeColors.textSecondary(context),
-                fontSize: 14,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  size: 14,
-                  color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  '${proje.baslangicTarihi.day}/${proje.baslangicTarihi.month}/${proje.baslangicTarihi.year}',
-                  style: TextStyle(
-                    color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(width: 15),
-                Icon(
-                  Icons.access_time, 
-                  size: 14, 
-                  color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context)
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  '${proje.toplamGun} gün',
-                  style: TextStyle(
-                    color: proje.durum == "Tamamlandı" ? Colors.white60 : ThemeColors.textTertiary(context),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: ilerleme,
-                    backgroundColor: proje.durum == "Tamamlandı" ? Colors.white24 : ThemeColors.border(context),
-                    color: proje.sureAsildi ? Colors.redAccent : Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  proje.sureMetni,
-                  style: TextStyle(
-                    color: proje.sureAsildi ? Colors.redAccent : Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
