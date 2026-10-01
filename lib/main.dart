@@ -186,6 +186,14 @@ class MyAppState extends State<MyApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      // Yeni Android sürümleri uygulamayı ekranın en altına kadar çizdiriyor
+      // (kenardan kenara). Telefonun alt düğme çubuğu içeriğin (Kaydet
+      // düğmeleri, menüdeki profil satırı) üstüne binmesin diye tüm uygulama
+      // alt kenarda güvenli alana çekilir.
+      builder: (context, child) => ColoredBox(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        child: SafeArea(top: false, child: child!),
+      ),
       home: const AuthWrapper(),
     );
   }
@@ -1154,16 +1162,18 @@ class _MainScreenState extends State<MainScreen> {
   // Yan menüdeki görünüm sırası. _menuItems'taki sıra DEĞİŞTİRİLMEMELİ:
   // indeksler sayfa kimliği olarak kullanılıyor ve kullanıcının seçtiği alt
   // menü kısayolları (bottomNavIndexes) bu indekslerle kayıtlı.
-  // null = gruplar arasına ince ayraç.
-  static const List<int?> _menuSirasi = [
-    0, 1, 2, 8, 13, 12, // Ana Sayfa, Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
-    null,
+  // int = sayfa, String = grup başlığı, null = ince ayraç.
+  static const List<Object?> _menuSirasi = [
+    0, // Ana Sayfa
+    'Şantiye',
+    1, 2, 8, 13, 12, // Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
+    'Finans',
     7, // Faturalar
-    null,
+    'Malzeme',
     9, // Malzemeler
-    null,
+    'Planlama',
     3, 6, 4, // Görevler, Takvim, Notlar
-    null,
+    'Araçlar',
     5, 11, 10, // Pratik Bilgiler, Pomodoro, Eskizler
     null,
     14, // Ayarlar
@@ -1337,15 +1347,30 @@ class _MainScreenState extends State<MainScreen> {
             child: ListView.builder(
               itemCount: _menuSirasi.length,
               itemBuilder: (context, sira) {
-                final int? index = _menuSirasi[sira];
-                if (index == null) {
+                final girdi = _menuSirasi[sira];
+                if (girdi == null) {
                   return Divider(
-                    height: 9,
+                    height: 13,
                     indent: 20,
                     endIndent: 20,
                     color: ThemeColors.divider(context),
                   );
                 }
+                if (girdi is String) {
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(22, isDrawer ? 14 : 8, 20, isDrawer ? 4 : 2),
+                    child: Text(
+                      girdi.toUpperCase(),
+                      style: TextStyle(
+                        color: ThemeColors.textTertiary(context),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  );
+                }
+                final int index = girdi as int;
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == index;
 
@@ -1371,7 +1396,7 @@ class _MainScreenState extends State<MainScreen> {
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 15,
-                          vertical: isDrawer ? 9 : 5,
+                          vertical: isDrawer ? 8 : 4,
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
@@ -1388,7 +1413,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: EdgeInsets.all(isDrawer ? 6 : 5),
                               decoration: BoxDecoration(
                                 color: item['color'],
                                 borderRadius: BorderRadius.circular(8),
