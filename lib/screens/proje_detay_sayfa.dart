@@ -119,6 +119,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   String tarihFiltreSecenegi =
       'proje_baslangic'; // 'ay', 'ozel' veya 'proje_baslangic' (Tümü)
   DateTime? _puantajAyi; // tarihFiltreSecenegi == 'ay' iken seçili ay
+  int _puantajSekmesi = 0; // 0 İşçiler, 1 Vinç, 2 Yevmiye
   // Özel tarih aralığında seçilen ama henüz "Göster"e basılmamış tarihler.
   late DateTime _ozelBaslangic;
   late DateTime _ozelBitis;
@@ -2322,7 +2323,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     final ozet = _PuantajOzeti.hesapla(kayitlar, _vincSatirlari, _yevmiyeSatirlari, _hesaplaVincNetSaat);
     final tarihBicimi = DateFormat('dd.MM.yyyy');
 
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(10.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2423,200 +2424,190 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           _buildOzetIzgarasi(ozet, fotografGoster: false),
 
           const SizedBox(height: 8),
-          // Tablo Alanı
-          Expanded(
-            child: DefaultTabController(
-              length: 3,
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: ThemeColors.cardBackground(context),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                      border: Border(bottom: BorderSide(color: Colors.white24)),
-                    ),
-                    child: TabBar(
-                      indicatorColor: Colors.blue,
-                      labelColor: Colors.blue,
-                      unselectedLabelColor: ThemeColors.textSecondary(context),
-                      tabs: const [
-                        Tab(text: "İşçiler"),
-                        Tab(text: "Vinç"),
-                        Tab(text: "Yevmiye"),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: ThemeColors.cardBackground(context),
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-                      ),
-                      child: TabBarView(
-                        children: [
-                          // 1. İşçiler Tablosu
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(15),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Theme(
-                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
-                                child: DataTable(
-                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
-                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
-                                  columns: [
-                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Kalıpçı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
-                                    DataColumn(label: Text('Demirci', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
-                                    DataColumn(label: Text('Diğer', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
-                                    DataColumn(label: Text('Toplam', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)), numeric: true),
-                                  ],
-                                  rows: [
-                                    ...kayitlar.map((kayit) {
-                                      final toplam = kayit.kalipci + kayit.demirci + kayit.diger;
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(Text("${kayit.tarih.day}.${kayit.tarih.month}.${kayit.tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
-                                          DataCell(Text(kayit.kalipci.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.demirci.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(kayit.diger.toString(), style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                          DataCell(Text(toplam.toString(), style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold))),
-                                        ],
-                                      );
-                                    }).toList(),
-                                    if (kayitlar.isNotEmpty)
-                                      DataRow(
-                                        color: MaterialStateProperty.all(Colors.blue.withOpacity(0.05)),
-                                        cells: [
-                                          DataCell(Text("TOPLAM", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 14))),
-                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.kalipci).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.demirci).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.diger).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-                                          DataCell(Text(kayitlar.fold(0, (sum, item) => sum + item.kalipci + item.demirci + item.diger).toString(), style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 16))),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          // 2. Vinç Tablosu
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(15),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Theme(
-                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
-                                child: DataTable(
-                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
-                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
-                                  columns: [
-                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Firma Adı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Başlangıç', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Bitiş', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Mola (dk)', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
-                                    DataColumn(label: Text('Net Çalışma', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)), numeric: true),
-                                  ],
-                                  rows: () {
-                                    final allVincler = _vincSatirlari(kayitlar);
-                                    return [
-                                      ...allVincler.map((v) {
-                                        final netSaat = _hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola']);
-                                        final DateTime tarih = v['tarih'];
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(Text("${tarih.day}.${tarih.month}.${tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
-                                            DataCell(Text(v['firmaAdi'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text(v['baslangic'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text(v['bitis'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text(v['mola'] > 0 ? v['mola'].toString() : '-', style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text("$netSaat sa", style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold))),
-                                          ],
-                                        );
-                                      }).toList(),
-                                      if (allVincler.isNotEmpty)
-                                        DataRow(
-                                          color: MaterialStateProperty.all(Colors.orange.withOpacity(0.05)),
-                                          cells: [
-                                            DataCell(Text("TOPLAM", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 14))),
-                                            const DataCell(Text("")),
-                                            const DataCell(Text("")),
-                                            const DataCell(Text("")),
-                                            const DataCell(Text("")),
-                                            DataCell(
-                                              Text(
-                                                "${allVincler.map((v) => double.tryParse(_hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0.0).fold(0.0, (sum, val) => sum + val).toStringAsFixed(1)} sa",
-                                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ];
-                                  }(),
-                                ),
-                              ),
-                            ),
-                          ),
-                          // 3. Yevmiye Tablosu
-                          SingleChildScrollView(
-                            padding: const EdgeInsets.all(15),
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Theme(
-                                data: Theme.of(context).copyWith(dividerColor: Colors.white24),
-                                child: DataTable(
-                                  headingRowColor: MaterialStateProperty.all(const Color(0xFF1a1a1a)),
-                                  dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) => Colors.transparent),
-                                  columns: [
-                                    DataColumn(label: Text('Tarih', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Ekip Adı', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
-                                    DataColumn(label: Text('Adet', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)), numeric: true),
-                                    DataColumn(label: Text('Açıklama', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold))),
-                                  ],
-                                  rows: () {
-                                    final allYevmiyeler = _yevmiyeSatirlari(kayitlar);
-                                    return [
-                                      ...allYevmiyeler.map((y) {
-                                        final DateTime tarih = y['tarih'];
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(Text("${tarih.day}.${tarih.month}.${tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
-                                            DataCell(Text(y['ekipAdi'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text(_PuantajOzeti.sayi((y['miktar'] as num).toDouble()), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
-                                            DataCell(Text(y['aciklama'], style: TextStyle(color: ThemeColors.textSecondary(context), fontStyle: FontStyle.italic))),
-                                          ],
-                                        );
-                                      }).toList(),
-                                      if (allYevmiyeler.isNotEmpty)
-                                        DataRow(
-                                          color: MaterialStateProperty.all(Colors.purple.withOpacity(0.05)),
-                                          cells: [
-                                            DataCell(Text("TOPLAM", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 14))),
-                                            const DataCell(Text("")),
-                                            DataCell(
-                                              Text(
-                                                _PuantajOzeti.sayi(allYevmiyeler.fold(0.0, (sum, y) => sum + (y['miktar'] as num).toDouble())),
-                                                style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
-                                              ),
-                                            ),
-                                            const DataCell(Text("")),
-                                          ],
-                                        ),
-                                    ];
-                                  }(),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          // Tablo seçimi ve tablo: sayfayla birlikte kayar, ekrana sığar
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('İşçiler'), icon: Icon(Icons.engineering, size: 18)),
+                ButtonSegment(value: 1, label: Text('Vinç'), icon: Icon(Icons.precision_manufacturing, size: 18)),
+                ButtonSegment(value: 2, label: Text('Yevmiye'), icon: Icon(Icons.payments, size: 18)),
+              ],
+              selected: {_puantajSekmesi},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => setState(() => _puantajSekmesi = s.first),
             ),
           ),
+          const SizedBox(height: 8),
+          if (_puantajSekmesi == 0)
+            _isciTablosu(kayitlar)
+          else if (_puantajSekmesi == 1)
+            _vincTablosu(kayitlar)
+          else
+            _yevmiyeTablosu(kayitlar),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  static const _gunKisa = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+
+  /// Tablo hücresi için tarih: "26.09.26" ve altında gün adı.
+  String _tabloTarihi(DateTime t) =>
+      '${DateFormat('dd.MM.yy').format(t)}\n${_gunKisa[t.weekday - 1]}';
+
+  String _sifirsiz(num n) => n == 0 ? '–' : _PuantajOzeti.sayi(n.toDouble());
+
+  Widget _isciTablosu(List<GunlukKayit> kayitlar) {
+    final ozet = _PuantajOzeti.hesapla(kayitlar, _vincSatirlari, _yevmiyeSatirlari, _hesaplaVincNetSaat);
+    return _basitTablo(
+      basliklar: const ['Tarih', 'Kalıpçı', 'Demirci', 'Diğer', 'Toplam'],
+      flexler: const [3, 2, 2, 2, 2],
+      sayisal: const [false, true, true, true, true],
+      vurguluSutun: 4,
+      satirlar: [
+        for (final k in kayitlar)
+          [
+            _tabloTarihi(k.tarih),
+            _sifirsiz(k.kalipci),
+            _sifirsiz(k.demirci),
+            _sifirsiz(k.diger),
+            _sifirsiz(k.kalipci + k.demirci + k.diger),
+          ],
+      ],
+      toplam: ['TOPLAM', '${ozet.kalipci}', '${ozet.demirci}', '${ozet.diger}', '${ozet.toplamAdamGun}'],
+      bosMetin: 'Bu aralıkta kayıt yok.',
+    );
+  }
+
+  Widget _vincTablosu(List<GunlukKayit> kayitlar) {
+    final satirlar = _vincSatirlari(kayitlar);
+    double toplam = 0;
+    final hucreler = <List<String>>[];
+    for (final v in satirlar) {
+      final net = double.tryParse(_hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0;
+      toplam += net;
+      final int mola = v['mola'];
+      hucreler.add([
+        _tabloTarihi(v['tarih']),
+        (v['firmaAdi'] as String).isEmpty ? '–' : v['firmaAdi'],
+        '${v['baslangic']}–${v['bitis']}${mola > 0 ? '\nmola $mola dk' : ''}',
+        '${_PuantajOzeti.sayi(net)} sa',
+      ]);
+    }
+    return _basitTablo(
+      basliklar: const ['Tarih', 'Firma', 'Saat', 'Net'],
+      flexler: const [3, 4, 4, 2],
+      sayisal: const [false, false, false, true],
+      vurguluSutun: 3,
+      satirlar: hucreler,
+      toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa'],
+      bosMetin: 'Bu aralıkta vinç kaydı yok.',
+    );
+  }
+
+  Widget _yevmiyeTablosu(List<GunlukKayit> kayitlar) {
+    final satirlar = _yevmiyeSatirlari(kayitlar);
+    final toplam = satirlar.fold<double>(0, (t, y) => t + (y['miktar'] as num).toDouble());
+    return _basitTablo(
+      basliklar: const ['Tarih', 'Ekip', 'Adet', 'Açıklama'],
+      flexler: const [3, 4, 2, 5],
+      sayisal: const [false, false, true, false],
+      vurguluSutun: 2,
+      satirlar: [
+        for (final y in satirlar)
+          [
+            _tabloTarihi(y['tarih']),
+            (y['ekipAdi'] as String).isEmpty ? '–' : y['ekipAdi'],
+            _PuantajOzeti.sayi((y['miktar'] as num).toDouble()),
+            (y['aciklama'] as String).isEmpty ? '–' : y['aciklama'],
+          ],
+      ],
+      toplam: ['TOPLAM', '', _PuantajOzeti.sayi(toplam), ''],
+      bosMetin: 'Bu aralıkta yevmiye kaydı yok.',
+    );
+  }
+
+  /// Ekran genişliğine sığan sade tablo. Hücre metnindeki ikinci satır
+  /// (\n sonrası) küçük ve gri yazılır. Toplam satırı tablonun başında durur
+  /// ki uzun listede aşağı inmeden görülsün.
+  Widget _basitTablo({
+    required List<String> basliklar,
+    required List<int> flexler,
+    required List<bool> sayisal,
+    required int vurguluSutun,
+    required List<List<String>> satirlar,
+    required List<String> toplam,
+    required String bosMetin,
+  }) {
+    final birincil = ThemeColors.textPrimary(context);
+    final ikincil = ThemeColors.textSecondary(context);
+    final zemin = ThemeColors.cardBackground(context);
+    final cizgi = ThemeColors.border(context);
+
+    Widget hucre(String metin, int i, {bool baslik = false, bool toplamSatiri = false}) {
+      final parcalar = metin.split('\n');
+      final hizala = sayisal[i] ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+      final vurgu = i == vurguluSutun || toplamSatiri;
+      return Expanded(
+        flex: flexler[i],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: Column(
+            crossAxisAlignment: hizala,
+            children: [
+              Text(
+                parcalar.first,
+                textAlign: sayisal[i] ? TextAlign.right : TextAlign.left,
+                style: TextStyle(
+                  color: baslik ? ikincil : (toplamSatiri ? Colors.lightBlueAccent : birincil),
+                  fontSize: baslik ? 12 : 14,
+                  fontWeight: baslik || vurgu ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              for (final ek in parcalar.skip(1))
+                Text(ek, style: TextStyle(color: ikincil, fontSize: 11)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget satir(List<String> hucreler, {Color? renk, bool baslik = false, bool toplamSatiri = false}) {
+      return Container(
+        color: renk,
+        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < hucreler.length; i++)
+              hucre(hucreler[i], i, baslik: baslik, toplamSatiri: toplamSatiri),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: zemin,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cizgi),
+      ),
+      child: Column(
+        children: [
+          satir(basliklar, baslik: true, renk: Colors.black.withOpacity(0.25)),
+          if (satirlar.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(bosMetin, style: TextStyle(color: ikincil)),
+            )
+          else ...[
+            satir(toplam, toplamSatiri: true, renk: Colors.blue.withOpacity(0.10)),
+            for (int i = 0; i < satirlar.length; i++)
+              satir(satirlar[i], renk: i.isOdd ? Colors.white.withOpacity(0.03) : null),
+          ],
         ],
       ),
     );
