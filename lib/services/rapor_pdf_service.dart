@@ -278,9 +278,12 @@ class GunlukRaporPdf {
           padding: const pw.EdgeInsets.only(top: 6),
           child: pw.Row(
             children: [
-              pw.Expanded(child: _fotoKutusu(fotolar[i])),
+              pw.Expanded(child: _fotoKutusu(fotolar[i], '${proje.ad} · ${i + 1}/${fotolar.length}')),
               pw.SizedBox(width: 6),
-              pw.Expanded(child: i + 1 < fotolar.length ? _fotoKutusu(fotolar[i + 1]) : pw.SizedBox()),
+              pw.Expanded(
+                  child: i + 1 < fotolar.length
+                      ? _fotoKutusu(fotolar[i + 1], '${proje.ad} · ${i + 2}/${fotolar.length}')
+                      : pw.SizedBox()),
             ],
           ),
         ),
@@ -321,11 +324,27 @@ class GunlukRaporPdf {
     ];
   }
 
-  static pw.Widget _fotoKutusu(pw.ImageProvider resim) {
+  /// Fotoğraf ve sol alt köşesinde sahibini gösteren etiket. Bir şantiyenin
+  /// fotoğrafları sonraki sayfaya taşarsa hangi şantiyeye ait olduğu
+  /// etiketten anlaşılır.
+  static pw.Widget _fotoKutusu(pw.ImageProvider resim, String etiket) {
     return pw.Container(
       height: 180,
       decoration: pw.BoxDecoration(color: _acikGri, border: pw.Border.all(color: _cizgi, width: 0.5)),
-      child: pw.Image(resim, fit: pw.BoxFit.contain),
+      child: pw.Stack(
+        children: [
+          pw.Positioned.fill(child: pw.Center(child: pw.Image(resim, fit: pw.BoxFit.contain))),
+          pw.Positioned(
+            left: 0,
+            bottom: 0,
+            child: pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              color: const PdfColor(0, 0, 0, 0.6),
+              child: pw.Text(etiket, style: const pw.TextStyle(color: PdfColors.white, fontSize: 7)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
