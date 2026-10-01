@@ -1162,22 +1162,39 @@ class _MainScreenState extends State<MainScreen> {
   // Yan menüdeki görünüm sırası. _menuItems'taki sıra DEĞİŞTİRİLMEMELİ:
   // indeksler sayfa kimliği olarak kullanılıyor ve kullanıcının seçtiği alt
   // menü kısayolları (bottomNavIndexes) bu indekslerle kayıtlı.
-  // int = sayfa, String = grup başlığı, null = ince ayraç.
+  // int = sayfa, String = grup başlığı, _MenuGrubu = açılır kapanır grup,
+  // null = ince ayraç.
   static const List<Object?> _menuSirasi = [
     0, // Ana Sayfa
     'Şantiye',
     1, 2, 8, 13, 12, // Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
-    'Finans',
+    null,
     7, // Faturalar
-    'Malzeme',
+    null,
     9, // Malzemeler
-    'Planlama',
-    3, 6, 4, // Görevler, Takvim, Notlar
-    'Araçlar',
-    5, 11, 10, // Pratik Bilgiler, Pomodoro, Eskizler
+    null,
+    _MenuGrubu('Planlama', [3, 6, 4]), // Görevler, Takvim, Notlar
+    _MenuGrubu('Araçlar', [5, 11, 10]), // Pratik Bilgiler, Pomodoro, Eskizler
     null,
     14, // Ayarlar
   ];
+
+  // Kullanıcının açıp kapattığı gruplar. Kayıt yoksa grup, açık sayfa
+  // içindeyse açık, değilse kapalı gelir.
+  final Map<String, bool> _grupAcik = {};
+
+  bool _grupAcikMi(_MenuGrubu g) =>
+      _grupAcik[g.baslik] ?? g.sayfalar.contains(_selectedIndex);
+
+  /// Kapalı grupların sayfaları çıkarılmış, ekranda gösterilecek satırlar.
+  List<Object?> get _menuSatirlari => [
+        for (final girdi in _menuSirasi)
+          if (girdi is _MenuGrubu) ...[
+            girdi,
+            if (_grupAcikMi(girdi)) ...girdi.sayfalar,
+          ] else
+            girdi,
+      ];
 
   Widget _getPage(int index) {
     switch (index) {
@@ -1345,9 +1362,38 @@ class _MainScreenState extends State<MainScreen> {
 
           Expanded(
             child: ListView.builder(
-              itemCount: _menuSirasi.length,
+              itemCount: _menuSatirlari.length,
               itemBuilder: (context, sira) {
-                final girdi = _menuSirasi[sira];
+                final girdi = _menuSatirlari[sira];
+                if (girdi is _MenuGrubu) {
+                  final acik = _grupAcikMi(girdi);
+                  return InkWell(
+                    onTap: () => setState(() => _grupAcik[girdi.baslik] = !acik),
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(22, isDrawer ? 12 : 8, 18, isDrawer ? 12 : 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              girdi.baslik.toUpperCase(),
+                              style: TextStyle(
+                                color: ThemeColors.textSecondary(context),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            acik ? Icons.expand_less : Icons.expand_more,
+                            size: 20,
+                            color: ThemeColors.textSecondary(context),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 if (girdi == null) {
                   return Divider(
                     height: 13,
@@ -1559,4 +1605,11 @@ class _MainScreenState extends State<MainScreen> {
       },
     );
   }
+}
+
+/// Yan menüde açılıp kapanabilen sayfa grubu.
+class _MenuGrubu {
+  final String baslik;
+  final List<int> sayfalar;
+  const _MenuGrubu(this.baslik, this.sayfalar);
 }
