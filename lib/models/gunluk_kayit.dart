@@ -13,6 +13,21 @@ class VincBilgisi {
     this.mola = 0,
   });
 
+  /// Mola düşülmüş çalışma süresi (saat). Bitiş başlangıçtan önceyse ertesi
+  /// güne sarktığı kabul edilir. Saat okunamazsa 0.
+  double get netSaat {
+    try {
+      final b = baslangic.split(':');
+      final s = bitis.split(':');
+      int fark = (int.parse(s[0]) * 60 + int.parse(s[1])) - (int.parse(b[0]) * 60 + int.parse(b[1]));
+      if (fark < 0) fark += 24 * 60;
+      final net = fark - mola;
+      return net <= 0 ? 0 : net / 60.0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Map<String, dynamic> toJson() => {
         'firmaAdi': firmaAdi,
         'baslangic': baslangic,

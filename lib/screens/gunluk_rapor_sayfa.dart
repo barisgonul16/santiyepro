@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import '../services/rapor_pdf_service.dart';
 import '../models/proje.dart';
 import '../models/gunluk_kayit.dart';
 import '../theme/theme_colors.dart';
@@ -72,34 +75,35 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
     }
   }
 
-  Future<void> _exportToWord(List<Map<String, dynamic>> records) async {
+  Future<void> _pdfRaporu(List<Map<String, dynamic>> records) async {
     if (records.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aktarılacak günlük rapor kaydı bulunmamaktadır.')),
+        const SnackBar(content: Text('Bu tarihte rapora girecek kayıt yok.')),
       );
       return;
     }
 
-    String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-    if (selectedDirectory == null) return;
-
+    final ilerleme = ValueNotifier<String>('Rapor hazırlanıyor...');
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
+      builder: (context) => Center(
         child: Card(
-          color: Color(0xFF2A2A2A),
+          color: const Color(0xFF2A2A2A),
           child: Padding(
-            padding: EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircularProgressIndicator(color: Colors.indigo),
-                SizedBox(height: 15),
-                Text(
-                  'Rapor Hazırlanıyor...\n(Fotoğraflar yükleniyor, lütfen bekleyin)',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+                const CircularProgressIndicator(color: Colors.indigo),
+                const SizedBox(height: 15),
+                ValueListenableBuilder<String>(
+                  valueListenable: ilerleme,
+                  builder: (context, metin, _) => Text(
+                    metin,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                  ),
                 ),
               ],
             ),
@@ -108,203 +112,113 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
       ),
     );
 
+    Uint8List? pdf;
     try {
-      final String tarihStr = DateFormat('dd.MM.yyyy').format(_selectedDate);
-      final String dosyaTarihStr = DateFormat('dd_MM_yyyy').format(_selectedDate);
-
-      StringBuffer tableRows = StringBuffer();
-
-      for (var record in records) {
-        final Proje proje = record['proje'];
-        final GunlukKayit kayit = record['kayit'];
-
-        // Kalıpçı
-        String kalipciHtml = '-';
-        if (kayit.kalipci > 0 || kayit.kalipciYapilanIs.isNotEmpty) {
-          kalipciHtml = '';
-          if (kayit.kalipci > 0) kalipciHtml += '<b>Sayı:</b> ${kayit.kalipci} Kişi<br>';
-          if (kayit.kalipciYapilanIs.isNotEmpty) kalipciHtml += '<b>İş:</b> ${kayit.kalipciYapilanIs}';
-        }
-
-        // Demirci
-        String demirciHtml = '-';
-        if (kayit.demirci > 0 || kayit.demirciYapilanIs.isNotEmpty) {
-          demirciHtml = '';
-          if (kayit.demirci > 0) demirciHtml += '<b>Sayı:</b> ${kayit.demirci} Kişi<br>';
-          if (kayit.demirciYapilanIs.isNotEmpty) demirciHtml += '<b>İş:</b> ${kayit.demirciYapilanIs}';
-        }
-
-        // Beton
-        String betonHtml = kayit.beton.isEmpty ? '-' : kayit.beton;
-
-        // Vinç
-        String vincHtml = '-';
-        if (kayit.vincler.isNotEmpty) {
-          vincHtml = kayit.vincler.map((v) =>
-            '• <b>${v.firmaAdi}</b><br>&nbsp;&nbsp;${v.baslangic} – ${v.bitis}, Mola: ${v.mola}dk'
-          ).join('<br>');
-        }
-
-        // Yevmiye
-        String yevmiyeHtml = '-';
-        if (kayit.yevmiyeler.isNotEmpty) {
-          yevmiyeHtml = kayit.yevmiyeler.map((y) =>
-            '• <b>${y.ekipAdi}</b>: ${y.miktar} Yevmiye<br>&nbsp;&nbsp;${y.aciklama}'
-          ).join('<br>');
-        }
-
-        // Fotoğraflar (Base64 gömülü)
-        String fotografHtml = '-';
-        if (kayit.fotografYollari.isNotEmpty) {
-          StringBuffer fb = StringBuffer();
-          for (var path in kayit.fotografYollari) {
-            try {
-              List<int> imageBytes;
-              if (path.startsWith('http://') || path.startsWith('https://')) {
-                final response = await http.get(Uri.parse(path));
-                if (response.statusCode == 200) {
-                  imageBytes = response.bodyBytes;
-                } else continue;
-              } else {
-                final imgFile = File(path);
-                if (await imgFile.exists()) {
-                  imageBytes = await imgFile.readAsBytes();
-                } else continue;
-              }
-              final b64 = base64Encode(imageBytes);
-              // Uzantıya göre MIME tipi
-              String mime = 'image/jpeg';
-              if (path.toLowerCase().endsWith('.png')) mime = 'image/png';
-              if (path.toLowerCase().endsWith('.webp')) mime = 'image/webp';
-              fb.write('<img src="data:$mime;base64,$b64" onclick="openModal(this.src)" style="max-width:180px;max-height:160px;margin:3px;border:1px solid #ccc;border-radius:4px;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'" title="Büyütmek için tıklayın" />');
-            } catch (e) {
-              appLog('Resim hatası: $e');
-            }
-          }
-          if (fb.isNotEmpty) fotografHtml = fb.toString();
-        }
-
-        final String notlarHtml = kayit.notlar.isEmpty ? '-' : kayit.notlar.replaceAll('\n', '<br>');
-
-        tableRows.write('''
-          <tr>
-            <td class="santiye">📍 ${proje.ad}</td>
-            <td>$kalipciHtml</td>
-            <td>$demirciHtml</td>
-            <td>$betonHtml</td>
-            <td>$vincHtml</td>
-            <td>$yevmiyeHtml</td>
-            <td>$notlarHtml</td>
-            <td class="foto">$fotografHtml</td>
-          </tr>
-        ''');
-      }
-
-      final String html = '''<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Günlük Şantiye Raporu – $tarihStr</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; padding: 20px; color: #222; }
-    .header { text-align: center; margin-bottom: 24px; }
-    .header h1 { font-size: 22px; color: #1A237E; letter-spacing: 1px; }
-    .header p { color: #555; font-size: 13px; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.10); }
-    thead th { background: #1A237E; color: white; padding: 10px 8px; font-size: 12px; text-align: left; }
-    tbody tr { border-bottom: 1px solid #e8eaf0; }
-    tbody tr:hover { background: #f0f4ff; }
-    td { padding: 10px 8px; font-size: 12px; vertical-align: top; line-height: 1.5; }
-    .santiye { font-weight: bold; background: #f5f7ff; color: #1A237E; white-space: nowrap; }
-    .foto { min-width: 120px; }
-    .footer { text-align: center; margin-top: 18px; font-size: 11px; color: #aaa; }
-    /* Büyütme Modalı */
-    .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
-    .modal img { max-width: 92%; max-height: 92%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    .modal-close { position: absolute; top: 15px; right: 25px; color: white; font-size: 35px; font-weight: bold; cursor: pointer; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🏗️ GÜNLÜK ŞANTİYE RAPORU</h1>
-    <p>Rapor Tarihi: <b>$tarihStr</b> &nbsp;|&nbsp; Toplam Şantiye: <b>${records.length}</b></p>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Şantiye</th>
-        <th>Kalıpçı Ekibi</th>
-        <th>Demirci Ekibi</th>
-        <th>Beton</th>
-        <th>Vinç</th>
-        <th>Yevmiye</th>
-        <th>Notlar</th>
-        <th>Fotoğraflar</th>
-      </tr>
-    </thead>
-    <tbody>
-      $tableRows
-    </tbody>
-  </table>
-  <div class="footer">SantiyePro – $tarihStr tarihli rapor</div>
-
-  <!-- Fotoğraf Büyütme Penceresi -->
-  <div id="imgModal" class="modal" onclick="closeModal()">
-    <span class="modal-close" onclick="closeModal()">&times;</span>
-    <img id="modalImg" src="" alt="Büyütülmüş Görsel">
-  </div>
-
-  <script>
-    function openModal(src) {
-      document.getElementById('modalImg').src = src;
-      document.getElementById('imgModal').style.display = 'flex';
-    }
-    function closeModal() {
-      document.getElementById('imgModal').style.display = 'none';
-    }
-  </script>
-</body>
-</html>''';
-
-      final String fileName = 'Santiye_Raporu_$dosyaTarihStr.html';
-      final String filePath = '$selectedDirectory/$fileName';
-      await File(filePath).writeAsString(html, encoding: utf8);
-
+      pdf = await GunlukRaporPdf.olustur(
+        tarih: _selectedDate,
+        kayitlar: [for (final r in records) (r['proje'] as Proje, r['kayit'] as GunlukKayit)],
+        hazirlayan: FirebaseAuth.instance.currentUser?.displayName,
+        ilerleme: (i, toplam) => ilerleme.value = 'Fotoğraflar alınıyor ($i / $toplam)',
+      );
+    } catch (e) {
+      appLog('PDF rapor hatası: $e');
+    } finally {
       if (mounted) Navigator.pop(context);
+      ilerleme.dispose();
+    }
 
+    if (!mounted) return;
+    if (pdf == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rapor oluşturulamadı.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    final dosyaAdi = 'Santiye_Raporu_${DateFormat('dd_MM_yyyy').format(_selectedDate)}.pdf';
+    final boyutMb = (pdf.length / 1024 / 1024).toStringAsFixed(1);
+    final rapor = pdf;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: ThemeColors.cardBackground(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+              title: Text('Rapor hazır', style: TextStyle(color: ThemeColors.textPrimary(ctx), fontWeight: FontWeight.bold)),
+              subtitle: Text('$dosyaAdi · $boyutMb MB', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.share, color: Colors.lightBlueAccent),
+              title: Text('Paylaş', style: TextStyle(color: ThemeColors.textPrimary(ctx))),
+              subtitle: Text('WhatsApp, e-posta...', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _raporuPaylas(rapor, dosyaAdi);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.save_alt, color: Colors.greenAccent),
+              title: Text('Kaydet', style: TextStyle(color: ThemeColors.textPrimary(ctx))),
+              subtitle: Text('Cihazda bir klasöre', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _raporuKaydet(rapor, dosyaAdi);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _raporuPaylas(Uint8List pdf, String dosyaAdi) async {
+    try {
+      final dosya = File('${(await getTemporaryDirectory()).path}/$dosyaAdi');
+      await dosya.writeAsBytes(pdf, flush: true);
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile(dosya.path, mimeType: 'application/pdf')],
+        text: 'Günlük şantiye raporu - ${DateFormat('dd.MM.yyyy').format(_selectedDate)}',
+      ));
+    } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF1E1E1E),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green, size: 28),
-                SizedBox(width: 10),
-                Flexible(child: Text('Rapor Oluşturuldu!', style: TextStyle(color: Colors.white, fontSize: 16))),
-              ],
-            ),
-            content: Text(
-              'Dosya: $fileName\nKonum: $selectedDirectory\n\n📱 Mobilden görmek için dosyayı telefona gönderin ve Chrome / Safari ile açın.\n🖥️ PC\'de çift tıklayarak tarayıcıda açın.',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Tamam', style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Paylaşılamadı: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _raporuKaydet(Uint8List pdf, String dosyaAdi) async {
+    try {
+      // Telefonda dosyayı seçici yazar; masaüstünde yalnızca yolu döndürür.
+      final mobil = Platform.isAndroid || Platform.isIOS;
+      final yol = await FilePicker.platform.saveFile(
+        dialogTitle: 'Raporu kaydet',
+        fileName: dosyaAdi,
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
+        bytes: mobil ? pdf : null,
+      );
+      if (yol == null) return;
+      if (!mobil) {
+        await File(yol.toLowerCase().endsWith('.pdf') ? yol : '$yol.pdf').writeAsBytes(pdf, flush: true);
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rapor kaydedildi'), backgroundColor: Colors.green),
         );
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Rapor hatası: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Kaydedilemedi: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -425,9 +339,9 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                               ),
                             ),
                             ElevatedButton.icon(
-                              onPressed: () => _exportToWord(records),
-                              icon: const Icon(Icons.description, size: 16),
-                              label: const Text('Word Raporu İndir'),
+                              onPressed: () => _pdfRaporu(records),
+                              icon: const Icon(Icons.picture_as_pdf, size: 16),
+                              label: const Text('PDF Rapor'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF1A237E),
                                 foregroundColor: Colors.white,
