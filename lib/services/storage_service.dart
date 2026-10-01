@@ -59,6 +59,19 @@ class StorageService {
   /// Kullanıcıya gösterilmek üzere biriken uyarılar.
   static final List<StorageWarning> warnings = <StorageWarning>[];
 
+  /// Bulutla en son başarılı alışveriş zamanı (indirme ya da gönderme).
+  /// Ana sayfadaki bulut göstergesi bunu dinler.
+  static final ValueNotifier<DateTime?> sonEsitleme = ValueNotifier<DateTime?>(null);
+
+  /// Son eşitlemede bazı bölümler buluttan alınamadıysa true.
+  static bool sonEsitlemeEksik = false;
+
+  /// Bulut bu oturumda kullanılamıyor (Firebase yok ya da Windows'ta kapalı).
+  static bool get bulutKapali => Firebase.apps.isEmpty || firestoreDisabled;
+
+  /// Aynı anda iki eşitleme çalışmasın (defter paylaşılıyor).
+  static Future<void>? _suranEsitleme;
+
   /// Bulut sorgusu başına zaman aşımı. Koleksiyonlar paralel çekildiği için
   /// toplam senkronizasyon süresi de yaklaşık bu kadardır.
   static const Duration _sorguZamanAsimi = Duration(seconds: 6);
@@ -319,6 +332,7 @@ class StorageService {
       await docRef
           .set({'json': data, 'updatedAt': FieldValue.serverTimestamp()});
       await _gonderimiKaydet(koleksiyon);
+      sonEsitleme.value = DateTime.now();
     } catch (e) {
       appLog('Buluta gönderme hatası ($koleksiyon): $e');
     }
@@ -405,7 +419,13 @@ class StorageService {
   // BULUTTAN İNDİRME
   // ---------------------------------------------------------------------------
 
-  Future<void> syncEverythingWithCloud() async {
+  /// Buluttan eşitler. Zaten bir eşitleme sürüyorsa onun bitmesini bekler.
+  Future<void> syncEverythingWithCloud() {
+    return _suranEsitleme ??=
+        _esitle().whenComplete(() => _suranEsitleme = null);
+  }
+
+  Future<void> _esitle() async {
     if (Firebase.apps.isEmpty || firestoreDisabled) {
       appLog('Bulut senkronizasyonu atlandı — yerel veri kullanılıyor.');
       return;
@@ -423,15 +443,18 @@ class StorageService {
 
     // Koleksiyonlar paralel çekilir: toplam süre 12 x tek sorgu değil,
     // yaklaşık tek sorgu süresi kadardır.
-    await Future.wait(
+    final sonuclar = await Future.wait(
       collections.map((col) => _koleksiyonuSenkronize(user.uid, col, defter)),
     );
 
     await _defteriKaydet(defter);
+    sonEsitlemeEksik = sonuclar.contains(false);
+    sonEsitleme.value = DateTime.now();
     appLog('Bulut senkronizasyonu tamamlandı.');
   }
 
-  Future<void> _koleksiyonuSenkronize(
+  /// Koleksiyonu eşitler. Bulut sorgusu başarısız olduysa false döner.
+  Future<bool> _koleksiyonuSenkronize(
     String uid,
     String koleksiyon,
     Map<String, dynamic> defter,
@@ -445,10 +468,10 @@ class StorageService {
           .get()
           .timeout(_sorguZamanAsimi);
 
-      if (!doc.exists) return;
+      if (!doc.exists) return true;
 
       final String bulutJson = doc.data()?['json'] ?? '';
-      if (bulutJson.trim().isEmpty) return;
+      if (bulutJson.trim().isEmpty) return true;
 
       final Timestamp? bulutTs = doc.data()?['updatedAt'] as Timestamp?;
       final int bulutZamani = bulutTs?.millisecondsSinceEpoch ?? 0;
@@ -462,7 +485,7 @@ class StorageService {
       // Yerel dosya hiç yoksa buluttan almak her zaman doğrudur.
       if (yerelZaman == 0) {
         await _buluttanUygula(koleksiyon, bulutJson, bulutZamani, defter);
-        return;
+        return true;
       }
 
       if (defterKaydi.isEmpty) {
@@ -474,7 +497,7 @@ class StorageService {
         } else {
           await _cakismayiKaydet(koleksiyon, bulutJson, bulutZamani, yerelZaman, defter);
         }
-        return;
+        return true;
       }
 
       final int uygulananBulutZamani =
@@ -487,17 +510,19 @@ class StorageService {
           yerelZaman > bilinenYerelZaman + _zamanToleransiMs;
 
       // Bulutta bizim göndermediğimiz bir değişiklik yok.
-      if (!bulutDahaYeni) return;
+      if (!bulutDahaYeni) return true;
 
       if (yerelDegismis) {
         await _cakismayiKaydet(
             koleksiyon, bulutJson, bulutZamani, yerelZaman, defter);
-        return;
+        return true;
       }
 
       await _buluttanUygula(koleksiyon, bulutJson, bulutZamani, defter);
+      return true;
     } catch (e) {
       appLog('Senkronizasyon hatası ($koleksiyon): $e');
+      return false;
     }
   }
 

@@ -545,6 +545,17 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  /// Buluttan eşitler, sonra ekrandaki verileri yeniden yükler. Eşitleme
+  /// başarısız olsa da cihazdaki veriler gösterilir.
+  Future<void> _buluttanYenile() async {
+    try {
+      await _storageService.syncEverythingWithCloud().timeout(const Duration(seconds: 20));
+    } catch (e) {
+      appLog('Elle yenilemede eşitleme hatası: $e');
+    }
+    if (mounted) await _loadAllData();
+  }
+
   Future<void> _loadAllData() async {
     setState(() => _isLoading = true);
     
@@ -1171,7 +1182,11 @@ class _MainScreenState extends State<MainScreen> {
           onHatirlaticiTamamla: _hatirlaticiTamamla,
           onHatirlaticiDuzenle: _hatirlaticiDuzenle,
           onPageChange: (index) => setState(() => _selectedIndex = index),
-          onRefresh: _loadAllData,
+          onRefresh: _buluttanYenile,
+          projeGunlukKayitlari: projeGunlukKayitlari,
+          ekipler: ekipler,
+          onGunlukKayitEkle: _gunlukKayitEkle,
+          onGunlukKayitGuncelle: _gunlukKayitGuncelle,
         );
       case 1:
         return ProjelerSayfaPage(

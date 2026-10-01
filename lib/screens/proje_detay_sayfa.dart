@@ -61,6 +61,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   final Function(int, GunlukKayit) onKayitGuncelle;
   final Map<String, List<GunlukKayit>> projeGunlukKayitlari;
   final List<String> ekipler;
+  /// Açılışta gösterilecek sekme: 0 Genel, 1 Giriş (bugünün formu), 2 Puantaj.
+  final int baslangicSekmesi;
 
   const ProjeDetaySayfa({
     super.key,
@@ -70,6 +72,7 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.onKayitGuncelle,
     required this.projeGunlukKayitlari,
     required this.ekipler,
+    this.baslangicSekmesi = 0,
   });
 
   @override
@@ -127,7 +130,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.baslangicSekmesi);
 
     // Puantaj varsayılan tarihleri
     puantajBaslangicTarihi = widget.proje.baslangicTarihi;
