@@ -1147,11 +1147,13 @@ class _MainScreenState extends State<MainScreen> {
   static const List<int?> _menuSirasi = [
     0, 1, 2, 8, 13, 12, // Ana Sayfa, Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
     null,
-    7, 9, 10, // Faturalar, Malzemeler, Eskizler
+    7, // Faturalar
+    null,
+    9, // Malzemeler
     null,
     3, 6, 4, // Görevler, Takvim, Notlar
     null,
-    5, 11, // Pratik Bilgiler, Pomodoro
+    5, 11, 10, // Pratik Bilgiler, Pomodoro, Eskizler
     null,
     14, // Ayarlar
   ];

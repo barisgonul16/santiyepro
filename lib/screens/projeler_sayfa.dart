@@ -297,16 +297,16 @@ class ProjelerSayfaPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: LinearProgressIndicator(
-                    value: ilerleme / 100,
+                    value: ilerleme,
                     backgroundColor: proje.durum == "Tamamlandı" ? Colors.white24 : ThemeColors.border(context),
-                    color: Colors.blue,
+                    color: proje.sureAsildi ? Colors.redAccent : Colors.blue,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  '${ilerleme.toInt()}%',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  proje.sureMetni,
+                  style: TextStyle(
+                    color: proje.sureAsildi ? Colors.redAccent : Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -318,11 +318,10 @@ class ProjelerSayfaPage extends StatelessWidget {
     );
   }
 
+  /// Takvim süresinin dolma oranı (0..1). İş ilerlemesi değildir.
   double _ilerlemeHesapla(Proje proje) {
-    final toplamGun = proje.toplamGun;
-    final gecenGun = DateTime.now().difference(proje.baslangicTarihi).inDays;
-    if (toplamGun == 0) return 0;
-    return (gecenGun / toplamGun * 100).clamp(0, 100);
+    if (proje.toplamGun <= 0) return 0;
+    return (proje.gecenGun / proje.toplamGun).clamp(0.0, 1.0);
   }
 
   void _projeEkleDialog(BuildContext context) {

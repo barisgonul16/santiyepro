@@ -19,6 +19,21 @@ class Proje {
     this.sonGuncelleme,
   });
 
+  /// Başlangıçtan bugüne geçen gün (başlangıç günü 1. gün sayılır).
+  int get gecenGun {
+    final bugun = DateTime.now();
+    final fark = DateTime(bugun.year, bugun.month, bugun.day)
+        .difference(DateTime(baslangicTarihi.year, baslangicTarihi.month, baslangicTarihi.day))
+        .inDays;
+    return fark < 0 ? 0 : fark + 1;
+  }
+
+  /// "178 / 250 gün" biçiminde süre metni. Bu iş ilerlemesi değil, takvim
+  /// süresidir.
+  String get sureMetni => '$gecenGun / $toplamGun gün';
+
+  bool get sureAsildi => toplamGun > 0 && gecenGun > toplamGun;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'ad': ad,

@@ -5,6 +5,10 @@ import 'package:file_picker/file_picker.dart' as pkr;
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart' as paylas;
 import '../services/image_service.dart';
 import 'package:excel/excel.dart' as xls;
 import '../theme/theme_colors.dart';
@@ -78,6 +82,13 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
   // --- Genel Bakış State Değişkenleri ---
   DateTime secilenTarih = DateTime.now();
+  // Takvimde gösterilen ay. Seçili günden ayrı tutulur: ay değiştirmek
+  // formdaki günü değiştirmemeli, yoksa formdaki bilgiler başka bir güne
+  // kaydedilir.
+  DateTime _gosterilenAy = DateTime(DateTime.now().year, DateTime.now().month);
+  // Son yüklenen/kaydedilen form içeriği; kaydedilmemiş değişikliği
+  // anlamak için şimdiki içerikle karşılaştırılır.
+  String _kayitliImza = '';
   final kalipciController = TextEditingController();
   final demirciController = TextEditingController();
   final digerController = TextEditingController();
@@ -204,23 +215,80 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       _yevmiyeFormList.add(YevmiyeFormControllers());
     }
 
+    _kayitliImza = _formImzasi();
     if (mounted) setState(() {});
   }
 
-  void _tarihDegistir(DateTime yeniTarih) {
+  /// Formun o anki içeriğinin karşılaştırılabilir metin hali.
+  String _formImzasi() => jsonEncode([
+        kalipciController.text, demirciController.text, digerController.text,
+        yemekKalipciController.text, yemekDemirciController.text, yemekDigerController.text,
+        kalipciIsController.text, demirciIsController.text,
+        notlarController.text, betonController.text,
+        fotograflar,
+        _vincFormList
+            .map((v) => [v.firmaAdiController.text, v.baslangicController.text,
+                         v.bitisController.text, v.molaController.text])
+            .toList(),
+        _yevmiyeFormList
+            .map((y) => [y.secilenEkipAdi ?? '', y.miktarController.text,
+                         y.aciklamaController.text])
+            .toList(),
+      ]);
+
+  bool get _kaydedilmemisDegisiklikVar => _formImzasi() != _kayitliImza;
+
+  /// Formda kaydedilmemiş değişiklik varsa kullanıcıya sorar.
+  /// true dönerse işleme (gün değiştirme, sayfadan çıkma) devam edilebilir.
+  Future<bool> _degisiklikleriOnayla() async {
+    if (!_kaydedilmemisDegisiklikVar) return true;
+    final secim = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Kaydedilmemiş değişiklik var'),
+        content: Text(
+          '${DateFormat('dd.MM.yyyy').format(secilenTarih)} tarihli formda '
+          'kaydetmediğin bilgiler var. Ne yapalım?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, 'vazgec'), child: const Text('Vazgeç')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'at'),
+            child: const Text('Kaydetmeden geç', style: TextStyle(color: Colors.redAccent)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, 'kaydet'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            child: const Text('Kaydet'),
+          ),
+        ],
+      ),
+    );
+    if (secim == 'at') return true;
+    if (secim == 'kaydet') return await _kaydet();
+    return false;
+  }
+
+  Future<void> _tarihDegistir(DateTime yeniTarih) async {
+    final ayniGun = yeniTarih.year == secilenTarih.year &&
+        yeniTarih.month == secilenTarih.month &&
+        yeniTarih.day == secilenTarih.day;
+    if (!ayniGun && !await _degisiklikleriOnayla()) return;
+    if (!mounted) return;
     setState(() {
       secilenTarih = yeniTarih;
-      _yukleKayit();
+      _gosterilenAy = DateTime(yeniTarih.year, yeniTarih.month);
+      if (!ayniGun) _yukleKayit();
     });
     // Veri Girişi sekmesine geç (index 1)
     _tabController.animateTo(1);
   }
 
   void _ayDegistir(DateTime yeniTarih) {
+    // Yalnızca takvimin gösterdiği ay değişir; formdaki gün aynı kalır.
     setState(() {
-      secilenTarih = yeniTarih;
+      _gosterilenAy = DateTime(yeniTarih.year, yeniTarih.month);
     });
-    // Sekme değiştirme YOK - Genel sekmesinde kalır
   }
 
   Future<void> _fotografEkle() async {
@@ -266,7 +334,29 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  Future<void> _kaydet() async {
+  Future<void> _fotografKaldir(int index) async {
+    final onay = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Fotoğraf kaldırılsın mı?'),
+        content: const Text('Fotoğraf bu günün kaydından çıkarılır. Kaydet\'e basınca kalıcı olur.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Kaldır', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (onay == true && mounted && index < fotograflar.length) {
+      setState(() => fotograflar.removeAt(index));
+    }
+  }
+
+  /// Formu kaydeder. Kayıt yazıldıysa true döner (fotoğraf yüklenemese bile;
+  /// yüklenemeyen fotoğraflar cihazdaki yollarıyla kayda girer).
+  Future<bool> _kaydet() async {
     // Yükleme sırasında bekletme göster
     if (mounted) {
       showDialog(
@@ -350,41 +440,32 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         // Yeni kayıt EKLE
         widget.onKayitEkle(yeniKayit);
       }
+      _kayitliImza = _formImzasi();
 
       if (mounted) {
         Navigator.pop(context); // Bekleme diyaloğunu kapat
-        
-        String message = 'Kayıt başarıyla kaydedildi';
-        if (hataliYukleme > 0) {
-          message += '\n($hataliYukleme fotoğraf buluta yüklenemedi)';
-        }
 
+        // Yüklenemeyen fotoğraflar cihazda kalır ve kayda cihazdaki yollarıyla
+        // girer. Kaydet'e yeniden basmak yalnızca bunları tekrar yüklemeyi dener.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message),
-            backgroundColor: hataliYukleme > 0 ? Colors.orange : Colors.green,
-            duration: const Duration(seconds: 4),
-            action: hataliYukleme > 0 ? SnackBarAction(
-              label: 'DETAY',
-              textColor: Colors.white,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Yükleme Sorunu'),
-                    content: const Text('Bazı fotoğraflar buluta yüklenemedi. '
-                        'Lütfen internet bağlantınızı ve Firebase Storage (Bulut Depolama) '
-                        'ayarlarınızın (Rules) açık olduğunu kontrol edin.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('TAMAM'))
-                    ],
-                  ),
-                );
-              },
-            ) : null,
+            content: Text(hataliYukleme > 0
+                ? 'Kayıt kaydedildi, ama $hataliYukleme fotoğraf buluta yüklenemedi. '
+                  'Fotoğraflar bu cihazda duruyor; internet varken tekrar dene.'
+                : 'Kayıt kaydedildi'),
+            backgroundColor: hataliYukleme > 0 ? Colors.orange.shade800 : Colors.green,
+            duration: Duration(seconds: hataliYukleme > 0 ? 8 : 3),
+            action: hataliYukleme > 0
+                ? SnackBarAction(
+                    label: 'TEKRAR DENE',
+                    textColor: Colors.white,
+                    onPressed: _kaydet,
+                  )
+                : null,
           ),
         );
       }
+      return true;
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Bekleme diyaloğunu kapat
@@ -395,6 +476,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           ),
         );
       }
+      return false;
     }
   }
 
@@ -1016,6 +1098,20 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   // --- Ana Build Metodu ---
   @override
   Widget build(BuildContext context) {
+    // Geri tuşu/okuyla çıkarken kaydedilmemiş form varsa sorulur.
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await _degisiklikleriOnayla() && context.mounted) {
+          Navigator.of(context).pop(result);
+        }
+      },
+      child: _buildSayfa(context),
+    );
+  }
+
+  Widget _buildSayfa(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -1079,7 +1175,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         children: [
           // Seçilen Tarih Başlığı
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.blue.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
@@ -1087,18 +1183,47 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_today, color: Colors.blue),
-                const SizedBox(width: 10),
-                Text(
-                  '${secilenTarih.day} ${aylar[secilenTarih.month - 1]} ${secilenTarih.year}',
-                  style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold),
+                IconButton(
+                  tooltip: 'Önceki gün',
+                  icon: const Icon(Icons.chevron_left, color: Colors.blue, size: 30),
+                  onPressed: () => _tarihDegistir(DateTime(
+                      secilenTarih.year, secilenTarih.month, secilenTarih.day - 1)),
                 ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    _tabController.animateTo(0); // Genel Bakış sekmesine git
-                  },
-                  child: const Text('Takvimden Seç', style: TextStyle(color: Colors.blue)),
+                Expanded(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () async {
+                      final secilen = await showDatePicker(
+                        context: context,
+                        initialDate: secilenTarih,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (secilen != null) _tarihDegistir(secilen);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        children: [
+                          Text(
+                            '${secilenTarih.day} ${aylar[secilenTarih.month - 1]} ${secilenTarih.year}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            const ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'][secilenTarih.weekday - 1],
+                            style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Sonraki gün',
+                  icon: const Icon(Icons.chevron_right, color: Colors.blue, size: 30),
+                  onPressed: () => _tarihDegistir(DateTime(
+                      secilenTarih.year, secilenTarih.month, secilenTarih.day + 1)),
                 ),
               ],
             ),
@@ -1454,15 +1579,14 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: _fotografEkle,
-                          icon: Icon(Icons.camera_alt),
-                          label: const Text('Foto'),
-
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green, 
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12)
+                          icon: const Icon(Icons.add_a_photo),
+                          label: const Text('Fotoğraf Ekle'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.lightBlueAccent,
+                            side: const BorderSide(color: Colors.lightBlueAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
                       ),
@@ -1523,7 +1647,38 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                              ),
                            ),
                          ),
-                         Positioned(top: 2, right: 2, child: InkWell(onTap: () => setState(() => fotograflar.removeAt(index)), child: Container(padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle), child: Icon(Icons.close, color: ThemeColors.textPrimary(context), size: 12)))),
+                         if (!ImageService.isNetworkUrl(fotograflar[index]))
+                           const Positioned(
+                             left: 4,
+                             bottom: 4,
+                             child: Tooltip(
+                               message: 'Buluta yüklenmedi',
+                               child: CircleAvatar(
+                                 radius: 11,
+                                 backgroundColor: Colors.black87,
+                                 child: Icon(Icons.cloud_off, color: Colors.orangeAccent, size: 14),
+                               ),
+                             ),
+                           ),
+                         Positioned(
+                           top: 0,
+                           right: 0,
+                           child: Material(
+                             color: Colors.transparent,
+                             child: InkWell(
+                               customBorder: const CircleBorder(),
+                               onTap: () => _fotografKaldir(index),
+                               child: Padding(
+                                 padding: const EdgeInsets.all(3),
+                                 child: Container(
+                                   padding: const EdgeInsets.all(4),
+                                   decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                   child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                 ),
+                               ),
+                             ),
+                           ),
+                         ),
                        ],
                      ),
                    );
@@ -1537,7 +1692,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   }
 
   Widget _buildMobileGenelBakis() {
-    final ilerleme = _ilerlemeHesapla();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
       child: Column(
@@ -1561,33 +1715,20 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       ],
                     ),
                   ),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 80,
-                        child: LinearProgressIndicator(
-                          value: ilerleme / 100,
-                          backgroundColor: Colors.white24,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('${ilerleme.toInt()}%', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
-                    ],
-                  ),
+                  _buildSureGostergesi(genislik: 90),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 15),
-          
+
           Text(
             'Bilgi girmek istediğiniz tarihi seçin:',
             style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          
+
           // Calendar (Full Width)
           Card(
             color: ThemeColors.cardBackground(context),
@@ -1596,10 +1737,263 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               child: _buildTakvim(),
             ),
           ),
+          const SizedBox(height: 10),
+          _buildOzetPaneli(),
           const SizedBox(height: 20),
         ],
       ),
     );
+  }
+
+  // --- Genel sekmesi özet parçaları ---
+
+  /// Takvim süresi: geçen gün / toplam gün. Süre aşıldıysa kırmızı.
+  Widget _buildSureGostergesi({double genislik = 90}) {
+    final proje = widget.proje;
+    final oran = proje.toplamGun > 0
+        ? (proje.gecenGun / proje.toplamGun).clamp(0.0, 1.0)
+        : 0.0;
+    final renk = proje.sureAsildi ? Colors.redAccent : Colors.blue;
+    return Tooltip(
+      message: 'Başlangıçtan bu yana geçen gün / planlanan toplam gün',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            proje.sureMetni,
+            style: TextStyle(color: proje.sureAsildi ? Colors.redAccent : ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: genislik,
+            child: LinearProgressIndicator(
+              value: oran,
+              minHeight: 5,
+              backgroundColor: Colors.white24,
+              color: renk,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Takvimde gösterilen ayın özeti, son kayıtlar ve son fotoğraflar.
+  Widget _buildOzetPaneli() {
+    const aylar = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+    ];
+    final ayKayitlari = widget.gunlukKayitlar
+        .where((k) => k.tarih.year == _gosterilenAy.year && k.tarih.month == _gosterilenAy.month)
+        .toList();
+    final ozet = _PuantajOzeti.hesapla(ayKayitlari, _vincSatirlari, _yevmiyeSatirlari, _hesaplaVincNetSaat);
+
+    final sirali = List<GunlukKayit>.from(widget.gunlukKayitlar)
+      ..sort((a, b) => b.tarih.compareTo(a.tarih));
+    final sonKayitlar = sirali.take(5).toList();
+    final sonFotograflar = <Map<String, dynamic>>[];
+    for (final k in sirali) {
+      for (final yol in k.fotografYollari) {
+        if (yol.trim().isNotEmpty) sonFotograflar.add({'tarih': k.tarih, 'yol': yol});
+      }
+      if (sonFotograflar.length >= 12) break;
+    }
+
+    final baslikStili = TextStyle(color: ThemeColors.textPrimary(context), fontSize: 15, fontWeight: FontWeight.bold);
+
+    return Card(
+      color: ThemeColors.cardBackground(context),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${aylar[_gosterilenAy.month - 1]} ${_gosterilenAy.year} özeti', style: baslikStili),
+            const SizedBox(height: 10),
+            if (ayKayitlari.isEmpty)
+              Text('Bu ay kayıt yok.', style: TextStyle(color: ThemeColors.textSecondary(context)))
+            else
+              _buildOzetKutulari(ozet),
+            const SizedBox(height: 16),
+            Text('Son kayıtlar', style: baslikStili),
+            const SizedBox(height: 6),
+            if (sonKayitlar.isEmpty)
+              Text('Henüz kayıt yok.', style: TextStyle(color: ThemeColors.textSecondary(context)))
+            else
+              ...sonKayitlar.map(_buildSonKayitSatiri),
+            if (sonFotograflar.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(child: Text('Son fotoğraflar', style: baslikStili)),
+                  TextButton(onPressed: _galeriGoster, child: const Text('Tümü')),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 72,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: sonFotograflar.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  itemBuilder: (context, i) => InkWell(
+                    onTap: () => _fotografBuyut(context, sonFotograflar, i),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: ImageService.buildImage(sonFotograflar[i]['yol'], width: 72, height: 72),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOzetKutulari(_PuantajOzeti ozet) {
+    Widget kutu(String deger, String etiket, Color renk) => Container(
+          width: 96,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+          decoration: BoxDecoration(
+            color: renk.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Column(
+            children: [
+              Text(deger, style: TextStyle(color: renk, fontSize: 17, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(etiket, textAlign: TextAlign.center, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+            ],
+          ),
+        );
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        kutu('${ozet.kayitGunu}', 'kayıtlı gün', Colors.lightBlueAccent),
+        kutu('${ozet.kalipci}', 'kalıpçı\nadam-gün', Colors.orangeAccent),
+        kutu('${ozet.demirci}', 'demirci\nadam-gün', Colors.orangeAccent),
+        if (ozet.diger > 0) kutu('${ozet.diger}', 'diğer\nadam-gün', Colors.orangeAccent),
+        kutu(_PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati', Colors.amber),
+        kutu(_PuantajOzeti.sayi(ozet.yevmiye), 'yevmiye', Colors.purpleAccent),
+        kutu('${ozet.fotograf}', 'fotoğraf', Colors.greenAccent),
+      ],
+    );
+  }
+
+  Widget _buildSonKayitSatiri(GunlukKayit k) {
+    final ozetMetin = [
+      if (k.kalipciYapilanIs.trim().isNotEmpty) k.kalipciYapilanIs.trim(),
+      if (k.demirciYapilanIs.trim().isNotEmpty) k.demirciYapilanIs.trim(),
+      if (k.notlar.trim().isNotEmpty) k.notlar.trim(),
+    ].join(' · ');
+    final ekip = [
+      if (k.kalipci > 0) '${k.kalipci} kalıpçı',
+      if (k.demirci > 0) '${k.demirci} demirci',
+      if (k.diger > 0) '${k.diger} diğer',
+    ].join(', ');
+    return InkWell(
+      onTap: () => _tarihDegistir(k.tarih),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 50,
+              child: Text(DateFormat('dd.MM').format(k.tarih),
+                  style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold)),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (ekip.isNotEmpty)
+                    Text(ekip, style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 13)),
+                  if (ozetMetin.isNotEmpty)
+                    Text(ozetMetin,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
+                ],
+              ),
+            ),
+            if (k.fotografYollari.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.photo, size: 14, color: ThemeColors.textTertiary(context)),
+                    Text(' ${k.fotografYollari.length}', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Kayıtlardaki vinç satırları (eski tek-vinç alanları dahil).
+  List<Map<String, dynamic>> _vincSatirlari(Iterable<GunlukKayit> kayitlar) {
+    final satirlar = <Map<String, dynamic>>[];
+    for (var kayit in kayitlar) {
+      if (kayit.vincler.isNotEmpty) {
+        for (var v in kayit.vincler) {
+          if (v.firmaAdi.isNotEmpty || v.baslangic.isNotEmpty) {
+            satirlar.add({
+              'tarih': kayit.tarih,
+              'firmaAdi': v.firmaAdi,
+              'baslangic': v.baslangic,
+              'bitis': v.bitis,
+              'mola': v.mola,
+            });
+          }
+        }
+      } else if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
+        satirlar.add({
+          'tarih': kayit.tarih,
+          'firmaAdi': kayit.vincFirmaAdi,
+          'baslangic': kayit.vincBaslangic,
+          'bitis': kayit.vincBitis,
+          'mola': kayit.vincMola,
+        });
+      }
+    }
+    return satirlar;
+  }
+
+  /// Kayıtlardaki yevmiye satırları (eski tek-yevmiye alanları dahil).
+  List<Map<String, dynamic>> _yevmiyeSatirlari(Iterable<GunlukKayit> kayitlar) {
+    final satirlar = <Map<String, dynamic>>[];
+    for (var kayit in kayitlar) {
+      if (kayit.yevmiyeler.isNotEmpty) {
+        for (var y in kayit.yevmiyeler) {
+          if (y.ekipAdi.isNotEmpty || y.miktar > 0) {
+            satirlar.add({
+              'tarih': kayit.tarih,
+              'ekipAdi': y.ekipAdi,
+              'miktar': y.miktar,
+              'aciklama': y.aciklama,
+            });
+          }
+        }
+      } else if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
+        satirlar.add({
+          'tarih': kayit.tarih,
+          'ekipAdi': kayit.yevmiyeEkipAdi,
+          'miktar': kayit.yevmiyeMiktari,
+          'aciklama': kayit.yevmiyeAciklama,
+        });
+      }
+    }
+    return satirlar;
   }
 
   Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false, Function(String)? onChanged}) {
@@ -1677,7 +2071,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
 
   Widget _buildDesktopGenelBakis() {
-    final ilerleme = _ilerlemeHesapla();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
       child: Column(
@@ -1727,29 +2120,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               ),
               const SizedBox(width: 10),
               Container(
-                width: 120,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: ThemeColors.cardBackground(context),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: LinearProgressIndicator(
-                        value: ilerleme / 100,
-                        backgroundColor: Colors.white24,
-                        color: Colors.blue,
-                        minHeight: 6,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${ilerleme.toInt()}%',
-                      style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 13),
-                    ),
-                  ],
-                ),
+                child: _buildSureGostergesi(genislik: 130),
               ),
               const SizedBox(width: 20),
               ElevatedButton.icon(
@@ -1764,22 +2140,66 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ],
           ),
           const SizedBox(height: 15),
-          // Takvim (Tam Ekran)
+          // Takvim (solda) ve ay özeti (sağda)
           Expanded(
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: ThemeColors.cardBackground(context),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: ThemeColors.border(context)),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: SingleChildScrollView(
+                    child: Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: ThemeColors.cardBackground(context),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: ThemeColors.border(context)),
+                      ),
+                      child: _buildTakvim(),
+                    ),
+                  ),
                 ),
-                child: _buildTakvim(),
-              ),
+                const SizedBox(width: 15),
+                Expanded(
+                  flex: 2,
+                  child: SingleChildScrollView(child: _buildOzetPaneli()),
+                ),
+              ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  void _puantajFiltresiSec(String secenek) {
+    final simdi = DateTime.now();
+    setState(() {
+      tarihFiltreSecenegi = secenek;
+      switch (secenek) {
+        case 'bu_ay':
+          puantajBaslangicTarihi = DateTime(simdi.year, simdi.month, 1);
+          puantajBitisTarihi = simdi;
+        case 'gecen_ay':
+          puantajBaslangicTarihi = DateTime(simdi.year, simdi.month - 1, 1);
+          puantajBitisTarihi = DateTime(simdi.year, simdi.month, 0);
+        case 'proje_baslangic':
+          puantajBaslangicTarihi = widget.proje.baslangicTarihi;
+          puantajBitisTarihi = simdi;
+        // 'ozel': mevcut tarihler korunur, kullanıcı değiştirir.
+      }
+    });
+  }
+
+  Widget _ozetEtiketi(String metin, Color renk) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: renk.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: renk.withOpacity(0.4)),
+      ),
+      child: Text(metin, style: TextStyle(color: renk, fontSize: 13, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -1812,182 +2232,117 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   // --- 2. SEKME: PUANTAJ VE TABLO ---
   Widget _buildPuantajTab() {
     final kayitlar = _getPuantajKayitlari();
+    final ozet = _PuantajOzeti.hesapla(kayitlar, _vincSatirlari, _yevmiyeSatirlari, _hesaplaVincNetSaat);
+    final tarihBicimi = DateFormat('dd.MM.yyyy');
 
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(10.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Filtre Kartı
+          // Filtre: tek satırda hazır aralıklar, gerekirse özel tarih
           Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             decoration: BoxDecoration(
               color: ThemeColors.cardBackground(context),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isMobile = constraints.maxWidth < 600;
-                if (isMobile) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.filter_list, color: ThemeColors.textPrimary(context), size: 20),
-                          const SizedBox(width: 8),
-                          Text("Tarih Aralığı:", style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14)),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      DropdownButton<String>(
-                        value: tarihFiltreSecenegi,
-                        dropdownColor: const Color(0xFF3d3d3d),
-                        style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 13),
-                        isExpanded: true,
-                        underline: Container(height: 1, color: Colors.blue),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() {
-                              tarihFiltreSecenegi = val;
-                              if (val == 'proje_baslangic') {
-                                puantajBaslangicTarihi = widget.proje.baslangicTarihi;
-                                puantajBitisTarihi = DateTime.now();
-                              }
-                            });
-                          }
-                        },
-                        items: const [
-                          DropdownMenuItem(value: 'proje_baslangic', child: Text("Proje Başlangıcı - Bugün")),
-                          DropdownMenuItem(value: 'ozel', child: Text("Özel Tarih Seçimi")),
-                        ],
-                      ),
-                      if (tarihFiltreSecenegi == 'ozel') ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: puantajBaslangicTarihi,
-                                    firstDate: DateTime(2000),
-                                    lastDate: DateTime(2100),
-                                  );
-                                  if (picked != null) setState(() => puantajBaslangicTarihi = picked);
-                                },
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
-                                child: Text("${puantajBaslangicTarihi.day}.${puantajBaslangicTarihi.month}.${puantajBaslangicTarihi.year}", style: TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                            const Padding(padding: EdgeInsets.symmetric(horizontal: 5), child: Text("-", style: TextStyle(color: Colors.white))),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: puantajBitisTarihi,
-                                    firstDate: DateTime(2000),
-                                    lastDate: DateTime(2100),
-                                  );
-                                  if (picked != null) setState(() => puantajBitisTarihi = picked);
-                                },
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
-                                child: Text("${puantajBitisTarihi.day}.${puantajBitisTarihi.month}.${puantajBitisTarihi.year}", style: TextStyle(fontSize: 12)),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _aktarmaMenusuGoster,
-                          icon: Icon(Icons.download, size: 18),
-                          label: const Text("Aktar", style: TextStyle(fontSize: 13)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green.shade700,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-
-                    ],
-                  );
-                }
-                // Desktop layout
-                return Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    const Icon(Icons.filter_list, color: Colors.white),
-                    const SizedBox(width: 10),
-                    Text("Tarih Aralığı:", style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 20),
-                    DropdownButton<String>(
-                      value: tarihFiltreSecenegi,
-                      dropdownColor: const Color(0xFF3d3d3d),
-                      style: TextStyle(color: Colors.white),
-                      underline: Container(height: 1, color: Colors.blue),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            tarihFiltreSecenegi = val;
-                            if (val == 'proje_baslangic') {
-                              puantajBaslangicTarihi = widget.proje.baslangicTarihi;
-                              puantajBitisTarihi = DateTime.now();
-                            }
-                          });
-                        }
-                      },
-                      items: const [
-                        DropdownMenuItem(value: 'proje_baslangic', child: Text("Proje Başlangıcı - Bugün")),
-                        DropdownMenuItem(value: 'ozel', child: Text("Özel Tarih Seçimi")),
-                      ],
+                    Expanded(
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          for (final secenek in const [
+                            ['bu_ay', 'Bu ay'],
+                            ['gecen_ay', 'Geçen ay'],
+                            ['proje_baslangic', 'Tümü'],
+                            ['ozel', 'Özel'],
+                          ])
+                            ChoiceChip(
+                              label: Text(secenek[1]),
+                              selected: tarihFiltreSecenegi == secenek[0],
+                              onSelected: (_) => _puantajFiltresiSec(secenek[0]),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 20),
-                    if (tarihFiltreSecenegi == 'ozel') ...[
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.calendar_today, size: 16),
-                        label: Text("${puantajBaslangicTarihi.day}.${puantajBaslangicTarihi.month}.${puantajBaslangicTarihi.year}"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
-                        onPressed: () async {
-                          final picked = await showDatePicker(context: context, initialDate: puantajBaslangicTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
-                          if (picked != null) setState(() => puantajBaslangicTarihi = picked);
-                        },
-                      ),
-                      const Padding(padding: EdgeInsets.symmetric(horizontal: 10), child: Text("-", style: TextStyle(color: Colors.white))),
-                      ElevatedButton.icon(
-                        icon: Icon(Icons.calendar_today, size: 16),
-                        label: Text("${puantajBitisTarihi.day}.${puantajBitisTarihi.month}.${puantajBitisTarihi.year}"),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white12),
-                        onPressed: () async {
-                          final picked = await showDatePicker(context: context, initialDate: puantajBitisTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
-                          if (picked != null) setState(() => puantajBitisTarihi = picked);
-                        },
-                      ),
-                    ],
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: _aktarmaMenusuGoster,
-                      icon: Icon(Icons.download),
-                      label: const Text("Aktar"),
+                      icon: const Icon(Icons.download, size: 18),
+                      label: const Text('Aktar'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade700,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                       ),
                     ),
-
                   ],
-                );
-              },
+                ),
+                if (tarihFiltreSecenegi == 'ozel') ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.calendar_today, size: 16),
+                          label: Text(tarihBicimi.format(puantajBaslangicTarihi)),
+                          onPressed: () async {
+                            final picked = await showDatePicker(context: context, initialDate: puantajBaslangicTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
+                            if (picked != null) setState(() => puantajBaslangicTarihi = picked);
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('-', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                      ),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.calendar_today, size: 16),
+                          label: Text(tarihBicimi.format(puantajBitisTarihi)),
+                          onPressed: () async {
+                            final picked = await showDatePicker(context: context, initialDate: puantajBitisTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
+                            if (picked != null) setState(() => puantajBitisTarihi = picked);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${tarihBicimi.format(puantajBaslangicTarihi)} - ${tarihBicimi.format(puantajBitisTarihi)}',
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+                  ),
+                ],
+              ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
 
+          // Seçili aralığın toplamları: tabloların en altına inmeden görünsün
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _ozetEtiketi('${ozet.kayitGunu} gün', Colors.lightBlueAccent),
+              _ozetEtiketi('Kalıpçı ${ozet.kalipci}', Colors.orangeAccent),
+              _ozetEtiketi('Demirci ${ozet.demirci}', Colors.orangeAccent),
+              if (ozet.diger > 0) _ozetEtiketi('Diğer ${ozet.diger}', Colors.orangeAccent),
+              _ozetEtiketi('Toplam ${ozet.toplamAdamGun} adam-gün', Colors.blueAccent),
+              _ozetEtiketi('Vinç ${_PuantajOzeti.sayi(ozet.vincSaat)} sa', Colors.amber),
+              _ozetEtiketi('Yevmiye ${_PuantajOzeti.sayi(ozet.yevmiye)}', Colors.purpleAccent),
+            ],
+          ),
+
+          const SizedBox(height: 8),
           // Tablo Alanı
           Expanded(
             child: DefaultTabController(
@@ -2084,30 +2439,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                     DataColumn(label: Text('Net Çalışma', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)), numeric: true),
                                   ],
                                   rows: () {
-                                    final allVincler = <Map<String, dynamic>>[];
-                                    for (var kayit in kayitlar) {
-                                      if (kayit.vincler.isNotEmpty) {
-                                        for (var v in kayit.vincler) {
-                                          if (v.firmaAdi.isNotEmpty || v.baslangic.isNotEmpty) {
-                                            allVincler.add({
-                                              'tarih': kayit.tarih,
-                                              'firmaAdi': v.firmaAdi,
-                                              'baslangic': v.baslangic,
-                                              'bitis': v.bitis,
-                                              'mola': v.mola,
-                                            });
-                                          }
-                                        }
-                                      } else if (kayit.vincFirmaAdi.isNotEmpty || kayit.vincBaslangic.isNotEmpty) {
-                                        allVincler.add({
-                                          'tarih': kayit.tarih,
-                                          'firmaAdi': kayit.vincFirmaAdi,
-                                          'baslangic': kayit.vincBaslangic,
-                                          'bitis': kayit.vincBitis,
-                                          'mola': kayit.vincMola,
-                                        });
-                                      }
-                                    }
+                                    final allVincler = _vincSatirlari(kayitlar);
                                     return [
                                       ...allVincler.map((v) {
                                         final netSaat = _hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola']);
@@ -2163,28 +2495,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                     DataColumn(label: Text('Açıklama', style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold))),
                                   ],
                                   rows: () {
-                                    final allYevmiyeler = <Map<String, dynamic>>[];
-                                    for (var kayit in kayitlar) {
-                                      if (kayit.yevmiyeler.isNotEmpty) {
-                                        for (var y in kayit.yevmiyeler) {
-                                          if (y.ekipAdi.isNotEmpty || y.miktar > 0) {
-                                            allYevmiyeler.add({
-                                              'tarih': kayit.tarih,
-                                              'ekipAdi': y.ekipAdi,
-                                              'miktar': y.miktar,
-                                              'aciklama': y.aciklama,
-                                            });
-                                          }
-                                        }
-                                      } else if (kayit.yevmiyeEkipAdi.isNotEmpty || kayit.yevmiyeMiktari > 0) {
-                                        allYevmiyeler.add({
-                                          'tarih': kayit.tarih,
-                                          'ekipAdi': kayit.yevmiyeEkipAdi,
-                                          'miktar': kayit.yevmiyeMiktari,
-                                          'aciklama': kayit.yevmiyeAciklama,
-                                        });
-                                      }
-                                    }
+                                    final allYevmiyeler = _yevmiyeSatirlari(kayitlar);
                                     return [
                                       ...allYevmiyeler.map((y) {
                                         final DateTime tarih = y['tarih'];
@@ -2192,7 +2503,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                           cells: [
                                             DataCell(Text("${tarih.day}.${tarih.month}.${tarih.year}", style: TextStyle(color: ThemeColors.textPrimary(context)))),
                                             DataCell(Text(y['ekipAdi'], style: TextStyle(color: ThemeColors.textSecondary(context)))),
-                                            DataCell(Text(y['miktar'].toString(), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
+                                            DataCell(Text(_PuantajOzeti.sayi((y['miktar'] as num).toDouble()), style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
                                             DataCell(Text(y['aciklama'], style: TextStyle(color: ThemeColors.textSecondary(context), fontStyle: FontStyle.italic))),
                                           ],
                                         );
@@ -2205,7 +2516,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                             const DataCell(Text("")),
                                             DataCell(
                                               Text(
-                                                allYevmiyeler.map((y) => y['miktar'] as double).fold(0.0, (sum, val) => sum + val).toString(),
+                                                _PuantajOzeti.sayi(allYevmiyeler.fold(0.0, (sum, y) => sum + (y['miktar'] as num).toDouble())),
                                                 style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 16),
                                               ),
                                             ),
@@ -2292,6 +2603,19 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           fit: StackFit.expand,
                           children: [
                             ImageService.buildImage(yol, fit: BoxFit.cover),
+                            if (!ImageService.isNetworkUrl(yol))
+                              const Positioned(
+                                top: 4,
+                                right: 4,
+                                child: Tooltip(
+                                  message: 'Buluta yüklenmedi',
+                                  child: CircleAvatar(
+                                    radius: 11,
+                                    backgroundColor: Colors.black87,
+                                    child: Icon(Icons.cloud_off, color: Colors.orangeAccent, size: 14),
+                                  ),
+                                ),
+                              ),
                             if (tarihStr.isNotEmpty)
                               Positioned(
                                 bottom: 0,
@@ -2347,15 +2671,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  double _ilerlemeHesapla() {
-    final toplamGun = widget.proje.toplamGun;
-    final gecenGun = DateTime.now()
-        .difference(widget.proje.baslangicTarihi)
-        .inDays;
-    if (toplamGun == 0) return 0;
-    return (gecenGun / toplamGun * 100).clamp(0, 100);
-  }
-
   Widget _buildTextField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
@@ -2379,8 +2694,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
   Widget _buildTakvim() {
     final simdi = DateTime.now();
-    final yil = secilenTarih.year;
-    final ay = secilenTarih.month;
+    final yil = _gosterilenAy.year;
+    final ay = _gosterilenAy.month;
     final ilkGun = DateTime(yil, ay, 1);
     final sonGun = DateTime(yil, ay + 1, 0);
     // Dart weekday: 1=Pazartesi, 7=Pazar
@@ -2477,6 +2792,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     k.tarih.month == tarih.month &&
                     k.tarih.year == tarih.year,
               );
+              // Dolgu "kayıt var" bilgisini, çerçeve "bugün" bilgisini taşır;
+              // böylece bugünün kaydının girilip girilmediği de görünür.
               return Expanded(
                 child: InkWell(
                   onTap: () => _tarihDegistir(tarih),
@@ -2486,22 +2803,19 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     decoration: BoxDecoration(
                       color: secili
                           ? Colors.blue
-                          : (bugun
-                                ? Colors.lightGreen
-                                : (kayitVar
-                                      ? Colors.green.shade800
-                                      : Colors.transparent)),
+                          : (kayitVar ? Colors.green.shade800 : Colors.transparent),
                       borderRadius: BorderRadius.circular(4),
+                      border: bugun
+                          ? Border.all(color: Colors.lightGreenAccent, width: 2)
+                          : null,
                     ),
                     child: Center(
                       child: Text(
                         '$gunNo',
                         style: TextStyle(
-                          color: (secili || kayitVar) 
-                              ? Colors.white 
-                              : (bugun 
-                                  ? Colors.black 
-                                  : ThemeColors.textPrimary(context)),
+                          color: (secili || kayitVar)
+                              ? Colors.white
+                              : ThemeColors.textPrimary(context),
                           fontSize: Platform.isWindows ? 14 : 12,
                           fontWeight: secili || bugun ? FontWeight.bold : FontWeight.normal,
                         ),
@@ -2513,6 +2827,36 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             }),
           );
         }),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _takvimAciklama(Colors.green.shade800, null, 'Kayıt var'),
+            const SizedBox(width: 14),
+            _takvimAciklama(Colors.transparent, Colors.lightGreenAccent, 'Bugün'),
+            const SizedBox(width: 14),
+            _takvimAciklama(Colors.blue, null, 'Seçili gün'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _takvimAciklama(Color dolgu, Color? cerceve, String etiket) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: dolgu,
+            borderRadius: BorderRadius.circular(3),
+            border: cerceve != null ? Border.all(color: cerceve, width: 2) : null,
+          ),
+        ),
+        const SizedBox(width: 5),
+        Text(etiket, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
       ],
     );
   }
@@ -2547,6 +2891,44 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
   late int mevcutIndex;
   late PageController _pageController;
   bool _showAppBar = true;
+  bool _paylasiliyor = false;
+
+  /// Fotoğrafı telefonun paylaşma menüsüyle gönderir (WhatsApp, e-posta...).
+  /// Buluttaki fotoğraf önce geçici klasöre indirilir.
+  Future<void> _paylas(int index) async {
+    final item = widget.fotograflar[index];
+    final yol = (item['yol'] ?? '').toString();
+    final tarihStr = _formatTarih(item['tarih']);
+    setState(() => _paylasiliyor = true);
+    try {
+      String dosyaYolu = yol;
+      if (ImageService.isNetworkUrl(yol)) {
+        final yanit = await http.get(Uri.parse(yol)).timeout(const Duration(seconds: 60));
+        if (yanit.statusCode != 200) {
+          throw Exception('Fotoğraf indirilemedi (${yanit.statusCode})');
+        }
+        final uzanti = yol.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+        final ad = 'santiyepro_${tarihStr.replaceAll('.', '-')}_${index + 1}.$uzanti';
+        final dosya = File('${(await getTemporaryDirectory()).path}/$ad');
+        await dosya.writeAsBytes(yanit.bodyBytes, flush: true);
+        dosyaYolu = dosya.path;
+      } else if (!await File(yol).exists()) {
+        throw Exception('Fotoğraf bu cihazda bulunamadı');
+      }
+      await paylas.SharePlus.instance.share(paylas.ShareParams(
+        files: [paylas.XFile(dosyaYolu)],
+        text: tarihStr.isNotEmpty ? 'Şantiye fotoğrafı – $tarihStr' : null,
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Paylaşılamadı: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _paylasiliyor = false);
+    }
+  }
 
   String _formatTarih(dynamic tarih) {
     if (tarih == null) return '';
@@ -2633,6 +3015,13 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               actions: [
+                IconButton(
+                  tooltip: 'Paylaş',
+                  icon: _paylasiliyor
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.share, color: Colors.white),
+                  onPressed: _paylasiliyor ? null : () => _paylas(safeIndex),
+                ),
                 if (tarihStr.isNotEmpty)
                   Center(
                     child: Padding(
@@ -2733,6 +3122,12 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
                             letterSpacing: 0.5,
                           ),
                         ),
+                        if (!ImageService.isNetworkUrl((widget.fotograflar[safeIndex]['yol'] ?? '').toString())) ...[
+                          const SizedBox(width: 12),
+                          const Icon(Icons.cloud_off, color: Colors.orangeAccent, size: 16),
+                          const SizedBox(width: 4),
+                          const Text('Buluta yüklenmedi', style: TextStyle(color: Colors.orangeAccent, fontSize: 13)),
+                        ],
                       ],
                     ),
                   ),
@@ -2793,4 +3188,50 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
       ),
     );
   }
+}
+
+/// Bir kayıt kümesinin (ay ya da puantaj aralığı) toplamları.
+class _PuantajOzeti {
+  final int kayitGunu;
+  final int kalipci;
+  final int demirci;
+  final int diger;
+  final int fotograf;
+  final double vincSaat;
+  final double yevmiye;
+
+  const _PuantajOzeti({
+    required this.kayitGunu,
+    required this.kalipci,
+    required this.demirci,
+    required this.diger,
+    required this.fotograf,
+    required this.vincSaat,
+    required this.yevmiye,
+  });
+
+  int get toplamAdamGun => kalipci + demirci + diger;
+
+  static _PuantajOzeti hesapla(
+    List<GunlukKayit> kayitlar,
+    List<Map<String, dynamic>> Function(Iterable<GunlukKayit>) vincSatirlari,
+    List<Map<String, dynamic>> Function(Iterable<GunlukKayit>) yevmiyeSatirlari,
+    String Function(String, String, int) vincNetSaat,
+  ) {
+    return _PuantajOzeti(
+      kayitGunu: kayitlar.length,
+      kalipci: kayitlar.fold(0, (t, k) => t + k.kalipci),
+      demirci: kayitlar.fold(0, (t, k) => t + k.demirci),
+      diger: kayitlar.fold(0, (t, k) => t + k.diger),
+      fotograf: kayitlar.fold(0, (t, k) => t + k.fotografYollari.length),
+      vincSaat: vincSatirlari(kayitlar).fold(
+          0.0,
+          (t, v) => t + (double.tryParse(vincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0.0)),
+      yevmiye: yevmiyeSatirlari(kayitlar).fold(0.0, (t, y) => t + (y['miktar'] as num).toDouble()),
+    );
+  }
+
+  /// Tam sayıysa ondalıksız, değilse tek ondalıkla yazar (5 / 5.5).
+  static String sayi(double d) =>
+      d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
 }
