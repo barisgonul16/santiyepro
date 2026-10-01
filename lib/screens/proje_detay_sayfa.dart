@@ -119,6 +119,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   String tarihFiltreSecenegi =
       'proje_baslangic'; // 'ay', 'ozel' veya 'proje_baslangic' (Tümü)
   DateTime? _puantajAyi; // tarihFiltreSecenegi == 'ay' iken seçili ay
+  // Özel tarih aralığında seçilen ama henüz "Göster"e basılmamış tarihler.
+  late DateTime _ozelBaslangic;
+  late DateTime _ozelBitis;
 
   @override
   void initState() {
@@ -128,6 +131,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     // Puantaj varsayılan tarihleri
     puantajBaslangicTarihi = widget.proje.baslangicTarihi;
     puantajBitisTarihi = DateTime.now();
+    _ozelBaslangic = puantajBaslangicTarihi;
+    _ozelBitis = puantajBitisTarihi;
 
     _yukleKayit();
   }
@@ -2154,13 +2159,29 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         case 'proje_baslangic':
           puantajBaslangicTarihi = widget.proje.baslangicTarihi;
           puantajBitisTarihi = simdi;
-        // 'ozel': mevcut tarihler korunur, kullanıcı değiştirir.
+        case 'ozel':
+          // Tablo, kullanıcı tarihleri seçip "Göster"e basana kadar değişmez.
+          _ozelBaslangic = puantajBaslangicTarihi;
+          _ozelBitis = puantajBitisTarihi;
       }
     });
   }
 
-  /// Proje başlangıcından (ya da ilk kayıttan) bu aya kadar ayları,
-  /// yeniden eskiye listeleyen açılır menü.
+  void _ozelAraligiGoster() {
+    if (_ozelBitis.isBefore(_ozelBaslangic)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bitiş tarihi başlangıçtan önce olamaz.')),
+      );
+      return;
+    }
+    setState(() {
+      puantajBaslangicTarihi = _ozelBaslangic;
+      puantajBitisTarihi = _ozelBitis;
+    });
+  }
+
+  /// Ay seçimi: dokununca proje başlangıcından (ya da ilk kayıttan) bu aya
+  /// kadar aylar listelenir. Diğer seçeneklerle aynı görünümde bir düğme.
   Widget _buildAySecici() {
     const aylar = [
       'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
@@ -2178,28 +2199,38 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         ay = DateTime(ay.year, ay.month - 1)) {
       secenekler.add(ay);
     }
-    final secili = tarihFiltreSecenegi == 'ay';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: secili ? Colors.cyan.withOpacity(0.25) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: secili ? Colors.cyan : ThemeColors.textTertiary(context)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<DateTime>(
-          value: secili ? _puantajAyi : null,
-          isDense: true,
-          hint: Text('Ay seç', style: TextStyle(color: ThemeColors.textPrimary(context))),
-          dropdownColor: ThemeColors.cardBackground(context),
-          style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
-          items: [
-            for (final ay in secenekler)
-              DropdownMenuItem(value: ay, child: Text('${aylar[ay.month - 1]} ${ay.year}')),
+    final secili = tarihFiltreSecenegi == 'ay' && _puantajAyi != null;
+    final yaziRengi = secili ? Colors.black87 : ThemeColors.textPrimary(context);
+    return PopupMenuButton<DateTime>(
+      tooltip: 'Ay seç',
+      color: ThemeColors.cardBackground(context),
+      onSelected: (ay) => _puantajFiltresiSec('ay', ay: ay),
+      itemBuilder: (_) => [
+        for (final ay in secenekler)
+          PopupMenuItem(
+            value: ay,
+            child: Text('${aylar[ay.month - 1]} ${ay.year}',
+                style: TextStyle(color: ThemeColors.textPrimary(context))),
+          ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        decoration: BoxDecoration(
+          color: secili ? Colors.cyan : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: secili ? Colors.cyan : ThemeColors.textTertiary(context)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.calendar_month, size: 18, color: yaziRengi),
+            const SizedBox(width: 6),
+            Text(
+              secili ? '${aylar[_puantajAyi!.month - 1]} ${_puantajAyi!.year}' : 'Ay seç',
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: yaziRengi, fontWeight: FontWeight.w600),
+            ),
+            Icon(Icons.arrow_drop_down, color: yaziRengi),
           ],
-          onChanged: (ay) {
-            if (ay != null) _puantajFiltresiSec('ay', ay: ay);
-          },
         ),
       ),
     );
@@ -2343,17 +2374,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   ],
                 ),
                 if (tarihFiltreSecenegi == 'ozel') ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(tarihBicimi.format(puantajBaslangicTarihi)),
+                        child: OutlinedButton(
                           onPressed: () async {
-                            final picked = await showDatePicker(context: context, initialDate: puantajBaslangicTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
-                            if (picked != null) setState(() => puantajBaslangicTarihi = picked);
+                            final picked = await showDatePicker(context: context, initialDate: _ozelBaslangic, firstDate: DateTime(2000), lastDate: DateTime(2100), helpText: 'Başlangıç tarihi');
+                            if (picked != null) setState(() => _ozelBaslangic = picked);
                           },
+                          child: Text(tarihBicimi.format(_ozelBaslangic)),
                         ),
                       ),
                       Padding(
@@ -2361,24 +2391,28 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                         child: Text('-', style: TextStyle(color: ThemeColors.textPrimary(context))),
                       ),
                       Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.calendar_today, size: 16),
-                          label: Text(tarihBicimi.format(puantajBitisTarihi)),
+                        child: OutlinedButton(
                           onPressed: () async {
-                            final picked = await showDatePicker(context: context, initialDate: puantajBitisTarihi, firstDate: DateTime(2000), lastDate: DateTime(2100));
-                            if (picked != null) setState(() => puantajBitisTarihi = picked);
+                            final picked = await showDatePicker(context: context, initialDate: _ozelBitis, firstDate: DateTime(2000), lastDate: DateTime(2100), helpText: 'Bitiş tarihi');
+                            if (picked != null) setState(() => _ozelBitis = picked);
                           },
+                          child: Text(tarihBicimi.format(_ozelBitis)),
                         ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _ozelAraligiGoster,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                        child: const Text('Göster'),
                       ),
                     ],
                   ),
-                ] else ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    '${tarihBicimi.format(puantajBaslangicTarihi)} - ${tarihBicimi.format(puantajBitisTarihi)}',
-                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
-                  ),
                 ],
+                const SizedBox(height: 6),
+                Text(
+                  'Gösterilen: ${tarihBicimi.format(puantajBaslangicTarihi)} - ${tarihBicimi.format(puantajBitisTarihi)}',
+                  style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+                ),
               ],
             ),
           ),

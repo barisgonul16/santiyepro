@@ -121,9 +121,9 @@ class ProjelerSayfaPage extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: sutun,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 8,
-        mainAxisExtent: 100,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 12,
+        mainAxisExtent: 142,
       ),
       itemCount: liste.length,
       itemBuilder: (context, i) {
@@ -143,7 +143,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                 color: Colors.transparent,
                 child: Opacity(
                   opacity: 0.85,
-                  child: SizedBox(width: 340, height: 100, child: kart),
+                  child: SizedBox(width: 340, height: 142, child: kart),
                 ),
               ),
               childWhenDragging: Opacity(opacity: 0.3, child: kart),
@@ -182,7 +182,7 @@ class ProjelerSayfaPage extends StatelessWidget {
         ? ThemeColors.textTertiary(context)
         : (gunFarki <= 1 ? Colors.greenAccent : Colors.amber);
     final b = proje.baslangicTarihi;
-    final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12);
+    final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13);
 
     return Material(
       color: ThemeColors.cardBackground(context),
@@ -206,7 +206,7 @@ class ProjelerSayfaPage extends StatelessWidget {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 8, 4, 10),
+          padding: const EdgeInsets.fromLTRB(16, 10, 6, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -218,7 +218,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 17,
                         fontWeight: FontWeight.bold,
                         color: tamamlandi ? ThemeColors.textSecondary(context) : ThemeColors.textPrimary(context),
                       ),
@@ -228,7 +228,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                     sonKayit == null
                         ? 'kayıt yok'
                         : 'son kayıt ${sonKayit.day} ${_aylarKisa[sonKayit.month - 1]}',
-                    style: TextStyle(color: sonKayitRengi, fontSize: 12),
+                    style: TextStyle(color: sonKayitRengi, fontSize: 13),
                   ),
                   SizedBox(
                     width: 36,
@@ -263,12 +263,19 @@ class ProjelerSayfaPage extends StatelessWidget {
                   [
                     if (proje.aciklama.trim().isNotEmpty) proje.aciklama.trim(),
                     '${kayitlar.length} kayıt',
-                    'başlangıç ${b.day} ${_aylarKisa[b.month - 1]} ${b.year}',
                   ].join(' · '),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: ikincil,
                 ),
+              ),
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Icon(Icons.event, size: 14, color: ThemeColors.textTertiary(context)),
+                  const SizedBox(width: 4),
+                  Text('Başlangıç: ${b.day} ${_aylarKisa[b.month - 1]} ${b.year}', style: ikincil),
+                ],
               ),
               const Spacer(),
               // Tamamlanan projede takvim sayacı anlamsız (bittikten sonra da
@@ -280,7 +287,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       'Tamamlandı · planlanan ${proje.toplamGun} gün',
-                      style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                   ],
                 )
@@ -294,7 +301,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: oran,
-                          minHeight: 5,
+                          minHeight: 6,
                           backgroundColor: ThemeColors.border(context),
                           color: proje.sureAsildi ? Colors.redAccent : Colors.blue,
                         ),
@@ -305,7 +312,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       '${proje.sureMetni} · %${(oran * 100).round()}',
                       style: TextStyle(
                         color: proje.sureAsildi ? Colors.redAccent : ThemeColors.textPrimary(context),
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
