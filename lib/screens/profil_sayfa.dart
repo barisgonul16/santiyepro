@@ -226,14 +226,52 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
             
             OutlinedButton.icon(
               onPressed: () async {
+                // Çıkış bu cihazdaki verileri siler; buluta gitmemiş
+                // değişiklik varsa kullanıcı bunu açıkça görmeli.
+                final bekleyenler = await StorageService().gonderilmemisKoleksiyonlar();
+                if (!mounted) return;
                 final bool? confirm = await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
                     title: const Text('Çıkış Yap'),
-                    content: const Text('Oturumu kapatmak istediğinize emin misiniz?'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Çıkış yapınca bu cihazdaki ŞantiyePro verileri silinir. '
+                          'Buluttaki verilerin kalır; aynı hesapla tekrar girdiğinde geri gelir.',
+                        ),
+                        if (bekleyenler.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.redAccent),
+                            ),
+                            child: Text(
+                              'DİKKAT: Şu bölümlerde buluta gönderilmemiş değişiklik var:\n'
+                              '${bekleyenler.join(', ')}\n\n'
+                              'Çıkış yaparsan bu değişiklikler kaybolur. Önce internete '
+                              'bağlanıp uygulamayı yeniden başlat ya da Ayarlar > Veri '
+                              'Yedekleme\'den yedek al.',
+                              style: const TextStyle(color: Colors.redAccent),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                     actions: [
-                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
-                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Evet')),
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          bekleyenler.isEmpty ? 'Çıkış Yap' : 'Yine de Çık',
+                          style: const TextStyle(color: Colors.redAccent),
+                        ),
+                      ),
                     ],
                   ),
                 );

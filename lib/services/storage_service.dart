@@ -365,6 +365,32 @@ class StorageService {
     }
   }
 
+  /// Cihazda olup buluta henüz gönderilmemiş değişikliği olan koleksiyonların
+  /// görünen adlarını döndürür. Çıkış yapmadan önce kullanılır: çıkış yerel
+  /// veriyi sildiği için bu değişiklikler kaybolur.
+  ///
+  /// Emin olunamayan durumlar (defter kaydı yok, bulut kapalı, koleksiyon
+  /// sorunlu) da gönderilmemiş sayılır; yanlışlıkla "güvenli" demektense
+  /// fazladan uyarmak tercih edilir.
+  Future<List<String>> gonderilmemisKoleksiyonlar() async {
+    final defter = await _defteriYukle();
+    final List<String> sonuc = [];
+    for (final koleksiyon in collections) {
+      final int yerel = await _yerelZaman(koleksiyon);
+      if (yerel == 0) continue; // Cihazda bu veri hiç yok.
+
+      final kayit = defter[koleksiyon];
+      final bool gonderilmemis = firestoreDisabled ||
+          degradedCollections.contains(koleksiyon) ||
+          kayit is! Map ||
+          yerel > ((kayit['localMtime'] as int?) ?? 0) + _zamanToleransiMs;
+      if (gonderilmemis) {
+        sonuc.add(collectionNames[koleksiyon] ?? koleksiyon);
+      }
+    }
+    return sonuc;
+  }
+
   /// Buluta başarılı gönderim sonrası defteri günceller.
   Future<void> _gonderimiKaydet(String koleksiyon) async {
     final defter = await _defteriYukle();

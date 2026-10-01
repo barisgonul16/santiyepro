@@ -181,7 +181,7 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Proje Takip',
+      title: 'ŞantiyePro',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -1140,6 +1140,22 @@ class _MainScreenState extends State<MainScreen> {
     {'icon': Icons.settings, 'title': 'Ayarlar', 'color': Colors.grey},
   ];
 
+  // Yan menüdeki görünüm sırası. _menuItems'taki sıra DEĞİŞTİRİLMEMELİ:
+  // indeksler sayfa kimliği olarak kullanılıyor ve kullanıcının seçtiği alt
+  // menü kısayolları (bottomNavIndexes) bu indekslerle kayıtlı.
+  // null = gruplar arasına ince ayraç.
+  static const List<int?> _menuSirasi = [
+    0, 1, 2, 8, 13, 12, // Ana Sayfa, Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
+    null,
+    7, 9, 10, // Faturalar, Malzemeler, Eskizler
+    null,
+    3, 6, 4, // Görevler, Takvim, Notlar
+    null,
+    5, 11, // Pratik Bilgiler, Pomodoro
+    null,
+    14, // Ayarlar
+  ];
+
   Widget _getPage(int index) {
     switch (index) {
       case 0:
@@ -1286,10 +1302,10 @@ class _MainScreenState extends State<MainScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isDrawer) // App bar handles title on mobile
-            Padding(
-              padding: const EdgeInsets.all(20.0),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
               child: Text(
-                'Proje Takip',
+                'ŞantiyePro',
                 style: TextStyle(
                   color: Colors.cyan,
                   fontSize: 20,
@@ -1297,20 +1313,31 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
             )
-          else 
+          else
             const SizedBox(height: 50), // Spacing for drawer
 
           Expanded(
             child: ListView.builder(
-              itemCount: _menuItems.length,
-              itemBuilder: (context, index) {
+              itemCount: _menuSirasi.length,
+              itemBuilder: (context, sira) {
+                final int? index = _menuSirasi[sira];
+                if (index == null) {
+                  return Divider(
+                    height: 9,
+                    indent: 20,
+                    endIndent: 20,
+                    color: ThemeColors.divider(context),
+                  );
+                }
                 final item = _menuItems[index];
                 final isSelected = _selectedIndex == index;
 
+                // Masaüstünde tüm menü kaydırmadan sığsın diye satırlar
+                // sıkı; telefonda parmakla rahat basılsın diye daha geniş.
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
-                    vertical: 5,
+                    vertical: 1,
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -1325,9 +1352,9 @@ class _MainScreenState extends State<MainScreen> {
                       },
                       borderRadius: BorderRadius.circular(10),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 15,
-                          vertical: 12,
+                          vertical: isDrawer ? 9 : 5,
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
@@ -1344,7 +1371,7 @@ class _MainScreenState extends State<MainScreen> {
                         child: Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: item['color'],
                                 borderRadius: BorderRadius.circular(8),
@@ -1352,7 +1379,7 @@ class _MainScreenState extends State<MainScreen> {
                               child: Icon(
                                 item['icon'],
                                 color: Colors.white,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                             const SizedBox(width: 15),
@@ -1363,7 +1390,7 @@ class _MainScreenState extends State<MainScreen> {
                                   color: isSelected
                                       ? Colors.white
                                       : ThemeColors.textSecondary(context),
-                                  fontSize: item['isSubItem'] == true ? 14 : 16,
+                                  fontSize: 15,
                                   fontWeight: isSelected
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -1423,33 +1450,10 @@ class _MainScreenState extends State<MainScreen> {
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: Colors.redAccent, size: 18),
-                        tooltip: 'Çıkış Yap',
-                        onPressed: () async {
-                          final bool? confirm = await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Çıkış Yap'),
-                              content: const Text('Oturumu kapatmak istediğinize emin misiniz?'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
-                                TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Evet')),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            await StorageService().clearLocalData();
-                            await FirebaseAuth.instance.signOut();
-                            if (mounted) {
-                              Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (context) => const LoginSayfa()),
-                                (route) => false,
-                              );
-                            }
-                          }
-                        },
-                      ),
+                      // Çıkış, cihazdaki verileri sildiği için yalnızca
+                      // profil sayfasında, gönderilmemiş değişiklik
+                      // kontrolüyle birlikte sunuluyor.
+                      Icon(Icons.chevron_right, color: ThemeColors.textTertiary(context), size: 18),
                     ],
                   ),
                 ),
