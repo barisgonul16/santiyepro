@@ -2500,6 +2500,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     final satirlar = _vincSatirlari(kayitlar);
     double toplam = 0;
     final hucreler = <List<String>>[];
+    final aciklamalar = <String>[];
     for (final v in satirlar) {
       final net = double.tryParse(_hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0;
       toplam += net;
@@ -2509,17 +2510,28 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         (v['firmaAdi'] as String).isEmpty ? '–' : v['firmaAdi'],
         '${v['baslangic']}–${v['bitis']}${mola > 0 ? '\nmola $mola dk' : ''}',
         '${_PuantajOzeti.sayi(net)} sa',
-        (v['aciklama'] as String).isEmpty ? '–' : v['aciklama'],
       ]);
+      aciklamalar.add((v['aciklama'] as String).trim());
     }
-    return _basitTablo(
-      basliklar: const ['Tarih', 'Firma', 'Saat', 'Net', 'Açıklama'],
-      flexler: const [6, 6, 7, 4, 8],
-      sayisal: const [false, false, false, true, false],
-      vurguluSutun: 3,
-      satirlar: hucreler,
-      toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa', ''],
-      bosMetin: 'Bu aralıkta vinç kaydı yok.',
+    // Telefonda beşinci sütun saatleri ve firma adını ikiye bölüyor; orada
+    // açıklama satırın altında tam genişlikte, geniş ekranda ayrı sütunda.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final genis = constraints.maxWidth >= 560;
+        return _basitTablo(
+          basliklar: [...const ['Tarih', 'Firma', 'Saat', 'Net'], if (genis) 'Açıklama'],
+          flexler: [...const [3, 4, 4, 2], if (genis) 6],
+          sayisal: [...const [false, false, false, true], if (genis) false],
+          vurguluSutun: 3,
+          satirlar: [
+            for (int i = 0; i < hucreler.length; i++)
+              [...hucreler[i], if (genis) (aciklamalar[i].isEmpty ? '–' : aciklamalar[i])],
+          ],
+          altSatirlar: genis ? null : aciklamalar,
+          toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa', if (genis) ''],
+          bosMetin: 'Bu aralıkta vinç kaydı yok.',
+        );
+      },
     );
   }
 
@@ -2556,6 +2568,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     required List<List<String>> satirlar,
     required List<String> toplam,
     required String bosMetin,
+    List<String>? altSatirlar,
   }) {
     final birincil = ThemeColors.textPrimary(context);
     final ikincil = ThemeColors.textSecondary(context);
@@ -2621,8 +2634,24 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             )
           else ...[
             satir(toplam, toplamSatiri: true, renk: Colors.blue.withOpacity(0.10)),
-            for (int i = 0; i < satirlar.length; i++)
+            for (int i = 0; i < satirlar.length; i++) ...[
               satir(satirlar[i], renk: i.isOdd ? Colors.white.withOpacity(0.03) : null),
+              // Satıra ait tam genişlikte not (ör. vinç açıklaması)
+              if (altSatirlar != null && altSatirlar[i].isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  color: i.isOdd ? Colors.white.withOpacity(0.03) : null,
+                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 9),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.notes, size: 14, color: ikincil),
+                      const SizedBox(width: 6),
+                      Expanded(child: Text(altSatirlar[i], style: TextStyle(color: ikincil, fontSize: 13))),
+                    ],
+                  ),
+                ),
+            ],
           ],
         ],
       ),
