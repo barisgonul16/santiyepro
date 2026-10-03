@@ -89,7 +89,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
       barrierDismissible: false,
       builder: (context) => Center(
         child: Card(
-          color: const Color(0xFF2A2A2A),
+          color: ThemeColors.cardBackground(context),
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -102,7 +102,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                   builder: (context, metin, _) => Text(
                     metin,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 13),
                   ),
                 ),
               ],
@@ -380,7 +380,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const Divider(height: 20, color: Colors.white12),
+                                    Divider(height: 20, color: ThemeColors.border(context)),
 
                                     // Kalıpçı & Demirci & Beton Satırı
                                     Row(
@@ -391,23 +391,23 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Row(
+                                              Row(
                                                 children: [
                                                   Icon(Icons.engineering, size: 14, color: Colors.orange),
                                                   SizedBox(width: 4),
-                                                  Text('Kalıpçı Ekibi', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                  Text('Kalıpçı Ekibi', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
                                                 '${kayit.kalipci} Kişi',
-                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                                style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 13),
                                               ),
                                               if (kayit.kalipciYapilanIs.isNotEmpty) ...[
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   kayit.kalipciYapilanIs,
-                                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                                  style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
                                                   maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -420,23 +420,23 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Row(
+                                              Row(
                                                 children: [
                                                   Icon(Icons.hardware, size: 14, color: Colors.orange),
                                                   SizedBox(width: 4),
-                                                  Text('Demirci Ekibi', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                  Text('Demirci Ekibi', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
                                                 '${kayit.demirci} Kişi',
-                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                                style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 13),
                                               ),
                                               if (kayit.demirciYapilanIs.isNotEmpty) ...[
                                                 const SizedBox(height: 2),
                                                 Text(
                                                   kayit.demirciYapilanIs,
-                                                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                                                  style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
                                                   maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                 ),
@@ -449,11 +449,11 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              const Row(
+                                              Row(
                                                 children: [
                                                   Icon(Icons.opacity, size: 14, color: Colors.blueAccent),
                                                   SizedBox(width: 4),
-                                                  Text('Beton', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                  Text('Beton', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                                 ],
                                               ),
                                               const SizedBox(height: 4),
@@ -476,7 +476,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                     // Ekipman & Yevmiye Bilgisi
                                     if (kayit.vincler.isNotEmpty || kayit.yevmiyeler.isNotEmpty) ...[
                                       const SizedBox(height: 15),
-                                      const Divider(height: 10, color: Colors.white10),
+                                      Divider(height: 10, color: ThemeColors.border(context)),
                                       const SizedBox(height: 5),
                                       Row(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,22 +486,22 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                const Row(
+                                                Row(
                                                   children: [
                                                     Icon(Icons.architecture, size: 14, color: Colors.teal),
                                                     SizedBox(width: 4),
-                                                    Text('Vinç Kullanımı', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                    Text('Vinç Kullanımı', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                                   ],
                                                 ),
                                                 const SizedBox(height: 4),
                                                 if (kayit.vincler.isEmpty)
-                                                  const Text('-', style: TextStyle(color: Colors.white30, fontSize: 13))
+                                                  Text('-', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13))
                                                 else
                                                   ...kayit.vincler.map((v) => Padding(
                                                         padding: const EdgeInsets.only(bottom: 2),
                                                         child: Text(
                                                           '${v.firmaAdi} (${v.baslangic}-${v.bitis})',
-                                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                                                          style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 12, fontWeight: FontWeight.w500),
                                                         ),
                                                       )),
                                               ],
@@ -512,22 +512,22 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                const Row(
+                                                Row(
                                                   children: [
                                                     Icon(Icons.payments, size: 14, color: Colors.teal),
                                                     SizedBox(width: 4),
-                                                    Text('Yevmiyeler', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                    Text('Yevmiyeler', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                                   ],
                                                 ),
                                                 const SizedBox(height: 4),
                                                 if (kayit.yevmiyeler.isEmpty)
-                                                  const Text('-', style: TextStyle(color: Colors.white30, fontSize: 13))
+                                                  Text('-', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13))
                                                 else
                                                   ...kayit.yevmiyeler.map((y) => Padding(
                                                         padding: const EdgeInsets.only(bottom: 2),
                                                         child: Text(
                                                           '${y.ekipAdi} (${y.miktar} Y.)',
-                                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                                                          style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 12, fontWeight: FontWeight.w500),
                                                           overflow: TextOverflow.ellipsis,
                                                         ),
                                                       )),
@@ -541,7 +541,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                     // Notlar
                                     if (kayit.notlar.isNotEmpty) ...[
                                       const SizedBox(height: 15),
-                                      const Divider(height: 10, color: Colors.white10),
+                                      Divider(height: 10, color: ThemeColors.border(context)),
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
@@ -569,13 +569,13 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                     // Fotoğraflar Önizleme
                                     if (kayit.fotografYollari.isNotEmpty) ...[
                                       const SizedBox(height: 15),
-                                      const Divider(height: 10, color: Colors.white10),
+                                      Divider(height: 10, color: ThemeColors.border(context)),
                                       const SizedBox(height: 8),
-                                      const Row(
+                                      Row(
                                         children: [
                                           Icon(Icons.photo_library, size: 14, color: Colors.amber),
                                           SizedBox(width: 4),
-                                          Text('Şantiye Fotoğrafları', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                          Text('Şantiye Fotoğrafları', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11)),
                                         ],
                                       ),
                                       const SizedBox(height: 8),
@@ -609,7 +609,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                                 width: 60,
                                                 decoration: BoxDecoration(
                                                   borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: Colors.white12),
+                                                  border: Border.all(color: ThemeColors.border(context)),
                                                   image: DecorationImage(
                                                     image: (isNetwork ? NetworkImage(fPath) : FileImage(File(fPath))) as ImageProvider,
                                                     fit: BoxFit.cover,

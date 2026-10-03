@@ -242,8 +242,8 @@ class _AnimatedLoadingScreenState extends State<_AnimatedLoadingScreen> {
       child: Center(
         child: Text(
           'Yükleniyor$dots',
-          style: const TextStyle(
-            color: Colors.white70,
+          style: TextStyle(
+            color: ThemeColors.textSecondary(context),
             fontSize: 18,
             fontWeight: FontWeight.w300,
             letterSpacing: 2,
@@ -354,9 +354,9 @@ class _AuthWrapperState extends State<AuthWrapper> {
             // Splash zaten bir kez oynatıldı, şimdi sadece verilerin senkronize olmasını bekliyoruz
             return Container(
               color: const Color(0xFF1A4D33), // Splash ile aynı yeşil
-              child: const Center(
+              child: Center(
                 child: CircularProgressIndicator(
-                  color: Colors.white24,
+                  color: ThemeColors.border(context),
                   strokeWidth: 2,
                 ),
               ),
@@ -1312,7 +1312,7 @@ class _MainScreenState extends State<MainScreen> {
         return Center(
           child: Text(
             '${_menuItems[index]['title']} sayfası hazırlanıyor...',
-            style: const TextStyle(fontSize: 18, color: Colors.white54),
+            style: TextStyle(fontSize: 18, color: ThemeColors.textTertiary(context)),
           ),
         );
     }
@@ -1476,7 +1476,7 @@ class _MainScreenState extends State<MainScreen> {
                                 item['title'],
                                 style: TextStyle(
                                   color: isSelected
-                                      ? Colors.white
+                                      ? ThemeColors.textPrimary(context)
                                       : ThemeColors.textSecondary(context),
                                   fontSize: 15,
                                   fontWeight: isSelected
@@ -1497,7 +1497,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           // Profil & Çıkış Yap Bölümü
           if (FirebaseAuth.instance.currentUser != null) ...[
-            const Divider(color: Colors.white24, height: 1),
+            Divider(color: ThemeColors.border(context), height: 1),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: InkWell(
@@ -1520,8 +1520,8 @@ class _MainScreenState extends State<MainScreen> {
                           children: [
                             Text(
                               FirebaseAuth.instance.currentUser?.displayName ?? 'Kullanıcı',
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: ThemeColors.textPrimary(context),
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -1529,8 +1529,8 @@ class _MainScreenState extends State<MainScreen> {
                             ),
                             Text(
                               FirebaseAuth.instance.currentUser?.email ?? '',
-                              style: const TextStyle(
-                                color: Colors.white54,
+                              style: TextStyle(
+                                color: ThemeColors.textTertiary(context),
                                 fontSize: 11,
                               ),
                               overflow: TextOverflow.ellipsis,

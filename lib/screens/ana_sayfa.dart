@@ -263,17 +263,17 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.notifications_active, color: Colors.white, size: 30),
+                        child: Icon(Icons.notifications_active, color: ThemeColors.textPrimary(context), size: 30),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Sıradaki Hatırlatıcı',
                               style: TextStyle(
-                                color: Colors.white70,
+                                color: ThemeColors.textSecondary(context),
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -282,7 +282,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             Text(
                               sonrakiHatirlatici.baslik,
                               style: TextStyle(
-                                color: Colors.white,
+                                color: ThemeColors.textPrimary(context),
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -290,7 +290,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             const SizedBox(height: 5),
                             Text(
                               "${_formatTarih(sonrakiHatirlatici.tarih)}, ${_formatSaat(sonrakiHatirlatici.saat)}",
-                              style: TextStyle(color: Colors.white, fontSize: 14),
+                              style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                             ),
                           ],
                         ),
@@ -363,11 +363,11 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.centerLeft,
-                        child: const Row(
+                        child: Row(
                           children: [
                             Icon(Icons.check, color: Colors.white),
                             SizedBox(width: 10),
-                            Text("Tamamla", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text("Tamamla", style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -379,12 +379,12 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.centerRight,
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text("Sil", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            Text("Sil", style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                             SizedBox(width: 10),
-                            Icon(Icons.delete, color: Colors.white),
+                            Icon(Icons.delete, color: ThemeColors.textPrimary(context)),
                           ],
                         ),
                       ),
@@ -399,7 +399,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             context: context,
                             builder: (context) => AlertDialog(
                               backgroundColor: ThemeColors.cardBackground(context),
-                              title: const Text('Silmek istediğinize emin misiniz?', style: TextStyle(color: Colors.white)),
+                              title: Text('Silmek istediğinize emin misiniz?', style: TextStyle(color: ThemeColors.textPrimary(context))),
                               actions: [
                                 TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
                                 ElevatedButton(
@@ -826,20 +826,20 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'duzenle',
-                    child: Row(children: [Icon(Icons.edit, color: Colors.orange, size: 18), SizedBox(width: 10), Text('Düzenle', style: TextStyle(color: Colors.white))]),
+                    child: Row(children: [Icon(Icons.edit, color: Colors.orange, size: 18), SizedBox(width: 10), Text('Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context)))]),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'sil',
-                    child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 18), SizedBox(width: 10), Text('Sil', style: TextStyle(color: Colors.white))]),
+                    child: Row(children: [Icon(Icons.delete, color: Colors.red, size: 18), SizedBox(width: 10), Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context)))]),
                   ),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 15),
-          const Divider(color: Colors.white10),
+          Divider(color: ThemeColors.border(context)),
           const SizedBox(height: 5),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -867,18 +867,18 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: const Text('Yeni Hatırlatıcı', style: TextStyle(color: Colors.white)),
+          title: Text('Yeni Hatırlatıcı', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: mesajController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Hatırlatıcı Mesajı',
-                    labelStyle: TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white30)),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
                     focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
@@ -900,7 +900,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                         ? 'Tarih Seç'
                         : '${secilenTarih!.day}/${secilenTarih!.month}/${secilenTarih!.year}',
                   ),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+                  style: OutlinedButton.styleFrom(foregroundColor: ThemeColors.textPrimary(context)),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -918,7 +918,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                         ? 'Saat Seç'
                         : '${secilenSaat!.hour.toString().padLeft(2, '0')}:${secilenSaat!.minute.toString().padLeft(2, '0')}',
                   ),
-                  style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+                  style: OutlinedButton.styleFrom(foregroundColor: ThemeColors.textPrimary(context)),
                 ),
               ],
             ),
@@ -977,17 +977,17 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: const Text('Hatırlatıcıyı Düzenle', style: TextStyle(color: Colors.white)),
+          title: Text('Hatırlatıcıyı Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: mesajController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Hatırlatıcı Mesajı',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                   ),
                 ),
                 const SizedBox(height: 15),

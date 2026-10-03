@@ -344,9 +344,9 @@ class ProjelerSayfaPage extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: const Text(
+          title: Text(
             'Yeni Proje',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: ThemeColors.textPrimary(context)),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -354,12 +354,12 @@ class ProjelerSayfaPage extends StatelessWidget {
               children: [
                 TextField(
                   controller: adController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Proje Adı',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -369,13 +369,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 TextField(
                   controller: aciklamaController,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Açıklama',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -385,13 +385,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 TextField(
                   controller: toplamGunController,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Toplam Gün',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -401,13 +401,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
                   value: secilenDurum,
-                  dropdownColor: const Color(0xFF3d3d3d),
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  dropdownColor: ThemeColors.cardBackground(context),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Durum',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -449,7 +449,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                   ),
                 ),
               ],
@@ -502,9 +502,9 @@ class ProjelerSayfaPage extends StatelessWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: const Text(
+          title: Text(
             'Projeyi Düzenle',
-            style: TextStyle(color: Colors.white),
+            style: TextStyle(color: ThemeColors.textPrimary(context)),
           ),
           content: SingleChildScrollView(
             child: Column(
@@ -512,12 +512,12 @@ class ProjelerSayfaPage extends StatelessWidget {
               children: [
                 TextField(
                   controller: adController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Proje Adı',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -527,13 +527,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 TextField(
                   controller: aciklamaController,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Açıklama',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -543,13 +543,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 TextField(
                   controller: toplamGunController,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Toplam Gün',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -559,13 +559,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
                   value: secilenDurum,
-                  dropdownColor: const Color(0xFF3d3d3d),
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  dropdownColor: ThemeColors.cardBackground(context),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Durum',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.blue),
@@ -605,7 +605,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -661,10 +661,10 @@ class ProjelerSayfaPage extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text('Projeyi Sil', style: TextStyle(color: Colors.white)),
+        title: Text('Projeyi Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Text(
           '"$ad" projesini silmek istediğinize emin misiniz?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: ThemeColors.textSecondary(context)),
         ),
         actions: [
           TextButton(

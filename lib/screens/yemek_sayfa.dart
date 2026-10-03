@@ -253,8 +253,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                     const SizedBox(width: 10),
                     DropdownButton<int>(
                       value: _selectedMonth,
-                      dropdownColor: const Color(0xFF2D2D2D),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      dropdownColor: ThemeColors.cardBackground(context),
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                       underline: const SizedBox(),
                       onChanged: (val) {
                         if (val != null) {
@@ -274,8 +274,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                     const SizedBox(width: 15),
                     DropdownButton<int>(
                       value: _selectedYear,
-                      dropdownColor: const Color(0xFF2D2D2D),
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      dropdownColor: ThemeColors.cardBackground(context),
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                       underline: const SizedBox(),
                       onChanged: (val) {
                         if (val != null) {
@@ -310,9 +310,9 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                       child: DropdownButton<String?>(
                         value: _secilenProjeId,
                         isExpanded: true,
-                        dropdownColor: const Color(0xFF2D2D2D),
-                        hint: const Text('Tüm Şantiyeler', style: TextStyle(color: Colors.white70)),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        dropdownColor: ThemeColors.cardBackground(context),
+                        hint: Text('Tüm Şantiyeler', style: TextStyle(color: ThemeColors.textSecondary(context))),
+                        style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                         underline: const SizedBox(),
                         onChanged: (val) {
                           setState(() {
@@ -341,7 +341,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
               color: Colors.orange.withOpacity(0.3),
-              border: const Border(bottom: BorderSide(color: Colors.white24)),
+              border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(
               children: [
@@ -366,7 +366,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                 : ListView.separated(
                     padding: EdgeInsets.zero,
                     itemCount: liste.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.white12),
+                    separatorBuilder: (context, index) => Divider(height: 1, color: ThemeColors.border(context)),
                     itemBuilder: (context, index) {
                       final item = liste[index];
                       final tarihStr = DateFormat('dd.MM.yyyy').format(item['tarih']);
@@ -483,10 +483,10 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Kalıpçı', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text('Kalıpçı', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
                     Text(
                       '$toplamKalipci',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
@@ -497,10 +497,10 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Demirci', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text('Demirci', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
                     Text(
                       '$toplamDemirci',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
@@ -511,10 +511,10 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Diğer', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                    Text('Diğer', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
                     Text(
                       '$toplamDiger',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ),
@@ -554,7 +554,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
           children: [
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+              style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 12),
               overflow: TextOverflow.ellipsis,
             ),
             if (isSortable && isSorted)

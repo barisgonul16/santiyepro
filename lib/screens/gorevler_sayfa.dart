@@ -251,7 +251,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                     color: seciliMi
                         ? Colors.purple
                         : (bugunMu ? Colors.purple.withOpacity(0.3) : Colors.transparent),
-                    border: Border.all(color: Colors.white24, width: 1),
+                    border: Border.all(color: ThemeColors.border(context), width: 1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Stack(
@@ -377,7 +377,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
               ...seciliHatirlaticilar.map((hatirlatici) => _buildHatirlaticiKartMobile(hatirlatici)),
               const SizedBox(height: 12),
               if (seciliGorevler.isNotEmpty)
-                const Divider(color: Colors.white10),
+                Divider(color: ThemeColors.border(context)),
             ],
 
             // Sonra Uygulama Görevleri
@@ -452,7 +452,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : const Color(0xFF1a1a1a),
+        color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : ThemeColors.background(context),
         borderRadius: BorderRadius.circular(8),
         border: gorev.tamamlandi
             ? Border.all(color: Colors.green.withOpacity(0.5), width: 2)
@@ -651,7 +651,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                       color: seciliMi
                           ? Colors.purple
                           : (bugunMu ? Colors.purple.withOpacity(0.3) : Colors.transparent),
-                      border: Border.all(color: Colors.white24, width: 1),
+                      border: Border.all(color: ThemeColors.border(context), width: 1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Stack(
@@ -775,7 +775,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                     ...seciliHatirlaticilar.map((hatirlatici) => _buildHatirlaticiKart(hatirlatici)),
                     const SizedBox(height: 20),
                     if (seciliGorevler.isNotEmpty)
-                      const Divider(color: Colors.white10),
+                      Divider(color: ThemeColors.border(context)),
                   ],
 
                   // Sonra Uygulama Görevleri
@@ -852,7 +852,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : const Color(0xFF1a1a1a),
+        color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : ThemeColors.background(context),
         borderRadius: BorderRadius.circular(8),
         border: gorev.tamamlandi
             ? Border.all(color: Colors.green.withOpacity(0.5), width: 2)
@@ -941,19 +941,19 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: Text('Yeni Görev', style: TextStyle(color: Colors.white)),
+          title: Text('Yeni Görev', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: adController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Görev Adı',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.purple),
@@ -980,7 +980,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -1002,7 +1002,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -1045,19 +1045,19 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           backgroundColor: ThemeColors.cardBackground(context),
-          title: Text('Görevi Düzenle', style: TextStyle(color: Colors.white)),
+          title: Text('Görevi Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: adController,
-                  style: TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: 'Görev Adı',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white30),
+                      borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.purple),
@@ -1080,7 +1080,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                   label: Text('${secilenTarih!.day}/${secilenTarih!.month}/${secilenTarih!.year}'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -1098,7 +1098,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                   label: Text('${secilenSaat!.hour.toString().padLeft(2, '0')}:${secilenSaat!.minute.toString().padLeft(2, '0')}'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: BorderSide(color: ThemeColors.textTertiary(context)),
                     minimumSize: const Size(double.infinity, 50),
                   ),
                 ),
@@ -1140,10 +1140,10 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: Text('Görevi Sil', style: TextStyle(color: Colors.white)),
+        title: Text('Görevi Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Text(
           '"$ad" görevini silmek istediğinize emin misiniz?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: ThemeColors.textSecondary(context)),
         ),
         actions: [
           TextButton(

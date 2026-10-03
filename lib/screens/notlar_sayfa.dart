@@ -62,9 +62,9 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: ThemeColors.cardBackground(context),
-            title: const Text(
+            title: Text(
               'Yeni Not',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
             ),
             content: SizedBox(
               width: 500,
@@ -74,12 +74,12 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                   children: [
                     TextField(
                       controller: baslikController,
-                      style: TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: ThemeColors.textPrimary(context)),
+                      decoration: InputDecoration(
                         labelText: 'Başlık',
-                        labelStyle: TextStyle(color: Colors.white70),
+                        labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white30),
+                          borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Colors.orange),
@@ -90,7 +90,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                     // Formatlama araç çubuğu
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white10,
+                        color: ThemeColors.border(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -152,14 +152,14 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                       children: [
                         TextField(
                           controller: icerikController,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
                           maxLines: 8,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Not İçeriği',
                             alignLabelWithHint: true,
-                            labelStyle: TextStyle(color: Colors.white70),
+                            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                             enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white30),
+                              borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(color: Colors.orange),
@@ -244,9 +244,9 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: ThemeColors.cardBackground(context),
-            title: const Text(
+            title: Text(
               'Notu Düzenle',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
             ),
             content: SizedBox(
               width: 500,
@@ -256,12 +256,12 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                   children: [
                     TextField(
                       controller: baslikController,
-                      style: TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
+                      style: TextStyle(color: ThemeColors.textPrimary(context)),
+                      decoration: InputDecoration(
                         labelText: 'Başlık',
-                        labelStyle: TextStyle(color: Colors.white70),
+                        labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                         enabledBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white30),
+                          borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Colors.orange),
@@ -272,7 +272,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                     // Formatlama araç çubuğu
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white10,
+                        color: ThemeColors.border(context),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -333,14 +333,14 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                       children: [
                         TextField(
                           controller: icerikController,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
                           maxLines: 8,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             labelText: 'Not İçeriği',
                             alignLabelWithHint: true,
-                            labelStyle: TextStyle(color: Colors.white70),
+                            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                             enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white30),
+                              borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(color: Colors.orange),
@@ -420,13 +420,13 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text(
+        title: Text(
           'Notu Sil',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: ThemeColors.textPrimary(context)),
         ),
         content: Text(
           '"$baslik" notunu silmek istediğinize emin misiniz?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: ThemeColors.textSecondary(context)),
         ),
         actions: [
           TextButton(
@@ -514,7 +514,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                         Icon(
                           Icons.note_add,
                           size: 80,
-                          color: Colors.white24,
+                          color: ThemeColors.border(context),
                         ),
                         const SizedBox(height: 20),
                         Text(
@@ -522,9 +522,9 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                           style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 18),
                         ),
                         const SizedBox(height: 10),
-                        const Text(
+                        Text(
                           'Yeni not eklemek için yukarıdaki butona tıklayın',
-                          style: TextStyle(color: Colors.white38, fontSize: 14),
+                          style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 14),
                         ),
                       ],
                     ),
@@ -588,8 +588,8 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                   ),
                 ),
                 PopupMenuButton<String>(
-                  icon: Icon(Icons.more_vert, color: Colors.white54),
-                  color: const Color(0xFF3d3d3d),
+                  icon: Icon(Icons.more_vert, color: ThemeColors.textTertiary(context)),
+                  color: ThemeColors.cardBackground(context),
                   onSelected: (value) {
                     if (value == 'duzenle') {
                       _notDuzenleDialog(context, index, not);
@@ -598,23 +598,23 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'duzenle',
                       child: Row(
                         children: [
                           Icon(Icons.edit, color: Colors.orange, size: 20),
                           SizedBox(width: 10),
-                          Text('Düzenle', style: TextStyle(color: Colors.white)),
+                          Text('Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'sil',
                       child: Row(
                         children: [
                           Icon(Icons.delete, color: Colors.red, size: 20),
                           SizedBox(width: 10),
-                          Text('Sil', style: TextStyle(color: Colors.white)),
+                          Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
                         ],
                       ),
                     ),
@@ -634,13 +634,13 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                 overflow: TextOverflow.fade,
               ),
             ),
-            const Divider(color: Colors.white24, height: 20),
+            Divider(color: ThemeColors.border(context), height: 20),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.access_time,
                   size: 14,
-                  color: Colors.white38,
+                  color: ThemeColors.textTertiary(context),
                 ),
                 const SizedBox(width: 5),
                 Expanded(
@@ -649,7 +649,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                         ? 'Güncellendi: ${_formatTarih(not.guncellenmeTarihi!)}'
                         : 'Oluşturuldu: ${_formatTarih(not.olusturmaTarihi)}',
                     style: TextStyle(
-                      color: Colors.white38,
+                      color: ThemeColors.textTertiary(context),
                       fontSize: 11,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -705,7 +705,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                         children: [
                           Icon(
                             isChecked ? Icons.check_box : Icons.check_box_outline_blank,
-                            color: isChecked ? Colors.green : Colors.white54,
+                            color: isChecked ? Colors.green : ThemeColors.textTertiary(context),
                             size: 20,
                           ),
                           const SizedBox(width: 8),
@@ -755,16 +755,16 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: Colors.white)),
+                      IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: ThemeColors.textPrimary(context))),
                     ],
                   ),
                   Text(
                     not.guncellenmeTarihi != null
                         ? 'Güncellendi: ${_formatTarih(not.guncellenmeTarihi!)}'
                         : 'Oluşturuldu: ${_formatTarih(not.olusturmaTarihi)}',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12),
                   ),
-                  const Divider(color: Colors.white24, height: 20),
+                  Divider(color: ThemeColors.border(context), height: 20),
                   Expanded(
                     child: SingleChildScrollView(
                       child: buildInteractiveContent(),

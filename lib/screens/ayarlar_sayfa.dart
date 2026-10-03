@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/theme_colors.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../models/app_settings.dart';
@@ -196,11 +197,11 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
         content: TextField(
           controller: controller,
           style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Şehir adı girin (Örn: Bursa)',
-            hintStyle: TextStyle(color: Colors.white30),
+            hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white30),
+              borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
             ),
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: Colors.blue),

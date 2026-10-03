@@ -316,7 +316,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.blue),
-              title: const Text('Kamera', style: TextStyle(color: Colors.white)),
+              title: Text('Kamera', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
                 final XFile? photo = await picker.pickImage(source: ImageSource.camera);
@@ -327,7 +327,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.green),
-              title: const Text('Galeri', style: TextStyle(color: Colors.white)),
+              title: Text('Galeri', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
                 final List<XFile>? images = await picker.pickMultiImage();
@@ -532,16 +532,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     String? dosyaAdi = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Excel ve Fotoğraflar', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Excel ve Fotoğraflar', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: TextField(
           controller: fileNameController,
-          style: TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: ThemeColors.textPrimary(context)),
+          decoration: InputDecoration(
             labelText: 'Dosya Adı (Uzantısız)',
-            labelStyle: TextStyle(color: Colors.white70),
+            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
             enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54)),
+                borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
           ),
         ),
         actions: [
@@ -794,16 +794,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     String? dosyaAdi = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Tüm Bilgileri Aktar', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Tüm Bilgileri Aktar', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: TextField(
           controller: fileNameController,
-          style: TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: ThemeColors.textPrimary(context)),
+          decoration: InputDecoration(
             labelText: 'Dosya Adı (Uzantısız)',
-            labelStyle: TextStyle(color: Colors.white70),
+            labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
             enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54)),
+                borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
           ),
         ),
         actions: [
@@ -902,17 +902,17 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         final devamEt = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: const Color(0xFF333333),
-            title: const Row(
+            backgroundColor: ThemeColors.cardBackground(context),
+            title: Row(
               children: [
                 Icon(Icons.wifi_off, color: Colors.orange),
                 SizedBox(width: 10),
-                Text('WiFi Bağlantısı Yok', style: TextStyle(color: Colors.white)),
+                Text('WiFi Bağlantısı Yok', style: TextStyle(color: ThemeColors.textPrimary(context))),
               ],
             ),
-            content: const Text(
+            content: Text(
               'WiFi bağlantısı bulunamadı. Fotoğraf aktarımı mobil veri kullanabilir ve yüksek miktarda veri harcayabilir.\n\nDevam etmek istiyor musunuz?',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: ThemeColors.textSecondary(context)),
             ),
             actions: [
               TextButton(
@@ -1073,8 +1073,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             const SizedBox(height: 15),
             ListTile(
               leading: const Icon(Icons.table_chart, color: Colors.green),
-              title: Text('Puantaj ve Fotoğraflar (Excel)', style: TextStyle(color: Colors.white)),
-              subtitle: Text('Excel tablosu ve fotoğraf klasörü', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              title: Text('Puantaj ve Fotoğraflar (Excel)', style: TextStyle(color: ThemeColors.textPrimary(context))),
+              subtitle: Text('Excel tablosu ve fotoğraf klasörü', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 _excelVeFotograflariAktar();
@@ -1082,8 +1082,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ),
             ListTile(
               leading: const Icon(Icons.description, color: Colors.blue),
-              title: const Text('Tüm Proje Bilgileri', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Proje detayları ve tüm günlük kayıtlar', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              title: Text('Tüm Proje Bilgileri', style: TextStyle(color: ThemeColors.textPrimary(context))),
+              subtitle: Text('Proje detayları ve tüm günlük kayıtlar', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 _tumBilgileriAktar();
@@ -1091,8 +1091,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.orange),
-              title: const Text('Sadece Fotoğraflar', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('Tarihli dosya isimleriyle', style: TextStyle(color: Colors.white54, fontSize: 12)),
+              title: Text('Sadece Fotoğraflar', style: TextStyle(color: ThemeColors.textPrimary(context))),
+              subtitle: Text('Tarihli dosya isimleriyle', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 _fotograflariAktar();
@@ -1305,9 +1305,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   final onay = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      backgroundColor: const Color(0xFF333333),
-                                      title: const Text('Vinç Bilgilerini Sil', style: TextStyle(color: Colors.white)),
-                                      content: const Text('Bu gün için girilen tüm vinç bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: Colors.white70)),
+                                      backgroundColor: ThemeColors.cardBackground(context),
+                                      title: Text('Vinç Bilgilerini Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                                      content: Text('Bu gün için girilen tüm vinç bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: ThemeColors.textSecondary(context))),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(ctx, false),
@@ -1469,9 +1469,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   final onay = await showDialog<bool>(
                                     context: context,
                                     builder: (ctx) => AlertDialog(
-                                      backgroundColor: const Color(0xFF333333),
-                                      title: const Text('Yevmiye Bilgilerini Sil', style: TextStyle(color: Colors.white)),
-                                      content: const Text('Bu gün için girilen yevmiye bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: Colors.white70)),
+                                      backgroundColor: ThemeColors.cardBackground(context),
+                                      title: Text('Yevmiye Bilgilerini Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                                      content: Text('Bu gün için girilen yevmiye bilgileri silinecek. Onaylıyor musunuz?', style: TextStyle(color: ThemeColors.textSecondary(context))),
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(ctx, false),
@@ -1780,7 +1780,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             child: LinearProgressIndicator(
               value: oran,
               minHeight: 5,
-              backgroundColor: Colors.white24,
+              backgroundColor: ThemeColors.border(context),
               color: renk,
             ),
           ),
@@ -2645,13 +2645,13 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       context,
       MaterialPageRoute(
         builder: (context) => Scaffold(
-          backgroundColor: const Color(0xFF1a1a1a),
+          backgroundColor: ThemeColors.background(context),
           appBar: AppBar(
             title: const Text('Proje Galerisi'),
-            backgroundColor: const Color(0xFF0d0d0d),
+            backgroundColor: ThemeColors.headerBackground(context),
           ),
           body: tumFotograflar.isEmpty
-              ? const Center(child: Text('Henüz fotoğraf eklenmemiş', style: TextStyle(color: Colors.white54)))
+              ? Center(child: Text('Henüz fotoğraf eklenmemiş', style: TextStyle(color: ThemeColors.textTertiary(context))))
               : GridView.builder(
                   padding: const EdgeInsets.all(10),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -2705,8 +2705,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                       const SizedBox(width: 3),
                                       Text(
                                         tarihStr,
-                                        style: const TextStyle(
-                                          color: Colors.white,
+                                        style: TextStyle(
+                                          color: ThemeColors.textPrimary(context),
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -2748,12 +2748,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   Widget _buildTextField(TextEditingController controller, String hint) {
     return TextField(
       controller: controller,
-      style: TextStyle(color: Colors.white),
+      style: TextStyle(color: ThemeColors.textPrimary(context)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white30),
+        hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
         filled: true,
-        fillColor: const Color(0xFF1a1a1a),
+        fillColor: ThemeColors.background(context),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
           borderSide: BorderSide.none,
@@ -2799,7 +2799,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           children: [
             IconButton(
               onPressed: () => _ayDegistir(DateTime(yil, ay - 1, 1)),
-              icon: Icon(Icons.chevron_left, color: Colors.white),
+              icon: Icon(Icons.chevron_left, color: ThemeColors.textPrimary(context)),
             ),
             Text(
               '${aylar[ay - 1]} $yil',
@@ -2811,7 +2811,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             ),
             IconButton(
               onPressed: () => _ayDegistir(DateTime(yil, ay + 1, 1)),
-              icon: Icon(Icons.chevron_right, color: Colors.white),
+              icon: Icon(Icons.chevron_right, color: ThemeColors.textPrimary(context)),
             ),
           ],
         ),
@@ -2835,7 +2835,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     child: Text(
                       g,
                       style: TextStyle(
-                        color: Colors.white54,
+                        color: ThemeColors.textTertiary(context),
                         fontSize: Platform.isWindows ? 12 : 10,
                       ),
                     ),
@@ -2939,7 +2939,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11, fontWeight: FontWeight.bold)),
         const SizedBox(height: 5),
         _buildTextField(controller, hint),
       ],

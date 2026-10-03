@@ -49,7 +49,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
                 if (malzeme.durum.toLowerCase().contains("depo")) statusColor = Colors.blue;
 
                 return Card(
-                  color: const Color(0xFF2D2D2D),
+                  color: ThemeColors.cardBackground(context),
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ListTile(
                     leading: malzeme.fotoYolu.isNotEmpty
@@ -61,8 +61,8 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
                         : Container(
                             width: 60,
                             height: 60,
-                            color: Colors.white10,
-                            child: Icon(Icons.build, color: Colors.white54),
+                            color: ThemeColors.border(context),
+                            child: Icon(Icons.build, color: ThemeColors.textTertiary(context)),
                           ),
                     title: Text(malzeme.ad, style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                     subtitle: Column(
@@ -71,9 +71,9 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
                         const SizedBox(height: 5),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14, color: Colors.white54),
+                            Icon(Icons.location_on, size: 14, color: ThemeColors.textTertiary(context)),
                             const SizedBox(width: 4),
-                            Expanded(child: Text(malzeme.konum, style: TextStyle(color: Colors.white70))),
+                            Expanded(child: Text(malzeme.konum, style: TextStyle(color: ThemeColors.textSecondary(context)))),
                           ],
                         ),
                         const SizedBox(height: 5),
@@ -95,8 +95,8 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
                           context: context,
                           builder: (context) => AlertDialog(
                             backgroundColor: ThemeColors.cardBackground(context),
-                            title: const Text('Sil', style: TextStyle(color: Colors.white)),
-                            content: Text('${malzeme.ad} silinsin mi?', style: TextStyle(color: Colors.white70)),
+                            title: Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                            content: Text('${malzeme.ad} silinsin mi?', style: TextStyle(color: ThemeColors.textSecondary(context))),
                             actions: [
                               TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
                               ElevatedButton(
@@ -127,13 +127,13 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF2D2D2D),
+      backgroundColor: ThemeColors.cardBackground(context),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: Icon(Icons.camera_alt, color: Colors.white),
-              title: const Text('Kamera', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.camera_alt, color: ThemeColors.textPrimary(context)),
+              title: Text('Kamera', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
                 final picked = await picker.pickImage(source: ImageSource.camera);
@@ -141,8 +141,8 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.photo_library, color: Colors.white),
-              title: const Text('Galeri', style: TextStyle(color: Colors.white)),
+              leading: Icon(Icons.photo_library, color: ThemeColors.textPrimary(context)),
+              title: Text('Galeri', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
                 final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -170,8 +170,8 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF2D2D2D),
-          title: Text(malzeme == null ? "Yeni Malzeme" : "Malzeme Düzenle", style: TextStyle(color: Colors.white)),
+          backgroundColor: ThemeColors.cardBackground(context),
+          title: Text(malzeme == null ? "Yeni Malzeme" : "Malzeme Düzenle", style: TextStyle(color: ThemeColors.textPrimary(context))),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -183,21 +183,21 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> {
                   child: Container(
                     height: 120,
                     width: double.infinity,
-                    color: Colors.white10,
+                    color: ThemeColors.border(context),
                     child: photo != null
                         ? Image.file(File(photo!.path), fit: BoxFit.cover)
                         : (malzeme != null && malzeme.fotoYolu.isNotEmpty)
                             ? Image.file(File(malzeme.fotoYolu), fit: BoxFit.cover)
                             : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: [Icon(Icons.camera_alt, color: ThemeColors.textTertiary(context), size: 30), Text("Fotoğraf", style: TextStyle(color: Colors.white54))],
+                                children: [Icon(Icons.camera_alt, color: ThemeColors.textTertiary(context), size: 30), Text("Fotoğraf", style: TextStyle(color: ThemeColors.textTertiary(context)))],
                               ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                TextField(controller: nameCtrl, style: TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Malzeme Adı (Örn: Hilti)", labelStyle: TextStyle(color: Colors.white70))),
-                TextField(controller: locationCtrl, style: TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Konum (Örn: Şantiye A)", labelStyle: TextStyle(color: Colors.white70))),
-                TextField(controller: statusCtrl, style: TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Durum (Örn: Tamirde, Çalışıyor)", labelStyle: TextStyle(color: Colors.white70))),
+                TextField(controller: nameCtrl, style: TextStyle(color: ThemeColors.textPrimary(context)), decoration: InputDecoration(labelText: "Malzeme Adı (Örn: Hilti)", labelStyle: TextStyle(color: ThemeColors.textSecondary(context)))),
+                TextField(controller: locationCtrl, style: TextStyle(color: ThemeColors.textPrimary(context)), decoration: InputDecoration(labelText: "Konum (Örn: Şantiye A)", labelStyle: TextStyle(color: ThemeColors.textSecondary(context)))),
+                TextField(controller: statusCtrl, style: TextStyle(color: ThemeColors.textPrimary(context)), decoration: InputDecoration(labelText: "Durum (Örn: Tamirde, Çalışıyor)", labelStyle: TextStyle(color: ThemeColors.textSecondary(context)))),
               ],
             ),
           ),

@@ -777,7 +777,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                     min: 1.0,
                     max: 20.0,
                     activeColor: Colors.orange,
-                    inactiveColor: Colors.white10,
+                    inactiveColor: ThemeColors.border(context),
                     value: strokeWidth,
                     onChanged: (val) => setState(() => strokeWidth = val),
                   ),
@@ -808,7 +808,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
         child: Container(
           width: 30,
           height: 30,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: Colors.white24)),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle, border: Border.all(color: ThemeColors.border(context))),
         ),
       )).toList(),
       child: Container(
@@ -850,7 +850,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
           children: [
             Icon(tool['icon'] as IconData, color: ThemeColors.textPrimary(context), size: 20),
             const SizedBox(width: 10),
-            Text(tool['label'] as String, style: TextStyle(color: Colors.white)),
+            Text(tool['label'] as String, style: TextStyle(color: ThemeColors.textPrimary(context))),
           ],
         ),
       )).toList(),
@@ -860,7 +860,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
           currentToolIcon, 
           color: (currentMode == DrawingMode.freehand || currentMode == DrawingMode.line || 
                   currentMode == DrawingMode.rectangle || currentMode == DrawingMode.circle) 
-                 ? Colors.orange : Colors.white70,
+                 ? Colors.orange : ThemeColors.textSecondary(context),
           size: 26,
         ),
       ),
@@ -870,7 +870,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
   Widget _buildToolButton(IconData icon, DrawingMode mode, String tooltip) {
     bool isSelected = currentMode == mode;
     return IconButton(
-      icon: Icon(icon, color: isSelected ? Colors.orange : Colors.white70, size: 22),
+      icon: Icon(icon, color: isSelected ? Colors.orange : ThemeColors.textSecondary(context), size: 22),
       tooltip: tooltip,
       onPressed: () => setState(() => currentMode = mode),
     );

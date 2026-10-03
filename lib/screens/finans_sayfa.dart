@@ -637,7 +637,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Colors.blue),
-              title: const Text('Kamera', style: TextStyle(color: Colors.white)),
+              title: Text('Kamera', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 final XFile? image = await picker.pickImage(source: ImageSource.camera);
                 if (image != null) secilenYol = image.path;
@@ -646,7 +646,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
             ),
             ListTile(
               leading: const Icon(Icons.photo_library, color: Colors.green),
-              title: const Text('Galeri', style: TextStyle(color: Colors.white)),
+              title: Text('Galeri', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 final XFile? image = await picker.pickImage(source: ImageSource.gallery);
                 if (image != null) secilenYol = image.path;
@@ -687,10 +687,10 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
         builder: (context, setState) => AlertDialog(
           backgroundColor: const Color(0xFF2C2C2C),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Center(
+          title: Center(
             child: Text(
               "Yeni Fatura Ekle", 
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+              style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)
             )
           ),
           content: SingleChildScrollView(
@@ -708,7 +708,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                     height: 120,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3D3D3D),
+                      color: ThemeColors.cardBackground(context),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: fotoYolu != null
@@ -719,9 +719,9 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.camera_alt, color: Colors.white54, size: 40),
+                              Icon(Icons.camera_alt, color: ThemeColors.textTertiary(context), size: 40),
                               const SizedBox(height: 8),
-                              const Text("Fotoğraf Ekle", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              Text("Fotoğraf Ekle", style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
                             ],
                           ),
                   ),
@@ -730,15 +730,15 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 DropdownButtonFormField<String>(
                   dropdownColor: const Color(0xFF2C2C2C),
                   value: secilenProje,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: "Şantiye Seçin",
-                    labelStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
                   ),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   items: widget.projeler.map((p) => DropdownMenuItem(
                     value: p.ad,
-                    child: Text(p.ad, style: const TextStyle(color: Colors.white)),
+                    child: Text(p.ad, style: TextStyle(color: ThemeColors.textPrimary(context))),
                   )).toList(),
                   onChanged: (val) => setState(() => secilenProje = val),
                 ),
@@ -755,11 +755,11 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 const SizedBox(height: 10),
                 TextField(
                   controller: aciklamaController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: "Açıklama",
-                    labelStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
                     focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
@@ -769,7 +769,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text("İptal", style: TextStyle(color: Colors.white54)),
+                      child: Text("İptal", style: TextStyle(color: ThemeColors.textTertiary(context))),
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -850,16 +850,16 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Harcama", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text("Harcama", style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
                     Switch(
                       value: isReimbursement,
                       onChanged: (val) => setState(() => isReimbursement = val),
                       activeColor: Colors.grey,
-                      activeTrackColor: Colors.white24,
+                      activeTrackColor: ThemeColors.border(context),
                       inactiveThumbColor: Colors.grey,
-                      inactiveTrackColor: Colors.white24,
+                      inactiveTrackColor: ThemeColors.border(context),
                     ),
-                    const Text("Alınan Para", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text("Alınan Para", style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -874,7 +874,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                     height: 120,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF3D3D3D),
+                      color: ThemeColors.cardBackground(context),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: fotoYolu != null
@@ -885,9 +885,9 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.receipt_long, color: Colors.white54, size: 40),
+                              Icon(Icons.receipt_long, color: ThemeColors.textTertiary(context), size: 40),
                               const SizedBox(height: 8),
-                              const Text("Fiş Ekle", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              Text("Fiş Ekle", style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
                             ],
                           ),
                   ),
@@ -896,21 +896,21 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 TextField(
                   controller: tutarController,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: "Tutar (TL)",
-                    labelStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
                     focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
                 TextField(
                   controller: aciklamaController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(
                     labelText: "Açıklama",
-                    labelStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
                     focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
@@ -918,15 +918,15 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 DropdownButtonFormField<String>(
                   dropdownColor: const Color(0xFF2C2C2C),
                   value: kategori,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: "Kategori",
-                    labelStyle: TextStyle(color: Colors.white38),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: ThemeColors.border(context))),
                   ),
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   items: ["Genel", "Yemek", "Malzeme", "İşçilik", "Diğer"].map((cat) => DropdownMenuItem(
                     value: cat,
-                    child: Text(cat, style: const TextStyle(color: Colors.white)),
+                    child: Text(cat, style: TextStyle(color: ThemeColors.textPrimary(context))),
                   )).toList(),
                   onChanged: (val) {
                     if (val != null) setState(() => kategori = val);
@@ -1000,11 +1000,11 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 Navigator.pop(context);
                 widget.onHesapSifirla(true, isFatura: isFatura); 
               },
-              child: const Row(
+              child: Row(
                 children: [
-                   Icon(Icons.history, color: Colors.white),
+                   Icon(Icons.history, color: ThemeColors.textPrimary(context)),
                    SizedBox(width: 10),
-                   Expanded(child: Text("Yeni Dönem Başlat\n(Eskileri Arşivle)", style: TextStyle(color: Colors.white), textAlign: TextAlign.left)),
+                   Expanded(child: Text("Yeni Dönem Başlat\n(Eskileri Arşivle)", style: TextStyle(color: ThemeColors.textPrimary(context)), textAlign: TextAlign.left)),
                 ],
               ),
             ),
@@ -1019,11 +1019,11 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 Navigator.pop(context);
                 _showDeleteConfirmDialog(isFatura);
               },
-              child: const Row(
+              child: Row(
                 children: [
-                   Icon(Icons.delete_forever, color: Colors.white),
+                   Icon(Icons.delete_forever, color: ThemeColors.textPrimary(context)),
                    SizedBox(width: 10),
-                   Expanded(child: Text("Kalıcı Olarak Sil", style: TextStyle(color: Colors.white), textAlign: TextAlign.left)),
+                   Expanded(child: Text("Kalıcı Olarak Sil", style: TextStyle(color: ThemeColors.textPrimary(context)), textAlign: TextAlign.left)),
                 ],
               ),
             ),
@@ -1078,9 +1078,9 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text("Finans Arşivleri", style: TextStyle(color: Colors.white)),
+        title: Text("Finans Arşivleri", style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: archives.isEmpty 
-          ? const Text("Henüz arşivlenmiş veri bulunmuyor.", style: TextStyle(color: Colors.white70))
+          ? Text("Henüz arşivlenmiş veri bulunmuyor.", style: TextStyle(color: ThemeColors.textSecondary(context)))
           : SizedBox(
               width: double.maxFinite,
               child: ListView.builder(
@@ -1096,13 +1096,13 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                       archive['type'] == 'Faturalar' ? Icons.receipt_long : Icons.payments,
                       color: Colors.orange,
                     ),
-                    title: Text("${archive['type']} Arşivi", style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(dateStr, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    title: Text("${archive['type']} Arşivi", style: TextStyle(color: ThemeColors.textPrimary(context))),
+                    subtitle: Text(dateStr, style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
                     onTap: () {
                       Navigator.pop(context);
                       _viewArchiveData(archive);
                     },
-                    trailing: const Icon(Icons.chevron_right, color: Colors.white24),
+                    trailing: Icon(Icons.chevron_right, color: ThemeColors.border(context)),
                   );
                 },
               ),
@@ -1124,7 +1124,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.background(context),
-        title: Text("${archive['type']} (${(archive['date'] as DateTime).year})", style: const TextStyle(color: Colors.white)),
+        title: Text("${archive['type']} (${(archive['date'] as DateTime).year})", style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
@@ -1139,15 +1139,15 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                      final item = data[index];
                      if (isFatura) {
                        return ListTile(
-                         title: Text(item['firmaAdi'] ?? '', style: const TextStyle(color: Colors.white)),
-                         subtitle: Text(item['aciklama'] ?? '', style: const TextStyle(color: Colors.white54)),
+                         title: Text(item['firmaAdi'] ?? '', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                         subtitle: Text(item['aciklama'] ?? '', style: TextStyle(color: ThemeColors.textTertiary(context))),
                          trailing: Text("${item['toplamTutar']} TL", style: const TextStyle(color: Colors.greenAccent)),
                        );
                      } else {
                         final isInc = item['isReimbursement'] == true;
                         return ListTile(
-                         title: Text(item['aciklama'] ?? '', style: const TextStyle(color: Colors.white)),
-                         subtitle: Text(item['kategori'] ?? '', style: const TextStyle(color: Colors.white54)),
+                         title: Text(item['aciklama'] ?? '', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                         subtitle: Text(item['kategori'] ?? '', style: TextStyle(color: ThemeColors.textTertiary(context))),
                          trailing: Text(
                            "${isInc ? '+' : '-'}${item['tutar']} TL", 
                            style: TextStyle(color: isInc ? Colors.greenAccent : Colors.redAccent)

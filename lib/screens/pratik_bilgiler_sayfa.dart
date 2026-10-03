@@ -155,7 +155,7 @@ class _PratikBilgilerSayfaPageState extends State<PratikBilgilerSayfaPage> {
                         _selectedSection = null;
                       });
                     },
-                    icon: Icon(Icons.arrow_back, color: Colors.white),
+                    icon: Icon(Icons.arrow_back, color: ThemeColors.textPrimary(context)),
                   ),
                   const SizedBox(width: 10),
                   Icon(
@@ -405,9 +405,9 @@ Betonarme Hesap Kabulleri:
                                   showDialog(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      backgroundColor: const Color(0xFF2D2D2D),
-                                      title: const Text('Sil', style: TextStyle(color: Colors.white)),
-                                      content: const Text('Bu bilgiyi silmek istiyor musunuz?', style: TextStyle(color: Colors.white70)),
+                                      backgroundColor: ThemeColors.cardBackground(context),
+                                      title: Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                                      content: Text('Bu bilgiyi silmek istiyor musunuz?', style: TextStyle(color: ThemeColors.textSecondary(context))),
                                       actions: [
                                         TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
                                         ElevatedButton(
@@ -604,12 +604,12 @@ Betonarme Hesap Kabulleri:
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Demir Donatı Tahvili',
             style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white),
+                color: ThemeColors.textPrimary(context)),
           ),
           const SizedBox(height: 20),
           // Projedeki Donatı
@@ -632,17 +632,17 @@ Betonarme Hesap Kabulleri:
                         (val) => setState(() => _selectedProjectDiameter = val!),
                       ),
                       const SizedBox(height: 15),
-                      const Text('Adet', style: TextStyle(color: Colors.white70)),
+                      Text('Adet', style: TextStyle(color: ThemeColors.textSecondary(context))),
                       const SizedBox(height: 5),
                       Container(
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Colors.white10,
+                          color: ThemeColors.border(context),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: TextField(
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: ThemeColors.textPrimary(context)),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(horizontal: 10),
@@ -683,17 +683,17 @@ Betonarme Hesap Kabulleri:
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Adet', style: TextStyle(color: Colors.white70)),
+                        Text('Adet', style: TextStyle(color: ThemeColors.textSecondary(context))),
                         const SizedBox(height: 5),
                         Container(
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white10,
+                            color: ThemeColors.border(context),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: TextField(
                             keyboardType: TextInputType.number,
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: ThemeColors.textPrimary(context)),
                             decoration: const InputDecoration(
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(horizontal: 10),
@@ -735,11 +735,11 @@ Betonarme Hesap Kabulleri:
             (val) => setState(() => _targetDiameter = val!),
           ),
           const SizedBox(height: 25),
-          const Divider(color: Colors.white24),
+          Divider(color: ThemeColors.border(context)),
           const SizedBox(height: 15),
           // Sonuçlar
           _buildResultRow('As Proje Donatısı:',
-              '${totalPArea.toStringAsFixed(2)} mm²', Colors.white54),
+              '${totalPArea.toStringAsFixed(2)} mm²', ThemeColors.textTertiary(context)),
           const SizedBox(height: 10),
           _buildResultRow(
               'As Tahvil Donatısı:',
@@ -771,20 +771,20 @@ Betonarme Hesap Kabulleri:
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.white70)),
+        Text(label, style: TextStyle(color: ThemeColors.textSecondary(context))),
         const SizedBox(height: 5),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white10,
+            color: ThemeColors.border(context),
             borderRadius: BorderRadius.circular(8),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<int>(
               value: value,
               isExpanded: true,
-              dropdownColor: const Color(0xFF3d3d3d),
-              style: TextStyle(color: Colors.white),
+              dropdownColor: ThemeColors.cardBackground(context),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
               items: items.map((int val) {
                 return DropdownMenuItem<int>(
                   value: val,
@@ -831,7 +831,7 @@ Betonarme Hesap Kabulleri:
             children: classes.map((className) {
               final values = data[className]!;
               return Card(
-                color: Colors.white10,
+                color: ThemeColors.border(context),
                 margin: const EdgeInsets.only(bottom: 10),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -842,13 +842,13 @@ Betonarme Hesap Kabulleri:
                         'Beton Sınıfı: $className',
                         style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      const Divider(color: Colors.white24),
+                      Divider(color: ThemeColors.border(context)),
                       ...values.entries.map((e) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 2),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(e.key, style: TextStyle(color: Colors.white70)),
+                            Text(e.key, style: TextStyle(color: ThemeColors.textSecondary(context))),
                             Text(e.value, style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                           ],
                         ),
@@ -881,52 +881,52 @@ Betonarme Hesap Kabulleri:
               ],
               rows: [
                 DataRow(cells: [
-                  DataCell(Text('Çimento', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('330', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('380', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('420', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('480', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('520', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('Çimento', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('330', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('380', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('420', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('480', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('520', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
                 DataRow(cells: [
-                  DataCell(Text('Su', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('180', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('180', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('170', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('170', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('165', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('Su', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('180', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('180', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('170', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('170', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('165', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
                 DataRow(cells: [
-                  DataCell(Text('S/Ç Oranı', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('0.55', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('0.47', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('0.40', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('0.35', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('0.32', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('S/Ç Oranı', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('0.55', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('0.47', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('0.40', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('0.35', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('0.32', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
                 DataRow(cells: [
-                  DataCell(Text('Kum', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('750', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('700', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('650', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('600', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('550', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('Kum', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('750', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('700', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('650', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('600', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('550', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
                 DataRow(cells: [
-                  DataCell(Text('Çakıl', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('1050', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('1000', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('950', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('900', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('850', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('Çakıl', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('1050', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('1000', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('950', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('900', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('850', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
                 DataRow(cells: [
-                  DataCell(Text('Katkı (Lt)', style: TextStyle(color: Colors.white70))),
-                  DataCell(Text('1.5', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('2.5', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('3.5', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('4.5', style: TextStyle(color: Colors.white))),
-                  DataCell(Text('5.0', style: TextStyle(color: Colors.white))),
+                  DataCell(Text('Katkı (Lt)', style: TextStyle(color: ThemeColors.textSecondary(context)))),
+                  DataCell(Text('1.5', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('2.5', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('3.5', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('4.5', style: TextStyle(color: ThemeColors.textPrimary(context)))),
+                  DataCell(Text('5.0', style: TextStyle(color: ThemeColors.textPrimary(context)))),
                 ]),
               ],
             ),
@@ -949,7 +949,7 @@ Betonarme Hesap Kabulleri:
       decoration: BoxDecoration(
         color: ThemeColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white24),
+        border: Border.all(color: ThemeColors.border(context)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.3),
@@ -970,7 +970,7 @@ Betonarme Hesap Kabulleri:
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white),
+                      color: ThemeColors.textPrimary(context)),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1021,7 +1021,7 @@ Betonarme Hesap Kabulleri:
                           onRowsChanged(newRows);
                         },
                         child: Card(
-                          color: Colors.white10,
+                          color: ThemeColors.border(context),
                           margin: const EdgeInsets.only(bottom: 10),
                           child: Padding(
                             padding: const EdgeInsets.all(10),
@@ -1047,7 +1047,7 @@ Betonarme Hesap Kabulleri:
                                       Expanded(
                                         child: TextFormField(
                                            initialValue: rows[rowIndex][colIndex],
-                                           style: TextStyle(color: Colors.white),
+                                           style: TextStyle(color: ThemeColors.textPrimary(context)),
                                            decoration: const InputDecoration.collapsed(hintText: '-'),
                                            onChanged: (val) {
                                              rows[rowIndex][colIndex] = val;
@@ -1158,9 +1158,9 @@ Betonarme Hesap Kabulleri:
             },
           ),
           const SizedBox(height: 5),
-          const Text(
+          Text(
             '* Hücreleri düzenlemek için tıklayın. Sütun/Satır işlemleri için ikonları veya uzun basmayı kullanın.',
-            style: TextStyle(color: Colors.white30, fontSize: 10),
+            style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10),
           ),
         ],
       ),
@@ -1177,14 +1177,14 @@ Betonarme Hesap Kabulleri:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Sütun Ekle', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Sütun Ekle', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: TextField(
           controller: controller,
-          style: TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
+          style: TextStyle(color: ThemeColors.textPrimary(context)),
+          decoration: InputDecoration(
               labelText: 'Başlık',
-              labelStyle: TextStyle(color: Colors.white54)),
+              labelStyle: TextStyle(color: ThemeColors.textTertiary(context))),
         ),
         actions: [
           TextButton(
@@ -1215,11 +1215,11 @@ Betonarme Hesap Kabulleri:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Başlığı Düzenle', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Başlığı Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: TextField(
           controller: controller,
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: ThemeColors.textPrimary(context)),
         ),
         actions: [
           ElevatedButton(
@@ -1238,10 +1238,10 @@ Betonarme Hesap Kabulleri:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Sütunu Sil', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Sütunu Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Text("'$columnName' sütununu silmek istiyor musunuz?",
-            style: TextStyle(color: Colors.white70)),
+            style: TextStyle(color: ThemeColors.textSecondary(context))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -1263,10 +1263,10 @@ Betonarme Hesap Kabulleri:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: const Text('Satırı Sil', style: TextStyle(color: Colors.white)),
-        content: const Text("Bu satırı silmek istiyor musunuz?",
-            style: TextStyle(color: Colors.white70)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Satırı Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+        content: Text("Bu satırı silmek istiyor musunuz?",
+            style: TextStyle(color: ThemeColors.textSecondary(context))),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -1331,9 +1331,9 @@ Betonarme Hesap Kabulleri:
                     style: TextStyle(
                         color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                 subtitle: Text(item['desc']!,
-                    style: TextStyle(color: Colors.white54)),
+                    style: TextStyle(color: ThemeColors.textTertiary(context))),
                 trailing: PopupMenuButton(
-                  icon: Icon(Icons.more_vert, color: Colors.white54),
+                  icon: Icon(Icons.more_vert, color: ThemeColors.textTertiary(context)),
                   itemBuilder: (context) => [
                     const PopupMenuItem(
                       value: 'edit',
@@ -1372,31 +1372,31 @@ Betonarme Hesap Kabulleri:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF333333),
-        title: Text(isEditing ? 'Komutu Düzenle' : 'Yeni Komut', style: TextStyle(color: Colors.white)),
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text(isEditing ? 'Komutu Düzenle' : 'Yeni Komut', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: keyCtrl,
-              style: TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
+              decoration: InputDecoration(
                   labelText: 'Kısayol',
-                  labelStyle: TextStyle(color: Colors.white54)),
+                  labelStyle: TextStyle(color: ThemeColors.textTertiary(context))),
             ),
             TextField(
               controller: cmdCtrl,
-              style: TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
+              decoration: InputDecoration(
                   labelText: 'Komut Adı',
-                  labelStyle: TextStyle(color: Colors.white54)),
+                  labelStyle: TextStyle(color: ThemeColors.textTertiary(context))),
             ),
             TextField(
               controller: descCtrl,
-              style: TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
+              decoration: InputDecoration(
                   labelText: 'Açıklama',
-                  labelStyle: TextStyle(color: Colors.white54)),
+                  labelStyle: TextStyle(color: ThemeColors.textTertiary(context))),
             ),
           ],
         ),
@@ -1439,20 +1439,20 @@ Betonarme Hesap Kabulleri:
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: Text(existingInfo == null ? 'Yeni Pratik Bilgi Ekle' : 'Bilgiyi Düzenle', style: TextStyle(color: Colors.white)),
+        title: Text(existingInfo == null ? 'Yeni Pratik Bilgi Ekle' : 'Bilgiyi Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
              TextField(
                controller: titleController,
-               decoration: const InputDecoration(labelText: 'Başlık', labelStyle: TextStyle(color: Colors.white70)),
-               style: TextStyle(color: Colors.white),
+               decoration: InputDecoration(labelText: 'Başlık', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
+               style: TextStyle(color: ThemeColors.textPrimary(context)),
              ),
              const SizedBox(height: 10),
              TextField(
                controller: contentController,
-               decoration: const InputDecoration(labelText: 'İçerik', labelStyle: TextStyle(color: Colors.white70)),
-               style: TextStyle(color: Colors.white),
+               decoration: InputDecoration(labelText: 'İçerik', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
+               style: TextStyle(color: ThemeColors.textPrimary(context)),
                maxLines: 3,
              ),
           ],
@@ -1460,7 +1460,7 @@ Betonarme Hesap Kabulleri:
         actions: [
           TextButton(
              onPressed: () => Navigator.pop(context),
-             child: const Text('İptal', style: TextStyle(color: Colors.white70)),
+             child: Text('İptal', style: TextStyle(color: ThemeColors.textSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () {

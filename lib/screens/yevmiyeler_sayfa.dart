@@ -262,15 +262,15 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: ThemeColors.cardBackground(context),
-            title: const Text('Yevmiye Düzenle', style: TextStyle(color: Colors.white)),
+            title: Text('Yevmiye Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
                   value: secilenEkip,
-                  dropdownColor: const Color(0xFF2D2D2D),
-                  decoration: const InputDecoration(labelText: 'Ekip Adı', labelStyle: TextStyle(color: Colors.white70)),
-                  style: const TextStyle(color: Colors.white),
+                  dropdownColor: ThemeColors.cardBackground(context),
+                  decoration: InputDecoration(labelText: 'Ekip Adı', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   items: ekipAdlari.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                   onChanged: (val) {
                     setDialogState(() {
@@ -280,14 +280,14 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 ),
                 TextField(
                   controller: miktarController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Yevmiye Adeti', labelStyle: TextStyle(color: Colors.white70)),
+                  decoration: InputDecoration(labelText: 'Yevmiye Adeti', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
                 ),
                 TextField(
                   controller: aciklamaController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Açıklama', labelStyle: TextStyle(color: Colors.white70)),
+                  style: TextStyle(color: ThemeColors.textPrimary(context)),
+                  decoration: InputDecoration(labelText: 'Açıklama', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
                 ),
               ],
             ),
@@ -346,8 +346,8 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: ThemeColors.cardBackground(context),
-        title: const Text('Yevmiye Sil', style: TextStyle(color: Colors.white)),
-        content: const Text('Bu yevmiye kaydını silmek istediğinize emin misiniz?', style: TextStyle(color: Colors.white70)),
+        title: Text('Yevmiye Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+        content: Text('Bu yevmiye kaydını silmek istediğinize emin misiniz?', style: TextStyle(color: ThemeColors.textSecondary(context))),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
           ElevatedButton(
@@ -519,8 +519,8 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 const SizedBox(width: 10),
                 DropdownButton<int>(
                   value: _selectedMonth,
-                  dropdownColor: const Color(0xFF2D2D2D),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  dropdownColor: ThemeColors.cardBackground(context),
+                  style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                   underline: const SizedBox(),
                   onChanged: (val) {
                     if (val != null) {
@@ -540,8 +540,8 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 const SizedBox(width: 15),
                 DropdownButton<int>(
                   value: _selectedYear,
-                  dropdownColor: const Color(0xFF2D2D2D),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  dropdownColor: ThemeColors.cardBackground(context),
+                  style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
                   underline: const SizedBox(),
                   onChanged: (val) {
                     if (val != null) {
@@ -572,11 +572,11 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
             decoration: BoxDecoration(
               color: const Color(0xFF004D40).withOpacity(0.05),
-              border: const Border(bottom: BorderSide(color: Colors.white12)),
+              border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(
               children: [
-                const Icon(Icons.search, color: Colors.white54, size: 20),
+                Icon(Icons.search, color: ThemeColors.textTertiary(context), size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -586,10 +586,10 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                         _ekipFiltresi = val;
                       });
                     },
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
+                    decoration: InputDecoration(
                       hintText: 'Ekip ismine göre filtrele...',
-                      hintStyle: TextStyle(color: Colors.white38, fontSize: 13),
+                      hintStyle: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13),
                       border: InputBorder.none,
                       isDense: true,
                     ),
@@ -597,7 +597,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 ),
                 if (_ekipFiltresi.isNotEmpty)
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white54, size: 18),
+                    icon: Icon(Icons.close, color: ThemeColors.textTertiary(context), size: 18),
                     onPressed: () {
                       setState(() {
                         _ekipFiltreController.clear();
@@ -615,7 +615,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
               color: const Color(0xFF004D40).withOpacity(0.3),
-              border: const Border(bottom: BorderSide(color: Colors.white24)),
+              border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(
               children: [
@@ -623,11 +623,11 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 _buildHeaderCell('Proje Adı', 'projeAdi', flex: 3),
                 _buildHeaderCell('Ekip Adı', 'ekipAdi', flex: 3),
                 _buildHeaderCell('Adet', 'yevmiye', flex: 2),
-                const Expanded(
+                Expanded(
                   flex: 3,
                   child: Text(
                     'Yapılan İş',
-                    style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
                 const SizedBox(width: 40),
@@ -646,7 +646,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                 : ListView.separated(
                     padding: EdgeInsets.zero,
                     itemCount: liste.length,
-                    separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.white12),
+                    separatorBuilder: (context, index) => Divider(height: 1, color: ThemeColors.border(context)),
                     itemBuilder: (context, index) {
                       final item = liste[index];
                       final tarihStr = DateFormat('dd.MM.yyyy').format(item['tarih']);
@@ -695,7 +695,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
                               ),
                             ),
                             PopupMenuButton(
-                              icon: const Icon(Icons.more_vert, color: Colors.white54, size: 20),
+                              icon: Icon(Icons.more_vert, color: ThemeColors.textTertiary(context), size: 20),
                               padding: EdgeInsets.zero,
                               itemBuilder: (context) => [
                                 const PopupMenuItem(
@@ -748,7 +748,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
           children: [
             Text(
               title,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 13),
             ),
             if (isSorted)
               Icon(

@@ -354,7 +354,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 15),
-                          const Divider(color: Colors.white12, thickness: 1),
+                          Divider(color: ThemeColors.border(context), thickness: 1),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                             child: Row(
@@ -435,7 +435,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                      decoration: BoxDecoration(
                        color: hasLog ? color : null, 
                        shape: BoxShape.circle,
-                       border: hasLog ? null : Border.all(color: Colors.white30, width: 1.5), 
+                       border: hasLog ? null : Border.all(color: ThemeColors.textTertiary(context), width: 1.5), 
                      ),
                    );
                 }).toList(),
@@ -491,10 +491,10 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                 ),
                 if (isFuture)
                   Row(
-                    children: const [
-                      Text("Planlandı", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    children: [
+                      Text("Planlandı", style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
                       SizedBox(width: 6),
-                      Icon(Icons.event_outlined, color: Colors.white38, size: 18),
+                      Icon(Icons.event_outlined, color: ThemeColors.textTertiary(context), size: 18),
                     ],
                   )
                 else if (hasLog)
