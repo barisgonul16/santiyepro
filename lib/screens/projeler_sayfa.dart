@@ -180,7 +180,7 @@ class ProjelerSayfaPage extends StatelessWidget {
     // Yeşil: dün/bugün, turuncu: birkaç gündür yok, gri: uzun süredir yok.
     final sonKayitRengi = tamamlandi || !proje.kayitHatirlatma || gunFarki == null || gunFarki > 30
         ? ThemeColors.textTertiary(context)
-        : (gunFarki <= 1 ? Colors.greenAccent : Colors.amber);
+        : (gunFarki <= 1 ? ThemeColors.iyi(context) : ThemeColors.uyari(context));
     final b = proje.baslangicTarihi;
     final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13);
 

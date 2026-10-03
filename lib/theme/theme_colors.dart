@@ -55,4 +55,15 @@ class ThemeColors {
   static double shadowOpacity(BuildContext context) {
     return isDark(context) ? 0.3 : 0.1;
   }
+
+  /// "Yolunda" rengi (son kayıt güncel, bulut eşit). Açık temada koyu yeşil;
+  /// açık yeşil beyaz zeminde okunmuyor.
+  static Color iyi(BuildContext context) {
+    return isDark(context) ? Colors.greenAccent : Colors.green.shade700;
+  }
+
+  /// "Dikkat" rengi (kayıt gecikmiş, eşitleme eksik).
+  static Color uyari(BuildContext context) {
+    return isDark(context) ? Colors.amber : Colors.orange.shade900;
+  }
 }

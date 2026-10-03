@@ -17,15 +17,19 @@ class CustomBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
+    // Açık sayfa kısayollarda yoksa (currentIndex -1) hiçbiri seçili
+    // görünmemeli; BottomNavigationBar seçimsiz olamadığı için seçili renk
+    // seçilmemiş renge eşitlenir.
+    final secimVar = currentIndex >= 0 && currentIndex < items.length;
     return BottomNavigationBar(
-      currentIndex: currentIndex >= 0 && currentIndex < items.length ? currentIndex : 0,
+      currentIndex: secimVar ? currentIndex : 0,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
       backgroundColor: ThemeColors.headerBackground(context),
-      selectedItemColor: Colors.orange,
+      selectedItemColor: secimVar ? Colors.orange : ThemeColors.textSecondary(context),
       unselectedItemColor: ThemeColors.textSecondary(context),
       showUnselectedLabels: true,
-      selectedFontSize: 13,
+      selectedFontSize: secimVar ? 12.5 : 12,
       unselectedFontSize: 12,
       elevation: 10,
       items: items.map((item) => BottomNavigationBarItem(

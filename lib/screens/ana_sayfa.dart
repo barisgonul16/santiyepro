@@ -263,7 +263,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.notifications_active, color: ThemeColors.textPrimary(context), size: 30),
+                        child: Icon(Icons.notifications_active, color: Colors.white, size: 30),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
@@ -273,7 +273,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             Text(
                               'Sıradaki Hatırlatıcı',
                               style: TextStyle(
-                                color: ThemeColors.textSecondary(context),
+                                color: Colors.white70,
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -282,7 +282,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             Text(
                               sonrakiHatirlatici.baslik,
                               style: TextStyle(
-                                color: ThemeColors.textPrimary(context),
+                                color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -290,7 +290,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             const SizedBox(height: 5),
                             Text(
                               "${_formatTarih(sonrakiHatirlatici.tarih)}, ${_formatSaat(sonrakiHatirlatici.saat)}",
-                              style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14),
+                              style: TextStyle(color: Colors.white, fontSize: 14),
                             ),
                           ],
                         ),
@@ -522,15 +522,15 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
           metin = 'Bulut kapalı';
         } else if (son == null) {
           ikon = Icons.cloud_off;
-          renk = Colors.orangeAccent;
+          renk = ThemeColors.uyari(context);
           metin = 'Eşitlenmedi';
         } else if (StorageService.sonEsitlemeEksik || StorageService.degradedCollections.isNotEmpty) {
           ikon = Icons.cloud_sync;
-          renk = Colors.orangeAccent;
+          renk = ThemeColors.uyari(context);
           metin = 'Eksik ${DateFormat('HH:mm').format(son)}';
         } else {
           ikon = Icons.cloud_done;
-          renk = Colors.greenAccent;
+          renk = ThemeColors.iyi(context);
           metin = DateFormat('HH:mm').format(son);
         }
         return Tooltip(
@@ -606,7 +606,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 ListTile(
                   leading: Icon(
                     _gunFarki(_sonKayit(p)?.tarih) == 0 ? Icons.check_circle : Icons.construction,
-                    color: _gunFarki(_sonKayit(p)?.tarih) == 0 ? Colors.greenAccent : Colors.orangeAccent,
+                    color: _gunFarki(_sonKayit(p)?.tarih) == 0 ? ThemeColors.iyi(context) : ThemeColors.uyari(context),
                   ),
                   title: Text(p.ad, style: TextStyle(color: ThemeColors.textPrimary(ctx), fontWeight: FontWeight.w600)),
                   subtitle: Text(
@@ -643,13 +643,13 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.amber.withOpacity(0.12),
+          color: ThemeColors.uyari(context).withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.amber.withOpacity(0.5)),
+          border: Border.all(color: ThemeColors.uyari(context).withOpacity(0.5)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 26),
+            Icon(Icons.warning_amber_rounded, color: ThemeColors.uyari(context), size: 26),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -657,7 +657,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 children: [
                   Text(
                     '${kayitsizlar.length} şantiyede $enAz gündür kayıt girilmedi',
-                    style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(color: ThemeColors.uyari(context), fontWeight: FontWeight.bold, fontSize: 15),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -680,7 +680,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     // süredir yok ya da hiç yok.
     final renk = fark == null || fark > 30 || (!p.kayitHatirlatma && fark > 1)
         ? ThemeColors.textTertiary(context)
-        : (fark <= 1 ? Colors.greenAccent : Colors.amber);
+        : (fark <= 1 ? ThemeColors.iyi(context) : ThemeColors.uyari(context));
     final ekip = son == null
         ? ''
         : [

@@ -150,7 +150,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
-        title: Text('Slot ${slotIndex + 1} için Sayfa Seçin', style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color)),
+        title: Text('${slotIndex + 1}. kısayol için sayfa seçin', style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color)),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -295,13 +295,13 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
           _buildSectionTitle('Alt Navigasyon Kısayolları'),
           const SizedBox(height: 10),
           Text(
-            '3 kısayol seçebilirsiniz',
+            '${AppSettings.kisayolSayisi} kısayol seçebilirsiniz',
             style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 14),
           ),
           const SizedBox(height: 15),
 
-          // 3 Slot
-          ...List.generate(3, (slotIndex) {
+          // Kısayol yerleri
+          ...List.generate(AppSettings.kisayolSayisi, (slotIndex) {
             final pageIndex = _settings.bottomNavIndexes[slotIndex];
             final page = _availablePages.firstWhere((p) => p['index'] == pageIndex);
             
@@ -316,7 +316,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
                   ),
                   child: Icon(page['icon'] as IconData, color: page['color'] as Color),
                 ),
-                title: Text('Slot ${slotIndex + 1}', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
+                title: Text('${slotIndex + 1}. kısayol', style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12)),
                 subtitle: Text(page['title'] as String, style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.bold)),
                 trailing: const Icon(Icons.edit, color: Colors.blue),
                 onTap: () => _selectBottomNavPage(slotIndex),
