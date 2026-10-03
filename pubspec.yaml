@@ -95,7 +95,7 @@ msix_config:
   display_name: SantiyePro
   publisher_display_name: SantiyePro Inc
   identity_name: SantiyePro
-  msix_version: 2.4.0.0
+  msix_version: 2.4.0.1
   logo_path: assets/app_icon_padded.png
   capabilities: "internetClient,internetClientServer,privateNetworkClientServer"
 
