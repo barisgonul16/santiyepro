@@ -148,7 +148,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
 
         return RefreshIndicator(
           onRefresh: _yenile,
-          color: ThemeColors.accent(context),
+          color: Colors.orange,
           backgroundColor: ThemeColors.cardBackground(context),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -185,8 +185,8 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   icon: const Icon(Icons.add_circle_outline, size: 24),
                   label: const Text('Bugünün kaydını gir', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: ThemeColors.accent(context),
-                    foregroundColor: ThemeColors.onAccent(context),
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -241,19 +241,29 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: ThemeColors.cardBackground(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: ThemeColors.uyari(context).withOpacity(0.5)),
+                    gradient: LinearGradient(
+                      colors: [Colors.orange.shade900, Colors.orange.shade700],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: ThemeColors.uyari(context).withOpacity(0.15),
+                          color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.notifications_active, color: ThemeColors.uyari(context), size: 26),
+                        child: Icon(Icons.notifications_active, color: Colors.white, size: 30),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
@@ -263,8 +273,8 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             Text(
                               'Sıradaki Hatırlatıcı',
                               style: TextStyle(
-                                color: ThemeColors.uyari(context),
-                                fontSize: 13,
+                                color: Colors.white70,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -272,15 +282,15 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                             Text(
                               sonrakiHatirlatici.baslik,
                               style: TextStyle(
-                                color: ThemeColors.textPrimary(context),
-                                fontSize: 17,
+                                color: Colors.white,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 5),
                             Text(
                               "${_formatTarih(sonrakiHatirlatici.tarih)}, ${_formatSaat(sonrakiHatirlatici.saat)}",
-                              style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
+                              style: TextStyle(color: Colors.white, fontSize: 14),
                             ),
                           ],
                         ),
@@ -303,10 +313,14 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                       color: ThemeColors.textPrimary(context),
                     ),
                   ),
-                  OutlinedButton.icon(
+                  ElevatedButton.icon(
                     onPressed: _hatirlaticiEkleDialog,
-                    icon: const Icon(Icons.add, size: 18),
+                    icon: Icon(Icons.add, size: 18),
                     label: const Text('Ekle'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -420,7 +434,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   ),
                   leading: Icon(Icons.check_circle_outline, color: ThemeColors.textTertiary(context)),
                   collapsedIconColor: ThemeColors.textTertiary(context),
-                  iconColor: ThemeColors.accent(context),
+                  iconColor: Colors.orange,
                   initiallyExpanded: _showCompleted,
                   onExpansionChanged: (val) => setState(() => _showCompleted = val),
                   children: tamamlananHatirlaticilar.map((hatirlatici) {
@@ -865,7 +879,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                     labelText: 'Hatırlatıcı Mesajı',
                     labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: ThemeColors.accent(context))),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.orange)),
                   ),
                 ),
                 const SizedBox(height: 15),
@@ -944,7 +958,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   if (context.mounted) Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: const Text('Kaydet'),
             ),
           ],
@@ -1029,7 +1043,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
               child: const Text('Güncelle'),
             ),
           ],
