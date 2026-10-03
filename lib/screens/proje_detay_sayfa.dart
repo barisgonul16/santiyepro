@@ -2260,7 +2260,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       [Icons.hardware, '${ozet.demirci}', 'demirci (adam-gün)'],
       if (ozet.diger > 0) [Icons.groups, '${ozet.diger}', 'diğer (adam-gün)'],
       [Icons.functions, '${ozet.toplamAdamGun}', 'toplam adam-gün'],
-      [Icons.precision_manufacturing, _PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati'],
+      [Icons.precision_manufacturing, _PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati', if (ozet.vincGun > 0) '(${ozet.vincGun} gün)'],
       [Icons.payments, _PuantajOzeti.sayi(ozet.yevmiye), 'yevmiye'],
       if (fotografGoster) [Icons.photo_camera, '${ozet.fotograf}', 'fotoğraf'],
     ];
@@ -2284,13 +2284,25 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Icon(k[0] as IconData, size: 16, color: ThemeColors.textTertiary(context)),
-                        const SizedBox(width: 6),
-                        Text(k[1] as String,
-                            style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
-                      ],
+                    // Dar kutuda "235.2 (40 gün)" taşmasın diye gerekirse küçülür.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Icon(k[0] as IconData, size: 16, color: ThemeColors.textTertiary(context)),
+                          const SizedBox(width: 6),
+                          Text(k[1] as String,
+                              style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
+                          if (k.length > 3) ...[
+                            const SizedBox(width: 4),
+                            Text(k[3] as String,
+                                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
+                          ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(k[2] as String,
@@ -2501,7 +2513,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     double toplam = 0;
     final hucreler = <List<String>>[];
     final aciklamalar = <String>[];
+    final gunler = <String>{};
     for (final v in satirlar) {
+      final DateTime t = v['tarih'];
+      gunler.add('${t.year}-${t.month}-${t.day}');
       final net = double.tryParse(_hesaplaVincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0;
       toplam += net;
       final int mola = v['mola'];
@@ -2528,7 +2543,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               [...hucreler[i], if (genis) (aciklamalar[i].isEmpty ? '–' : aciklamalar[i])],
           ],
           altSatirlar: genis ? null : aciklamalar,
-          toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa', if (genis) ''],
+          toplam: ['TOPLAM', '${gunler.length} gün', '', '${_PuantajOzeti.sayi(toplam)} sa', if (genis) ''],
           bosMetin: 'Bu aralıkta vinç kaydı yok.',
         );
       },
@@ -3314,6 +3329,8 @@ class _PuantajOzeti {
   final int diger;
   final int fotograf;
   final double vincSaat;
+  /// Vinç kaydı olan farklı gün sayısı.
+  final int vincGun;
   final double yevmiye;
 
   const _PuantajOzeti({
@@ -3323,6 +3340,7 @@ class _PuantajOzeti {
     required this.diger,
     required this.fotograf,
     required this.vincSaat,
+    required this.vincGun,
     required this.yevmiye,
   });
 
@@ -3334,13 +3352,19 @@ class _PuantajOzeti {
     List<Map<String, dynamic>> Function(Iterable<GunlukKayit>) yevmiyeSatirlari,
     String Function(String, String, int) vincNetSaat,
   ) {
+    final vincler = vincSatirlari(kayitlar);
+    final vincGunleri = <String>{
+      for (final v in vincler)
+        '${(v['tarih'] as DateTime).year}-${(v['tarih'] as DateTime).month}-${(v['tarih'] as DateTime).day}',
+    };
     return _PuantajOzeti(
+      vincGun: vincGunleri.length,
       kayitGunu: kayitlar.length,
       kalipci: kayitlar.fold(0, (t, k) => t + k.kalipci),
       demirci: kayitlar.fold(0, (t, k) => t + k.demirci),
       diger: kayitlar.fold(0, (t, k) => t + k.diger),
       fotograf: kayitlar.fold(0, (t, k) => t + k.fotografYollari.length),
-      vincSaat: vincSatirlari(kayitlar).fold(
+      vincSaat: vincler.fold(
           0.0,
           (t, v) => t + (double.tryParse(vincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0.0)),
       yevmiye: yevmiyeSatirlari(kayitlar).fold(0.0, (t, y) => t + (y['miktar'] as num).toDouble()),
