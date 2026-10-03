@@ -95,7 +95,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: Colors.indigo),
+                const CircularProgressIndicator(),
                 const SizedBox(height: 15),
                 ValueListenableBuilder<String>(
                   valueListenable: ilerleme,
@@ -248,21 +248,13 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
             margin: const EdgeInsets.all(15),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF1A237E).withOpacity(0.4), const Color(0xFF0D47A1).withOpacity(0.4)]
-                    : [Colors.indigo.shade50, Colors.blue.shade50],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(
-                color: isDark ? Colors.indigo.withOpacity(0.3) : Colors.indigo.withOpacity(0.1),
-              ),
+              color: ThemeColors.cardBackground(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ThemeColors.border(context)),
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_month, color: isDark ? Colors.indigoAccent : Colors.indigo, size: 28),
+                Icon(Icons.calendar_month, color: ThemeColors.accent(context), size: 28),
                 const SizedBox(width: 15),
                 Expanded(
                   child: Column(
@@ -280,7 +272,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                       Text(
                         dateStr,
                         style: TextStyle(
-                          color: isDark ? Colors.white : Colors.indigo.shade900,
+                          color: ThemeColors.textPrimary(context),
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -293,8 +285,8 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                   icon: const Icon(Icons.edit_calendar, size: 16),
                   label: const Text('Tarih Seç'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
+                    backgroundColor: ThemeColors.accent(context),
+                    foregroundColor: ThemeColors.onAccent(context),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
@@ -343,8 +335,8 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                               icon: const Icon(Icons.picture_as_pdf, size: 16),
                               label: const Text('PDF Rapor'),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1A237E),
-                                foregroundColor: Colors.white,
+                                backgroundColor: ThemeColors.accent(context),
+                                foregroundColor: ThemeColors.onAccent(context),
                                 elevation: 3,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               ),
@@ -362,7 +354,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
-                              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                              color: ThemeColors.cardBackground(context),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -375,7 +367,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                     Text(
                                       proje.ad,
                                       style: TextStyle(
-                                        color: isDark ? Colors.indigoAccent : Colors.indigo.shade800,
+                                        color: ThemeColors.accent(context),
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -545,7 +537,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
-                                          Icon(Icons.notes, size: 14, color: isDark ? Colors.indigoAccent : Colors.indigo),
+                                          Icon(Icons.notes, size: 14, color: ThemeColors.accent(context)),
                                           const SizedBox(width: 4),
                                           Text(
                                             'Notlar',

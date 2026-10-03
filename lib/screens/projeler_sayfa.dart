@@ -64,8 +64,8 @@ class ProjelerSayfaPage extends StatelessWidget {
                   icon: const Icon(Icons.add),
                   label: const Text('Yeni Proje'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: ThemeColors.accent(context),
+                    foregroundColor: ThemeColors.onAccent(context),
                   ),
                 ),
               ],
@@ -150,7 +150,7 @@ class ProjelerSayfaPage extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
-                  border: adaylar.isNotEmpty ? Border.all(color: Colors.blue, width: 2) : null,
+                  border: adaylar.isNotEmpty ? Border.all(color: ThemeColors.accent(context), width: 2) : null,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: kart,
@@ -303,7 +303,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                           value: oran,
                           minHeight: 6,
                           backgroundColor: ThemeColors.border(context),
-                          color: proje.sureAsildi ? Colors.redAccent : Colors.blue,
+                          color: proje.sureAsildi ? Colors.redAccent : ThemeColors.accent(context),
                         ),
                       ),
                     ),
@@ -362,7 +362,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -378,7 +378,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -394,7 +394,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -410,7 +410,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                   items: const [
@@ -478,7 +478,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              style: ElevatedButton.styleFrom(backgroundColor: ThemeColors.accent(context)),
               child: const Text('Kaydet'),
             ),
           ],
@@ -520,7 +520,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -536,7 +536,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -552,7 +552,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                 ),
@@ -568,7 +568,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                       borderSide: BorderSide(color: ThemeColors.textTertiary(context)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue),
+                      borderSide: BorderSide(color: ThemeColors.accent(context)),
                     ),
                   ),
                   items: const [
@@ -647,7 +647,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              style: ElevatedButton.styleFrom(backgroundColor: ThemeColors.accent(context)),
               child: const Text('Güncelle'),
             ),
           ],

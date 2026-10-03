@@ -273,7 +273,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, 'kaydet'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: ThemeColors.accent(context), foregroundColor: ThemeColors.onAccent(context)),
             child: const Text('Kaydet'),
           ),
         ],
@@ -320,7 +320,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: Colors.blue),
+              leading: Icon(Icons.camera_alt, color: ThemeColors.accent(context)),
               title: Text('Kamera', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
@@ -1089,7 +1089,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               },
             ),
             ListTile(
-              leading: const Icon(Icons.description, color: Colors.blue),
+              leading: Icon(Icons.description, color: ThemeColors.accent(context)),
               title: Text('Tüm Proje Bilgileri', style: TextStyle(color: ThemeColors.textPrimary(context))),
               subtitle: Text('Proje detayları ve tüm günlük kayıtlar', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
               onTap: () {
@@ -1141,15 +1141,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         iconTheme: IconThemeData(color: ThemeColors.icon(context)),
         actions: [
           IconButton(
-            icon: Icon(Icons.photo_library, color: Colors.blueAccent),
+            icon: Icon(Icons.photo_library, color: ThemeColors.accent(context)),
             tooltip: 'Galeri',
             onPressed: _galeriGoster,
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.blue,
-          labelColor: Colors.blue,
+          indicatorColor: ThemeColors.accent(context),
+          labelColor: ThemeColors.accent(context),
           unselectedLabelColor: ThemeColors.textSecondary(context),
           labelPadding: const EdgeInsets.symmetric(horizontal: 8),
           tabs: const [
@@ -1195,15 +1195,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.blue.withOpacity(0.5)),
+              color: ThemeColors.cardBackground(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: ThemeColors.border(context)),
             ),
             child: Row(
               children: [
                 IconButton(
                   tooltip: 'Önceki gün',
-                  icon: const Icon(Icons.chevron_left, color: Colors.blue, size: 30),
+                  icon: Icon(Icons.chevron_left, color: ThemeColors.accent(context), size: 30),
                   onPressed: () => _tarihDegistir(DateTime(
                       secilenTarih.year, secilenTarih.month, secilenTarih.day - 1)),
                 ),
@@ -1239,7 +1239,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 ),
                 IconButton(
                   tooltip: 'Sonraki gün',
-                  icon: const Icon(Icons.chevron_right, color: Colors.blue, size: 30),
+                  icon: Icon(Icons.chevron_right, color: ThemeColors.accent(context), size: 30),
                   onPressed: () => _tarihDegistir(DateTime(
                       secilenTarih.year, secilenTarih.month, secilenTarih.day + 1)),
                 ),
@@ -1275,9 +1275,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      color: ThemeColors.background(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: ThemeColors.border(context)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1442,25 +1442,25 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                      color: ThemeColors.background(context),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: ThemeColors.border(context)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.payments, color: Colors.purple, size: 18),
+                            Icon(Icons.payments, color: Colors.purpleAccent, size: 18),
                             const SizedBox(width: 6),
                             Text('Yevmiye Bilgileri', style: TextStyle(
-                              color: Colors.purple,
+                              color: Colors.purpleAccent,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             )),
                             const Spacer(),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline, color: Colors.purple, size: 20),
+                              icon: const Icon(Icons.add_circle_outline, color: Colors.purpleAccent, size: 20),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                               onPressed: () {
@@ -1523,7 +1523,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('${idx + 1}. Yevmiye', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 12)),
+                                    Text('${idx + 1}. Yevmiye', style: const TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                                     IconButton(
                                       icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
                                       padding: EdgeInsets.zero,
@@ -1604,8 +1604,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           icon: const Icon(Icons.add_a_photo),
                           label: const Text('Fotoğraf Ekle'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.lightBlueAccent,
-                            side: const BorderSide(color: Colors.lightBlueAccent),
+                            foregroundColor: ThemeColors.accent(context),
+                            side: BorderSide(color: ThemeColors.accent(context)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -1617,8 +1617,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           icon: Icon(Icons.save),
                           label: const Text('Kaydet'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green, 
-                            foregroundColor: Colors.white,
+                            backgroundColor: ThemeColors.accent(context),
+                            foregroundColor: ThemeColors.onAccent(context),
                             padding: const EdgeInsets.symmetric(vertical: 12)
                           ),
                         ),
@@ -1773,7 +1773,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     final oran = proje.toplamGun > 0
         ? (proje.gecenGun / proje.toplamGun).clamp(0.0, 1.0)
         : 0.0;
-    final renk = proje.sureAsildi ? Colors.redAccent : Colors.blue;
+    final renk = proje.sureAsildi ? Colors.redAccent : ThemeColors.accent(context);
     return Tooltip(
       message: 'Başlangıçtan bu yana geçen gün / planlanan toplam gün',
       child: Column(
@@ -1896,7 +1896,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             SizedBox(
               width: 50,
               child: Text(DateFormat('dd.MM').format(k.tarih),
-                  style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold)),
+                  style: TextStyle(color: ThemeColors.accent(context), fontWeight: FontWeight.bold)),
             ),
             Expanded(
               child: Column(
@@ -2003,7 +2003,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             filled: true,
-            fillColor: Colors.black12,
+            fillColor: ThemeColors.field(context),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
           ),
         ),
@@ -2028,7 +2028,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         const SizedBox(height: 5),
         Container(
           decoration: BoxDecoration(
-            color: Colors.black12,
+            color: ThemeColors.field(context),
             borderRadius: BorderRadius.circular(8),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -2124,7 +2124,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 icon: Icon(Icons.photo_library, size: 18),
                 label: const Text('Galeri'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: ThemeColors.accent(context),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 ),
               ),
@@ -2216,7 +2216,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       secenekler.add(ay);
     }
     final secili = tarihFiltreSecenegi == 'ay' && _puantajAyi != null;
-    final yaziRengi = secili ? Colors.black87 : ThemeColors.textPrimary(context);
+    final yaziRengi = secili ? ThemeColors.onAccent(context) : ThemeColors.textPrimary(context);
     return PopupMenuButton<DateTime>(
       tooltip: 'Ay seç',
       color: ThemeColors.cardBackground(context),
@@ -2232,9 +2232,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: secili ? Colors.cyan : Colors.transparent,
+          color: secili ? ThemeColors.accent(context) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: secili ? Colors.cyan : ThemeColors.textTertiary(context)),
+          border: Border.all(color: secili ? ThemeColors.accent(context) : ThemeColors.textTertiary(context)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2395,8 +2395,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       icon: const Icon(Icons.download, size: 18),
                       label: const Text('Aktar'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
+                        backgroundColor: ThemeColors.accent(context),
+                        foregroundColor: ThemeColors.onAccent(context),
                       ),
                     ),
                   ],
@@ -2430,7 +2430,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: _ozelAraligiGoster,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                        style: ElevatedButton.styleFrom(backgroundColor: ThemeColors.accent(context), foregroundColor: ThemeColors.onAccent(context)),
                         child: const Text('Göster'),
                       ),
                     ],
@@ -2605,7 +2605,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 parcalar.first,
                 textAlign: sayisal[i] ? TextAlign.right : TextAlign.left,
                 style: TextStyle(
-                  color: baslik ? ikincil : (toplamSatiri ? Colors.lightBlueAccent : birincil),
+                  color: baslik ? ikincil : (toplamSatiri ? ThemeColors.accent(context) : birincil),
                   fontSize: baslik ? 12 : 14,
                   fontWeight: baslik || vurgu ? FontWeight.bold : FontWeight.normal,
                 ),
@@ -2648,7 +2648,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               child: Text(bosMetin, style: TextStyle(color: ikincil)),
             )
           else ...[
-            satir(toplam, toplamSatiri: true, renk: Colors.blue.withOpacity(0.10)),
+            satir(toplam, toplamSatiri: true, renk: ThemeColors.accent(context).withOpacity(0.10)),
             for (int i = 0; i < satirlar.length; i++) ...[
               satir(satirlar[i], renk: i.isOdd ? Colors.white.withOpacity(0.03) : null),
               // Satıra ait tam genişlikte not (ör. vinç açıklaması)
@@ -2876,8 +2876,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         ElevatedButton(
           onPressed: () => _tarihDegistir(DateTime.now()),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green.shade800,
-            foregroundColor: Colors.white,
             minimumSize: const Size(double.infinity, 40),
           ),
           child: const Text('Bugün'),
@@ -2933,19 +2931,19 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     height: Platform.isWindows ? 40 : 35,
                     decoration: BoxDecoration(
                       color: secili
-                          ? Colors.blue
-                          : (kayitVar ? Colors.green.shade800 : Colors.transparent),
-                      borderRadius: BorderRadius.circular(4),
+                          ? ThemeColors.accent(context)
+                          : (kayitVar ? ThemeColors.accent(context).withOpacity(0.28) : Colors.transparent),
+                      borderRadius: BorderRadius.circular(6),
                       border: bugun
-                          ? Border.all(color: Colors.lightGreenAccent, width: 2)
+                          ? Border.all(color: ThemeColors.textPrimary(context), width: 1.5)
                           : null,
                     ),
                     child: Center(
                       child: Text(
                         '$gunNo',
                         style: TextStyle(
-                          color: (secili || kayitVar)
-                              ? Colors.white
+                          color: secili
+                              ? ThemeColors.onAccent(context)
                               : ThemeColors.textPrimary(context),
                           fontSize: Platform.isWindows ? 14 : 12,
                           fontWeight: secili || bugun ? FontWeight.bold : FontWeight.normal,
@@ -2962,11 +2960,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _takvimAciklama(Colors.green.shade800, null, 'Kayıt var'),
+            _takvimAciklama(ThemeColors.accent(context).withOpacity(0.28), null, 'Kayıt var'),
             const SizedBox(width: 14),
-            _takvimAciklama(Colors.transparent, Colors.lightGreenAccent, 'Bugün'),
+            _takvimAciklama(Colors.transparent, ThemeColors.textPrimary(context), 'Bugün'),
             const SizedBox(width: 14),
-            _takvimAciklama(Colors.blue, null, 'Seçili gün'),
+            _takvimAciklama(ThemeColors.accent(context), null, 'Seçili gün'),
           ],
         ),
       ],

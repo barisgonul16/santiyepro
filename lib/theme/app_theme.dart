@@ -1,69 +1,119 @@
 import 'package:flutter/material.dart';
+import 'theme_colors.dart';
 
+/// Material bileşenlerinin (düğme, sekme, seçim düğmesi, kart...) varsayılan
+/// görünümü. Renkler ThemeColors paletinden gelir.
 class AppTheme {
-  // Koyu Tema
-  static ThemeData darkTheme = ThemeData(
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: const Color(0xFF101010),
-    primaryColor: Colors.blue,
-    colorScheme: const ColorScheme.dark(
-      primary: Colors.blue,
-      secondary: Colors.cyan,
-      surface: Color(0xFF1a1a1a),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF0d0d0d),
-      elevation: 0,
-      iconTheme: IconThemeData(color: Colors.white),
-      titleTextStyle: TextStyle(
-        color: Colors.white,
-        fontSize: 20,
-        fontWeight: FontWeight.w500,
+  static ThemeData _olustur({
+    required Brightness parlaklik,
+    required Color zemin,
+    required Color kart,
+    required Color yazi,
+    required Color yazi2,
+    required Color ana,
+    required Color anaUstu,
+    required Color cizgi,
+  }) {
+    final sema = ColorScheme(
+      brightness: parlaklik,
+      primary: ana,
+      onPrimary: anaUstu,
+      secondary: ana,
+      onSecondary: anaUstu,
+      secondaryContainer: ana,
+      onSecondaryContainer: anaUstu,
+      error: Colors.redAccent,
+      onError: Colors.white,
+      surface: kart,
+      onSurface: yazi,
+      onSurfaceVariant: yazi2,
+      outline: yazi2,
+      outlineVariant: cizgi,
+      surfaceTint: Colors.transparent,
+    );
+    return ThemeData(
+      brightness: parlaklik,
+      colorScheme: sema,
+      scaffoldBackgroundColor: zemin,
+      primaryColor: ana,
+      dividerColor: cizgi,
+      appBarTheme: AppBarTheme(
+        backgroundColor: parlaklik == Brightness.dark ? zemin : kart,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        iconTheme: IconThemeData(color: yazi),
+        titleTextStyle: TextStyle(color: yazi, fontSize: 19, fontWeight: FontWeight.w600),
       ),
-    ),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF2d2d2d),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Colors.white),
-      bodyMedium: TextStyle(color: Colors.white70),
-      titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-    ),
+      cardTheme: CardThemeData(
+        color: kart,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: cizgi),
+        ),
+      ),
+      dialogTheme: DialogThemeData(backgroundColor: kart, surfaceTintColor: Colors.transparent),
+      bottomSheetTheme: BottomSheetThemeData(backgroundColor: kart, surfaceTintColor: Colors.transparent),
+      popupMenuTheme: PopupMenuThemeData(color: kart, surfaceTintColor: Colors.transparent),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ana,
+          foregroundColor: anaUstu,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: ana,
+          side: BorderSide(color: ana),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: ana)),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(backgroundColor: ana, foregroundColor: anaUstu),
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: ana),
+      chipTheme: ChipThemeData(
+        backgroundColor: Colors.transparent,
+        selectedColor: ana,
+        checkmarkColor: anaUstu,
+        side: BorderSide(color: yazi2),
+        labelStyle: TextStyle(color: yazi),
+        secondaryLabelStyle: TextStyle(color: anaUstu),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((d) => d.contains(WidgetState.selected) ? anaUstu : yazi2),
+        trackColor: WidgetStateProperty.resolveWith((d) => d.contains(WidgetState.selected) ? ana : cizgi),
+      ),
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(color: yazi),
+        bodyMedium: TextStyle(color: yazi2),
+        titleLarge: TextStyle(color: yazi, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  static ThemeData darkTheme = _olustur(
+    parlaklik: Brightness.dark,
+    zemin: ThemeColors.zeminKoyu,
+    kart: ThemeColors.kartKoyu,
+    yazi: ThemeColors.yaziKoyu,
+    yazi2: ThemeColors.yazi2Koyu,
+    ana: ThemeColors.anaKoyu,
+    anaUstu: ThemeColors.anaUstuKoyu,
+    cizgi: const Color(0x14FFFFFF),
   );
 
-  // Açık Tema - Daha Okunabilir
-  static ThemeData lightTheme = ThemeData(
-    brightness: Brightness.light,
-    scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-    primaryColor: Colors.blue,
-    colorScheme: const ColorScheme.light(
-      primary: Colors.blue,
-      secondary: Colors.cyan,
-      surface: Colors.white,
-      onSurface: Color(0xFF1A1A1A),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.white,
-      elevation: 2,
-      iconTheme: IconThemeData(color: Color(0xFF1A1A1A)),
-      titleTextStyle: TextStyle(
-        color: Color(0xFF1A1A1A),
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-    cardTheme: CardThemeData(
-      color: Colors.white,
-      elevation: 3,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Color(0xFF1A1A1A)),
-      bodyMedium: TextStyle(color: Color(0xFF4A4A4A)),
-      titleLarge: TextStyle(color: Color(0xFF1A1A1A), fontWeight: FontWeight.bold),
-    ),
+  static ThemeData lightTheme = _olustur(
+    parlaklik: Brightness.light,
+    zemin: ThemeColors.zeminAcik,
+    kart: ThemeColors.kartAcik,
+    yazi: ThemeColors.yaziAcik,
+    yazi2: ThemeColors.yazi2Acik,
+    ana: ThemeColors.anaAcik,
+    anaUstu: ThemeColors.anaUstuAcik,
+    cizgi: const Color(0x1F000000),
   );
 }

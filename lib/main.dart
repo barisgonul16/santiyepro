@@ -1346,12 +1346,12 @@ class _MainScreenState extends State<MainScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isDrawer) // App bar handles title on mobile
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(20, 16, 20, 10),
               child: Text(
                 'ŞantiyePro',
                 style: TextStyle(
-                  color: Colors.cyan,
+                  color: ThemeColors.accent(context),
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1446,29 +1446,18 @@ class _MainScreenState extends State<MainScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? item['color'].withOpacity(0.2)
+                              ? ThemeColors.accent(context).withOpacity(0.16)
                               : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border(
-                            left: BorderSide(
-                              color: isSelected ? item['color'] : Colors.transparent,
-                              width: 4,
-                            ),
-                          ),
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              padding: EdgeInsets.all(isDrawer ? 6 : 5),
-                              decoration: BoxDecoration(
-                                color: item['color'],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                item['icon'],
-                                color: Colors.white,
-                                size: 18,
-                              ),
+                            Icon(
+                              item['icon'],
+                              color: isSelected
+                                  ? ThemeColors.accent(context)
+                                  : ThemeColors.textSecondary(context),
+                              size: isDrawer ? 22 : 20,
                             ),
                             const SizedBox(width: 15),
                             Expanded(
@@ -1510,8 +1499,8 @@ class _MainScreenState extends State<MainScreen> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                        child: const Icon(Icons.person, color: Colors.blueAccent, size: 20),
+                        backgroundColor: ThemeColors.accent(context).withOpacity(0.18),
+                        child: Icon(Icons.person, color: ThemeColors.accent(context), size: 20),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -1572,7 +1561,7 @@ class _MainScreenState extends State<MainScreen> {
           final isDark = Theme.of(context).brightness == Brightness.dark;
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: isDark ? const Color(0xFF0d0d0d) : Colors.white,
+              backgroundColor: ThemeColors.headerBackground(context),
               title: Text(
                 _menuItems[_selectedIndex]['title'],
                 style: TextStyle(color: isDark ? Colors.white : Colors.black87),
@@ -1581,7 +1570,7 @@ class _MainScreenState extends State<MainScreen> {
               centerTitle: true,
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.account_circle, color: Colors.blueAccent),
+                  icon: Icon(Icons.account_circle, color: ThemeColors.textSecondary(context)),
                   onPressed: () {
                     Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfilSayfa()));
                   },
