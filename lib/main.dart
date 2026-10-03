@@ -429,6 +429,7 @@ class _MainScreenState extends State<MainScreen> {
     // Windows'ta çökme riskini azaltmak için burada tekrar çağırmıyoruz.
     await _loadSettings();
     await _loadAllData();
+    _eksikEsitlemeyiTamamla();
 
     // Derleme secrets.json olmadan yapıldıysa fotoğraf yükleme ve masaüstü
     // Google girişi sessizce çalışmaz. Bunun fark edilmemesi mümkün olmasın.
@@ -551,6 +552,26 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
     );
+  }
+
+  /// Açılıştaki eşitleme eksik kaldıysa arka planda yeniden dener.
+  ///
+  /// Windows'ta buluta ilk bağlantı sorgu zaman aşımından (6 sn) uzun
+  /// sürebiliyor; o açılışta buluttaki son değişiklikler alınmamış oluyor.
+  /// Bağlantı ısındıktan sonra yeniden denemek genellikle yeterli.
+  /// Kullanıcı başka bir sayfadayken (ör. proje formu) veri listeleri
+  /// değişmesin diye yalnızca ana ekran öndeyken çalışır.
+  Future<void> _eksikEsitlemeyiTamamla() async {
+    for (int deneme = 0; deneme < 3; deneme++) {
+      await Future.delayed(const Duration(seconds: 8));
+      if (!mounted) return;
+      if (StorageService.bulutKapali) return;
+      final tamam = StorageService.sonEsitleme.value != null && !StorageService.sonEsitlemeEksik;
+      if (tamam) return;
+      if (ModalRoute.of(context)?.isCurrent != true) continue;
+      appLog('Eksik eşitleme yeniden deneniyor (${deneme + 1})');
+      await _buluttanYenile();
+    }
   }
 
   /// Buluttan eşitler, sonra ekrandaki verileri yeniden yükler. Eşitleme

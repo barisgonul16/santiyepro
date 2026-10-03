@@ -27,8 +27,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  // Ş = "Ş"; kaynak dosyanın kodlamasından bağımsız olsun diye kaçışlı.
-  if (!window.Create(L"ŞantiyePro", origin, size)) {
+  // \u015E = S-cedilla; kaynak dosya ANSI okundugu icin harf kacisli yazilir.
+  if (!window.Create(L"\u015EantiyePro", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);
