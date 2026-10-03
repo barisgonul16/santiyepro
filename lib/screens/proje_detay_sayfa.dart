@@ -183,16 +183,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       orElse: () => GunlukKayit(tarih: secilenTarih),
     );
 
-    kalipciController.text = kayit.kalipci.toString();
-    demirciController.text = kayit.demirci.toString();
-    digerController.text = kayit.diger.toString();
+    kalipciController.text = _sifirBos(kayit.kalipci);
+    demirciController.text = _sifirBos(kayit.demirci);
+    digerController.text = _sifirBos(kayit.diger);
     
     isYemekKalipciManuel = false;
     isYemekDemirciManuel = false;
     isYemekDigerManuel = false;
-    yemekKalipciController.text = kayit.yemekKalipci.toString();
-    yemekDemirciController.text = kayit.yemekDemirci.toString();
-    yemekDigerController.text = kayit.yemekDiger.toString();
+    yemekKalipciController.text = _sifirBos(kayit.yemekKalipci);
+    yemekDemirciController.text = _sifirBos(kayit.yemekDemirci);
+    yemekDigerController.text = _sifirBos(kayit.yemekDiger);
     kalipciIsController.text = kayit.kalipciYapilanIs;
     demirciIsController.text = kayit.demirciYapilanIs;
     notlarController.text = kayit.notlar;
@@ -240,6 +240,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     _kayitliImza = _formImzasi();
     if (mounted) setState(() {});
   }
+
+  /// Sayı kutularında 0 boş gösterilir: kutuda "0" dururken yazılan rakam
+  /// "03" ya da "30" olabiliyordu.
+  String _sifirBos(int n) => n == 0 ? '' : n.toString();
 
   /// Formun o anki içeriğinin karşılaştırılabilir metin hali.
   String _formImzasi() => jsonEncode([
@@ -2070,6 +2074,11 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         TextField(
           controller: controller,
           onChanged: onChanged,
+          // Sayı kutusuna dokununca içindeki sayı seçilir; yazılan rakam
+          // eskisinin yanına eklenmez, yerine geçer.
+          onTap: isNumeric
+              ? () => controller.selection = TextSelection(baseOffset: 0, extentOffset: controller.text.length)
+              : null,
           style: TextStyle(color: ThemeColors.textPrimary(context)),
           minLines: sesli ? maxLines : null,
           maxLines: sesli ? 5 : maxLines,
@@ -2080,7 +2089,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             filled: true,
             fillColor: dinliyor ? Colors.red.withOpacity(0.12) : Colors.black12,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-            hintText: dinliyor ? 'Dinliyorum, konuşun...' : null,
+            hintText: dinliyor ? 'Dinliyorum, konuşun...' : (isNumeric ? '0' : null),
             hintStyle: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13),
             suffixIcon: sesli
                 ? IconButton(
