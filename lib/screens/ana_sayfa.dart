@@ -135,11 +135,11 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     }
 
     final aktifProjeler = widget.projeler.where((p) => p.durum != 'Tamamlandı').toList();
-    // 2-30 gündür kaydı olmayan devam eden şantiyeler. Daha uzun süredir
+    // 3-30 gündür kaydı olmayan devam eden şantiyeler. Daha uzun süredir
     // kayıt girilmeyen (fiilen durmuş) şantiyeler uyarıyı kalabalıklaştırmasın.
     final kayitsizlar = aktifProjeler.where((p) {
       final fark = _gunFarki(_sonKayit(p)?.tarih);
-      return p.kayitHatirlatma && fark != null && fark >= 2 && fark <= 30;
+      return p.kayitHatirlatma && fark != null && fark >= _uyariGunSiniri && fark <= 30;
     }).toList();
 
     return LayoutBuilder(
@@ -477,6 +477,9 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     'Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz',
     'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara',
   ];
+
+  /// Bu kadar gün kayıt girilmeyen şantiye için ana sayfada uyarı çıkar.
+  static const int _uyariGunSiniri = 3;
 
   bool _yenileniyor = false;
 
