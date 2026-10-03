@@ -15,6 +15,7 @@ import '../theme/theme_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/app_log.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 class VincFormControllers {
   final firmaAdiController = TextEditingController();
@@ -95,6 +96,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   // Son yüklenen/kaydedilen form içeriği; kaydedilmemiş değişikliği
   // anlamak için şimdiki içerikle karşılaştırılır.
   String _kayitliImza = '';
+
+  // --- Sesle yazma ---
+  final SpeechToText _ses = SpeechToText();
+  bool _sesHazir = false;
+  TextEditingController? _dinlenen; // şu an sesle doldurulan kutu
+  String _dinlemeOncesi = ''; // dinleme başlamadan önce kutudaki metin
   final kalipciController = TextEditingController();
   final demirciController = TextEditingController();
   final digerController = TextEditingController();
@@ -146,6 +153,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
   @override
   void dispose() {
+    if (_sesHazir) _ses.cancel(); // hiç kullanılmadıysa eklentiye dokunma
     _tabController.dispose();
     kalipciController.dispose();
     demirciController.dispose();
@@ -347,6 +355,69 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         ),
       ),
     );
+  }
+
+  /// Mikrofon düğmesi: kutuya sesle yazar. Kutuda metin varsa sonuna ekler.
+  /// Aynı düğmeye tekrar basmak ya da birkaç saniye susmak dinlemeyi bitirir.
+  Future<void> _sesleYaz(TextEditingController controller) async {
+    if (_dinlenen != null) {
+      final ayniKutu = identical(_dinlenen, controller);
+      await _ses.stop();
+      if (mounted) setState(() => _dinlenen = null);
+      if (ayniKutu) return;
+    }
+    if (!_sesHazir) {
+      try {
+        _sesHazir = await _ses.initialize(
+          onStatus: (durum) {
+            if ((durum == 'done' || durum == 'notListening') && mounted && _dinlenen != null) {
+              setState(() => _dinlenen = null);
+            }
+          },
+          onError: (hata) {
+            appLog('Sesle yazma hatası: ${hata.errorMsg}');
+            if (mounted && _dinlenen != null) setState(() => _dinlenen = null);
+          },
+        );
+      } catch (e) {
+        appLog('Sesle yazma başlatılamadı: $e');
+        _sesHazir = false;
+      }
+    }
+    if (!mounted) return;
+    if (!_sesHazir) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sesle yazma kullanılamıyor. Mikrofon iznini ve cihazın ses tanıma ayarını kontrol edin.')),
+      );
+      return;
+    }
+    _dinlemeOncesi = controller.text.trimRight();
+    setState(() => _dinlenen = controller);
+    try {
+      // Türkçe varsa Türkçe, yoksa cihazın varsayılan dili.
+      final diller = await _ses.locales();
+      final turkce = diller.where((d) => d.localeId.toLowerCase().startsWith('tr')).toList();
+      await _ses.listen(
+        // ignore: deprecated_member_use
+        localeId: turkce.isNotEmpty ? turkce.first.localeId : null,
+        // ignore: deprecated_member_use
+        listenFor: const Duration(seconds: 60),
+        // ignore: deprecated_member_use
+        pauseFor: const Duration(seconds: 4),
+        onResult: (sonuc) {
+          if (!identical(_dinlenen, controller)) return;
+          final soylenen = sonuc.recognizedWords.trim();
+          final metin = [_dinlemeOncesi, soylenen].where((x) => x.isNotEmpty).join(' ');
+          controller.value = TextEditingValue(
+            text: metin,
+            selection: TextSelection.collapsed(offset: metin.length),
+          );
+        },
+      );
+    } catch (e) {
+      appLog('Dinleme başlatılamadı: $e');
+      if (mounted) setState(() => _dinlenen = null);
+    }
   }
 
   Future<void> _fotografKaldir(int index) async {
@@ -1263,13 +1334,13 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                     Expanded(child: _buildMobileInputItem("Diğer", digerController, isNumeric: true)),
                   ]),
                   const SizedBox(height: 8),
-                  _buildMobileInputItem("Kalıpçı Yapılan İş", kalipciIsController),
+                  _buildMobileInputItem("Kalıpçı Yapılan İş", kalipciIsController, sesli: true),
                   const SizedBox(height: 8),
-                  _buildMobileInputItem("Demirci Yapılan İş", demirciIsController),
+                  _buildMobileInputItem("Demirci Yapılan İş", demirciIsController, sesli: true),
                   const SizedBox(height: 8),
-                  _buildMobileInputItem("Notlar", notlarController, maxLines: 2),
+                  _buildMobileInputItem("Notlar", notlarController, maxLines: 2, sesli: true),
                   const SizedBox(height: 8),
-                  _buildMobileInputItem("Beton", betonController),
+                  _buildMobileInputItem("Beton", betonController, sesli: true),
                   const SizedBox(height: 15),
                   // Vinç Bilgileri
                   Container(
@@ -1430,7 +1501,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                 ),
                               ]),
                               const SizedBox(height: 8),
-                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController),
+                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController, sesli: true),
                             ],
                           );
                         }).toList(),
@@ -1544,7 +1615,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                 Expanded(child: _buildMobileInputItem("Yevmiye", ctrl.miktarController, isNumeric: true)),
                               ]),
                               const SizedBox(height: 8),
-                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController),
+                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController, sesli: true),
                             ],
                           );
                         }).toList(),
@@ -1987,7 +2058,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     return satirlar;
   }
 
-  Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false, Function(String)? onChanged}) {
+  /// [sesli]: kutunun sağına mikrofon düğmesi koyar ve uzun metin satırlara
+  /// sarılır (sesle yazılan cümleler tek satıra sığmaz).
+  Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false, bool sesli = false, Function(String)? onChanged}) {
+    final dinliyor = sesli && identical(_dinlenen, controller);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1997,14 +2071,27 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           controller: controller,
           onChanged: onChanged,
           style: TextStyle(color: ThemeColors.textPrimary(context)),
-          maxLines: maxLines,
-          keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+          minLines: sesli ? maxLines : null,
+          maxLines: sesli ? 5 : maxLines,
+          keyboardType: isNumeric ? TextInputType.number : (sesli ? TextInputType.multiline : TextInputType.text),
           decoration: InputDecoration(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             filled: true,
-            fillColor: Colors.black12,
+            fillColor: dinliyor ? Colors.red.withOpacity(0.12) : Colors.black12,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            hintText: dinliyor ? 'Dinliyorum, konuşun...' : null,
+            hintStyle: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13),
+            suffixIcon: sesli
+                ? IconButton(
+                    tooltip: dinliyor ? 'Dinlemeyi bitir' : 'Sesle yaz',
+                    icon: Icon(
+                      dinliyor ? Icons.stop_circle : Icons.mic,
+                      color: dinliyor ? Colors.redAccent : Colors.orange,
+                    ),
+                    onPressed: () => _sesleYaz(controller),
+                  )
+                : null,
           ),
         ),
       ],
