@@ -500,7 +500,7 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                                   ...kayit.vincler.map((v) => Padding(
                                                         padding: const EdgeInsets.only(bottom: 2),
                                                         child: Text(
-                                                          '${v.firmaAdi} (${v.baslangic}-${v.bitis})',
+                                                          '${v.firmaAdi} (${v.baslangic}-${v.bitis})${v.aciklama.isEmpty ? '' : ' · ${v.aciklama}'}',
                                                           style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 12, fontWeight: FontWeight.w500),
                                                         ),
                                                       )),

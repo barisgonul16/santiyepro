@@ -5,12 +5,14 @@ class VincBilgisi {
   String baslangic; // "HH:mm" formatında
   String bitis;     // "HH:mm" formatında
   int mola;         // Dakika cinsinden
+  String aciklama;  // Yapılan iş / not
 
   VincBilgisi({
     this.firmaAdi = '',
     this.baslangic = '',
     this.bitis = '',
     this.mola = 0,
+    this.aciklama = '',
   });
 
   /// Mola düşülmüş çalışma süresi (saat). Bitiş başlangıçtan önceyse ertesi
@@ -33,6 +35,7 @@ class VincBilgisi {
         'baslangic': baslangic,
         'bitis': bitis,
         'mola': mola,
+        'aciklama': aciklama,
       };
 
   factory VincBilgisi.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,7 @@ class VincBilgisi {
       baslangic: jsonMetin(json['baslangic']),
       bitis: jsonMetin(json['bitis']),
       mola: jsonTamsayi(json['mola']),
+      aciklama: jsonMetin(json['aciklama']),
     );
   }
 }

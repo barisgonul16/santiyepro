@@ -206,7 +206,8 @@ class GunlukRaporPdf {
         'Vinç',
         kayit.vincler.map((v) {
           final mola = v.mola > 0 ? ', mola ${v.mola} dk' : '';
-          return '${v.firmaAdi.isEmpty ? 'Vinç' : v.firmaAdi}: ${v.baslangic} - ${v.bitis}$mola (${_sayi(v.netSaat)} sa)';
+          final aciklama = v.aciklama.trim().isEmpty ? '' : ' - ${v.aciklama.trim()}';
+          return '${v.firmaAdi.isEmpty ? 'Vinç' : v.firmaAdi}: ${v.baslangic} - ${v.bitis}$mola (${_sayi(v.netSaat)} sa)$aciklama';
         }).join('\n'),
       ]);
     }

@@ -21,12 +21,14 @@ class VincFormControllers {
   final baslangicController = TextEditingController();
   final bitisController = TextEditingController();
   final molaController = TextEditingController();
+  final aciklamaController = TextEditingController();
 
-  VincFormControllers({String firma = '', String baslangic = '', String bitis = '', String mola = ''}) {
+  VincFormControllers({String firma = '', String baslangic = '', String bitis = '', String mola = '', String aciklama = ''}) {
     firmaAdiController.text = firma;
     baslangicController.text = baslangic;
     bitisController.text = bitis;
     molaController.text = mola;
+    aciklamaController.text = aciklama;
   }
 
   void dispose() {
@@ -34,6 +36,7 @@ class VincFormControllers {
     baslangicController.dispose();
     bitisController.dispose();
     molaController.dispose();
+    aciklamaController.dispose();
   }
 }
 
@@ -201,6 +204,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           baslangic: v.baslangic,
           bitis: v.bitis,
           mola: v.mola > 0 ? v.mola.toString() : '',
+          aciklama: v.aciklama,
         ));
       }
     } else {
@@ -238,7 +242,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         fotograflar,
         _vincFormList
             .map((v) => [v.firmaAdiController.text, v.baslangicController.text,
-                         v.bitisController.text, v.molaController.text])
+                         v.bitisController.text, v.molaController.text,
+                         v.aciklamaController.text])
             .toList(),
         _yevmiyeFormList
             .map((y) => [y.secilenEkipAdi ?? '', y.miktarController.text,
@@ -424,6 +429,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   baslangic: v.baslangicController.text,
                   bitis: v.bitisController.text,
                   mola: int.tryParse(v.molaController.text) ?? 0,
+                  aciklama: v.aciklamaController.text.trim(),
                 ))
             .toList(),
         yevmiyeler: _yevmiyeFormList
@@ -605,6 +611,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         xls.TextCellValue("Bitiş"),
         xls.TextCellValue("Mola (dk)"),
         xls.TextCellValue("Net Çalışma (saat)"),
+        xls.TextCellValue("Açıklama"),
       ]);
 
       xls.Sheet yevmiyeSheet = excel['Yevmiye'];
@@ -681,6 +688,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 xls.TextCellValue(v.bitis),
                 xls.IntCellValue(v.mola),
                 xls.TextCellValue(netSaat),
+                xls.TextCellValue(v.aciklama),
               ]);
             }
           }
@@ -1421,6 +1429,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                   child: _buildMobileInputItem("Mola (dk)", ctrl.molaController, isNumeric: true),
                                 ),
                               ]),
+                              const SizedBox(height: 8),
+                              _buildMobileInputItem("Açıklama", ctrl.aciklamaController),
                             ],
                           );
                         }).toList(),
@@ -1932,6 +1942,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               'baslangic': v.baslangic,
               'bitis': v.bitis,
               'mola': v.mola,
+              'aciklama': v.aciklama,
             });
           }
         }
@@ -1942,6 +1953,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           'baslangic': kayit.vincBaslangic,
           'bitis': kayit.vincBitis,
           'mola': kayit.vincMola,
+          'aciklama': '',
         });
       }
     }
@@ -2497,15 +2509,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         (v['firmaAdi'] as String).isEmpty ? '–' : v['firmaAdi'],
         '${v['baslangic']}–${v['bitis']}${mola > 0 ? '\nmola $mola dk' : ''}',
         '${_PuantajOzeti.sayi(net)} sa',
+        (v['aciklama'] as String).isEmpty ? '–' : v['aciklama'],
       ]);
     }
     return _basitTablo(
-      basliklar: const ['Tarih', 'Firma', 'Saat', 'Net'],
-      flexler: const [3, 4, 4, 2],
-      sayisal: const [false, false, false, true],
+      basliklar: const ['Tarih', 'Firma', 'Saat', 'Net', 'Açıklama'],
+      flexler: const [6, 6, 7, 4, 8],
+      sayisal: const [false, false, false, true, false],
       vurguluSutun: 3,
       satirlar: hucreler,
-      toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa'],
+      toplam: ['TOPLAM', '', '', '${_PuantajOzeti.sayi(toplam)} sa', ''],
       bosMetin: 'Bu aralıkta vinç kaydı yok.',
     );
   }
