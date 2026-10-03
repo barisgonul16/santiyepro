@@ -139,12 +139,12 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
             // İsim Güncelleme
             TextField(
               controller: _nameController,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
               decoration: InputDecoration(
                 labelText: 'İsim Soyisim',
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                 prefixIcon: const Icon(Icons.badge, color: Colors.blueAccent),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.blueAccent)),
               ),
             ),
@@ -153,12 +153,12 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
             // Doğum Tarihi Güncelleme
             TextFormField(
               readOnly: true,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
               decoration: InputDecoration(
                 labelText: 'Doğum Tarihi',
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                 prefixIcon: const Icon(Icons.calendar_today, color: Colors.blueAccent),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.blueAccent)),
               ),
               onTap: () async {
@@ -182,12 +182,12 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
             TextField(
               controller: _passwordController,
               obscureText: true,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
               decoration: InputDecoration(
                 labelText: 'Yeni Şifre (Boş bırakın değiştirmemek için)',
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                 prefixIcon: const Icon(Icons.lock, color: Colors.blueAccent),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.blueAccent)),
               ),
             ),
@@ -197,12 +197,12 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
             TextField(
               controller: _confirmPasswordController,
               obscureText: true,
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: ThemeColors.textPrimary(context)),
               decoration: InputDecoration(
                 labelText: 'Yeni Şifre Tekrar',
-                labelStyle: const TextStyle(color: Colors.white70),
+                labelStyle: TextStyle(color: ThemeColors.textSecondary(context)),
                 prefixIcon: const Icon(Icons.lock_outline, color: Colors.blueAccent),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.white24)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: ThemeColors.textTertiary(context))),
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.blueAccent)),
               ),
             ),
@@ -217,6 +217,7 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
                   label: const Text('Değişiklikleri Kaydet'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 50),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
