@@ -178,7 +178,7 @@ class ProjelerSayfaPage extends StatelessWidget {
             .difference(DateTime(sonKayit.year, sonKayit.month, sonKayit.day))
             .inDays;
     // Yeşil: dün/bugün, turuncu: birkaç gündür yok, gri: uzun süredir yok.
-    final sonKayitRengi = tamamlandi || gunFarki == null || gunFarki > 30
+    final sonKayitRengi = tamamlandi || !proje.kayitHatirlatma || gunFarki == null || gunFarki > 30
         ? ThemeColors.textTertiary(context)
         : (gunFarki <= 1 ? Colors.greenAccent : Colors.amber);
     final b = proje.baslangicTarihi;
@@ -495,6 +495,7 @@ class ProjelerSayfaPage extends StatelessWidget {
     );
     DateTime? baslangicTarihi = proje.baslangicTarihi;
     String secilenDurum = proje.durum;
+    bool kayitHatirlatma = proje.kayitHatirlatma;
 
     showDialog(
       context: context,
@@ -607,6 +608,17 @@ class ProjelerSayfaPage extends StatelessWidget {
                     side: const BorderSide(color: Colors.white30),
                   ),
                 ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: kayitHatirlatma,
+                  onChanged: (v) => setState(() => kayitHatirlatma = v),
+                  title: Text('Kayıt hatırlatması', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                  subtitle: Text(
+                    'Açıksa, birkaç gün kayıt girilmezse ana sayfada uyarı çıkar.',
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+                  ),
+                ),
               ],
             ),
           ),
@@ -628,6 +640,8 @@ class ProjelerSayfaPage extends StatelessWidget {
                       baslangicTarihi: baslangicTarihi!,
                       toplamGun: int.parse(toplamGunController.text),
                       durum: secilenDurum,
+                      sonGuncelleme: proje.sonGuncelleme,
+                      kayitHatirlatma: kayitHatirlatma,
                     ),
                   );
                   Navigator.pop(context);

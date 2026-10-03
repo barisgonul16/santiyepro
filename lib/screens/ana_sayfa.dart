@@ -139,7 +139,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     // kayıt girilmeyen (fiilen durmuş) şantiyeler uyarıyı kalabalıklaştırmasın.
     final kayitsizlar = aktifProjeler.where((p) {
       final fark = _gunFarki(_sonKayit(p)?.tarih);
-      return fark != null && fark >= 2 && fark <= 30;
+      return p.kayitHatirlatma && fark != null && fark >= 2 && fark <= 30;
     }).toList();
 
     return LayoutBuilder(
@@ -675,7 +675,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     final fark = _gunFarki(son?.tarih);
     // Yeşil: bugün/dün, turuncu: birkaç gündür yok, gri: bir aydan uzun
     // süredir yok ya da hiç yok.
-    final renk = fark == null || fark > 30
+    final renk = fark == null || fark > 30 || (!p.kayitHatirlatma && fark > 1)
         ? ThemeColors.textTertiary(context)
         : (fark <= 1 ? Colors.greenAccent : Colors.amber);
     final ekip = son == null

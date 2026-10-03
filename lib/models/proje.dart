@@ -8,6 +8,9 @@ class Proje {
   int toplamGun;
   String durum; // "Devam Ediyor" veya "Tamamlandı"
   DateTime? sonGuncelleme;
+  /// Ana sayfadaki "kayıt girilmedi" uyarısına dahil edilsin mi. Ara sıra
+  /// iş girilen projelerde (ör. ilave işler) kapatılır.
+  bool kayitHatirlatma;
 
   Proje({
     required this.id,
@@ -17,6 +20,7 @@ class Proje {
     required this.toplamGun,
     this.durum = "Devam Ediyor",
     this.sonGuncelleme,
+    this.kayitHatirlatma = true,
   });
 
   /// Başlangıçtan bugüne geçen gün (başlangıç günü 1. gün sayılır).
@@ -42,6 +46,7 @@ class Proje {
         'toplamGun': toplamGun,
         'durum': durum,
         'sonGuncelleme': sonGuncelleme?.toIso8601String(),
+        'kayitHatirlatma': kayitHatirlatma,
       };
 
   factory Proje.fromJson(Map<String, dynamic> json) {
@@ -53,6 +58,8 @@ class Proje {
       toplamGun: jsonTamsayi(json['toplamGun']),
       durum: jsonMetin(json['durum'], 'Devam Ediyor'),
       sonGuncelleme: jsonTarihOpsiyonel(json['sonGuncelleme']),
+      // Eski kayıtlarda alan yok: hatırlatma açık kabul edilir.
+      kayitHatirlatma: jsonMantik(json['kayitHatirlatma'], true),
     );
   }
 }
