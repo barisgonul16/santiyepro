@@ -1916,6 +1916,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     final sirali = List<GunlukKayit>.from(widget.gunlukKayitlar)
       ..sort((a, b) => b.tarih.compareTo(a.tarih));
     final sonKayitlar = sirali.take(5).toList();
+    // Çubukların ölçeği: gösterilen satırlardaki en kalabalık ekip.
+    final enCokEkip = sonKayitlar.fold<int>(1, (m, k) => [m, k.kalipci, k.demirci, k.diger].reduce((a, b) => a > b ? a : b));
     final sonFotograflar = <Map<String, dynamic>>[];
     for (final k in sirali) {
       for (final yol in k.fotografYollari) {
@@ -1945,7 +1947,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             if (sonKayitlar.isEmpty)
               Text('Henüz kayıt yok.', style: TextStyle(color: ThemeColors.textSecondary(context)))
             else
-              ...sonKayitlar.map(_buildSonKayitSatiri),
+              ...sonKayitlar.map((k) => _buildSonKayitSatiri(k, enCokEkip)),
             if (sonFotograflar.isNotEmpty) ...[
               const SizedBox(height: 16),
               Row(
@@ -1977,17 +1979,26 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  Widget _buildSonKayitSatiri(GunlukKayit k) {
+  static const _kalipciRengi = Color(0xFF42A5F5);
+  static const _demirciRengi = Color(0xFFFFA726);
+  static const _digerRengi = Color(0xFF9E9E9E);
+
+  /// Son kayıtlar listesinin satırı: tarih, ekip sayıları yatay çubuk olarak
+  /// (boyu [enCok]'a oranlı, ucunda sayı) ve altında yapılan iş.
+  Widget _buildSonKayitSatiri(GunlukKayit k, int enCok) {
     final ozetMetin = [
       if (k.kalipciYapilanIs.trim().isNotEmpty) k.kalipciYapilanIs.trim(),
       if (k.demirciYapilanIs.trim().isNotEmpty) k.demirciYapilanIs.trim(),
       if (k.notlar.trim().isNotEmpty) k.notlar.trim(),
     ].join(' · ');
     final ekip = [
-      if (k.kalipci > 0) '${k.kalipci} kalıpçı',
-      if (k.demirci > 0) '${k.demirci} demirci',
-      if (k.diger > 0) '${k.diger} diğer',
-    ].join(', ');
+      if (k.kalipci > 0) (k.kalipci, 'kalıpçı', _kalipciRengi),
+      if (k.demirci > 0) (k.demirci, 'demirci', _demirciRengi),
+      if (k.diger > 0) (k.diger, 'diğer', _digerRengi),
+    ];
+    const etiketGenisligi = 58.0;
+    const enDarCubuk = 28.0;
+
     return InkWell(
       onTap: () => _tarihDegistir(k.tarih),
       borderRadius: BorderRadius.circular(6),
@@ -2002,17 +2013,40 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold)),
             ),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (ekip.isNotEmpty)
-                    Text(ekip, style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 13)),
-                  if (ozetMetin.isNotEmpty)
-                    Text(ozetMetin,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
-                ],
+              child: LayoutBuilder(
+                builder: (context, kutu) {
+                  final enGenis = (kutu.maxWidth - etiketGenisligi).clamp(enDarCubuk, double.infinity);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final (sayi, ad, renk) in ekip)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: (enGenis * sayi / enCok).clamp(enDarCubuk, enGenis),
+                                height: 20,
+                                padding: const EdgeInsets.only(right: 6),
+                                alignment: Alignment.centerRight,
+                                decoration: BoxDecoration(color: renk, borderRadius: BorderRadius.circular(4)),
+                                child: Text('$sayi',
+                                    style: const TextStyle(
+                                        color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(ad, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      if (ozetMetin.isNotEmpty)
+                        Text(ozetMetin,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
+                    ],
+                  );
+                },
               ),
             ),
             if (k.fotografYollari.isNotEmpty)
