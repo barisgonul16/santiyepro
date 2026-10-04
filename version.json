@@ -1,4 +1,4 @@
 {
-  "version": "2.4.0+6",
-  "notes": "v2.4.0 Güncellemesi:\n- Yeni ana sayfa: \"Bugünün kaydını gir\", devam eden şantiyeler, kayıt girilmeyen şantiye uyarısı.\n- Bulut göstergesi: dokununca veriler buluttan yenilenir.\n- Günlük rapor artık PDF; WhatsApp ve e-posta ile paylaşılır.\n- Giriş formunda sesle yazma, vinç açıklaması, önceki/sonraki gün okları.\n- Puantajda ay seçimi ve telefona sığan tablolar.\n- Açık tema düzeltmeleri, veri güvenliği iyileştirmeleri."
+  "version": "2.5.0+7",
+  "notes": "v2.5.0 Güncellemesi:\n- Hakediş sekmesi: dönem ve metraj gir; o dönemin adam-günü, vinç ve yevmiyesi kendiliğinden hesaplanır.\n- Kalıp ve demir verimi (adam-gün başına).\n- Hakedişe yevmiye ve yeni iş satırları eklenebilir, ekip seçilebilir.\n- Günlük rapor PDF'inde fotoğraflar daha net.\n- Yan menü sadeleştirildi."
 }
