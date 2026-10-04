@@ -1189,11 +1189,8 @@ class _MainScreenState extends State<MainScreen> {
     0, // Ana Sayfa
     'Şantiye',
     1, 2, 8, 13, 12, // Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
-    null,
     7, // Faturalar
-    null,
     9, // Malzemeler
-    null,
     _MenuGrubu('Planlama', [3, 6, 4]), // Görevler, Takvim, Notlar
     _MenuGrubu('Araçlar', [5, 11, 10]), // Pratik Bilgiler, Pomodoro, Eskizler
     null,

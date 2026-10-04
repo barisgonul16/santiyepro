@@ -12,6 +12,7 @@ import '../models/hatirlatici.dart';
 import '../models/gunluk_kayit.dart';
 import '../screens/haritalar_sayfa.dart';
 import '../models/fatura.dart';
+import '../models/hakedis.dart';
 import '../models/harcama.dart';
 import '../models/malzeme.dart';
 import '../models/pratik_bilgi.dart';
@@ -31,7 +32,7 @@ class StorageService {
   static const List<String> collections = [
     'projects', 'tasks', 'notes', 'reminders', 'locations',
     'project_logs', 'sketches', 'faturalar', 'harcamalar',
-    'malzemeler', 'pratik_bilgiler', 'ekipler',
+    'malzemeler', 'pratik_bilgiler', 'ekipler', 'hakedisler',
   ];
 
   /// Koleksiyon adlarının kullanıcıya gösterilecek karşılıkları.
@@ -48,6 +49,7 @@ class StorageService {
     'malzemeler': 'Malzemeler',
     'pratik_bilgiler': 'Pratik bilgiler',
     'ekipler': 'Ekipler',
+    'hakedisler': 'Hakedişler',
   };
 
   /// Yüklenirken sorun çıkan koleksiyonlar.
@@ -636,6 +638,12 @@ class StorageService {
 
   Future<List<Fatura>> loadFaturalar() =>
       _readList('faturalar', Fatura.fromJson);
+
+  Future<void> saveHakedisler(List<Hakedis> items) => _writeJson(
+      'hakedisler', jsonEncode(items.map((i) => i.toJson()).toList()));
+
+  Future<List<Hakedis>> loadHakedisler() =>
+      _readList('hakedisler', Hakedis.fromJson);
 
   Future<void> saveHarcamalar(List<Harcama> items) => _writeJson(
       'harcamalar', jsonEncode(items.map((i) => i.toJson()).toList()));

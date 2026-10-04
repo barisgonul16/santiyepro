@@ -15,6 +15,7 @@ import '../theme/theme_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/app_log.dart';
+import 'hakedis_sekmesi.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VincFormControllers {
@@ -65,7 +66,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   final Function(int, GunlukKayit) onKayitGuncelle;
   final Map<String, List<GunlukKayit>> projeGunlukKayitlari;
   final List<String> ekipler;
-  /// Açılışta gösterilecek sekme: 0 Genel, 1 Giriş (bugünün formu), 2 Puantaj.
+  /// Açılışta gösterilecek sekme: 0 Genel, 1 Giriş (bugünün formu), 2 Puantaj,
+  /// 3 Hakediş.
   final int baslangicSekmesi;
 
   const ProjeDetaySayfa({
@@ -140,7 +142,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.baslangicSekmesi);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: widget.baslangicSekmesi);
 
     // Puantaj varsayılan tarihleri
     puantajBaslangicTarihi = widget.proje.baslangicTarihi;
@@ -1231,17 +1233,43 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             Tab(icon: Icon(Icons.dashboard, size: 20), text: "Genel"),
             Tab(icon: Icon(Icons.edit_note, size: 20), text: "Giriş"),
             Tab(icon: Icon(Icons.table_chart, size: 20), text: "Puantaj"),
+            Tab(icon: Icon(Icons.request_quote, size: 20), text: "Hakediş"),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [_buildGenelBakisTab(), _buildVeriGirisiTab(), _buildPuantajTab()],
+        children: [
+          _buildGenelBakisTab(),
+          _buildVeriGirisiTab(),
+          _buildPuantajTab(),
+          HakedisSekmesi(proje: widget.proje, ekipler: widget.ekipler, donemOzeti: _hakedisDonemOzeti),
+        ],
       ),
     );
   }
 
   // --- 1. SEKME: GENEL BAKIŞ ---
+  /// Hakediş dönemindeki (iki uç dahil) adam-gün, vinç ve yevmiye toplamı.
+  HakedisDonemOzeti _hakedisDonemOzeti(DateTime baslangic, DateTime bitis) {
+    final ilk = DateTime(baslangic.year, baslangic.month, baslangic.day);
+    final son = DateTime(bitis.year, bitis.month, bitis.day);
+    final kayitlar = widget.gunlukKayitlar.where((k) {
+      final gun = DateTime(k.tarih.year, k.tarih.month, k.tarih.day);
+      return !gun.isBefore(ilk) && !gun.isAfter(son);
+    }).toList();
+    final ozet = _PuantajOzeti.hesapla(kayitlar, _vincSatirlari, _yevmiyeSatirlari, _hesaplaVincNetSaat);
+    return HakedisDonemOzeti(
+      kayitGunu: ozet.kayitGunu,
+      kalipci: ozet.kalipci,
+      demirci: ozet.demirci,
+      diger: ozet.diger,
+      vincSaat: ozet.vincSaat,
+      vincGun: ozet.vincGun,
+      yevmiye: ozet.yevmiye,
+    );
+  }
+
   Widget _buildGenelBakisTab() {
     return LayoutBuilder(
       builder: (context, constraints) {

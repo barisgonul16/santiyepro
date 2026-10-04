@@ -104,7 +104,8 @@ class GunlukRaporPdf {
       if (yol.startsWith('http://') || yol.startsWith('https://')) {
         var url = yol;
         if (url.contains('res.cloudinary.com') && url.contains('/upload/')) {
-          url = url.replaceFirst('/upload/', '/upload/w_1000,h_1000,c_limit,q_auto,f_jpg/');
+          // Raporda yakınlaştırınca bulanmasın diye kutudan büyük alınır.
+          url = url.replaceFirst('/upload/', '/upload/w_1500,h_1500,c_limit,q_auto,f_jpg/');
         }
         final yanit = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 30));
         if (yanit.statusCode == 200) bayt = yanit.bodyBytes;
