@@ -62,6 +62,12 @@ class ThemeColors {
     return isDark(context) ? Colors.greenAccent : Colors.green.shade700;
   }
 
+  /// Ekip çubuklarının renkleri; koyu ve açık temada aynıdır (üstlerindeki
+  /// sayı koyu renkle yazılır).
+  static const Color kalipci = Color(0xFF42A5F5);
+  static const Color demirci = Color(0xFFFFA726);
+  static const Color digerEkip = Color(0xFF9E9E9E);
+
   /// "Dikkat" rengi (kayıt gecikmiş, eşitleme eksik).
   static Color uyari(BuildContext context) {
     return isDark(context) ? Colors.amber : Colors.orange.shade900;

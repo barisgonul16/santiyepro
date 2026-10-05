@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/app_log.dart';
 import 'hakedis_sekmesi.dart';
+import '../widgets/ekip_cubugu.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 class VincFormControllers {
@@ -1979,10 +1980,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  static const _kalipciRengi = Color(0xFF42A5F5);
-  static const _demirciRengi = Color(0xFFFFA726);
-  static const _digerRengi = Color(0xFF9E9E9E);
-
   /// Son kayıtlar listesinin satırı: tarih, ekip sayıları yatay çubuk olarak
   /// (boyu [enCok]'a oranlı, ucunda sayı) ve altında yapılan iş.
   Widget _buildSonKayitSatiri(GunlukKayit k, int enCok) {
@@ -1992,12 +1989,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       if (k.notlar.trim().isNotEmpty) k.notlar.trim(),
     ].join(' · ');
     final ekip = [
-      if (k.kalipci > 0) (k.kalipci, 'kalıpçı', _kalipciRengi),
-      if (k.demirci > 0) (k.demirci, 'demirci', _demirciRengi),
-      if (k.diger > 0) (k.diger, 'diğer', _digerRengi),
+      if (k.kalipci > 0) (k.kalipci, 'kalıpçı', ThemeColors.kalipci),
+      if (k.demirci > 0) (k.demirci, 'demirci', ThemeColors.demirci),
+      if (k.diger > 0) (k.diger, 'diğer', ThemeColors.digerEkip),
     ];
-    const etiketGenisligi = 58.0;
-    const enDarCubuk = 28.0;
 
     return InkWell(
       onTap: () => _tarihDegistir(k.tarih),
@@ -2013,40 +2008,20 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   style: const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold)),
             ),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, kutu) {
-                  final enGenis = (kutu.maxWidth - etiketGenisligi).clamp(enDarCubuk, double.infinity);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final (sayi, ad, renk) in ekip)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 3),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: (enGenis * sayi / enCok).clamp(enDarCubuk, enGenis),
-                                height: 20,
-                                padding: const EdgeInsets.only(right: 6),
-                                alignment: Alignment.centerRight,
-                                decoration: BoxDecoration(color: renk, borderRadius: BorderRadius.circular(4)),
-                                child: Text('$sayi',
-                                    style: const TextStyle(
-                                        color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold)),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(ad, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      if (ozetMetin.isNotEmpty)
-                        Text(ozetMetin,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
-                    ],
-                  );
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final (sayi, ad, renk) in ekip)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 3),
+                      child: EkipCubugu(sayi: sayi, enCok: enCok, renk: renk, ad: ad),
+                    ),
+                  if (ozetMetin.isNotEmpty)
+                    Text(ozetMetin,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13)),
+                ],
               ),
             ),
             if (k.fotografYollari.isNotEmpty)

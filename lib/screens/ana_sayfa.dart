@@ -9,6 +9,7 @@ import '../models/gunluk_kayit.dart';
 import 'proje_detay_sayfa.dart';
 import 'package:intl/intl.dart';
 import '../theme/theme_colors.dart';
+import '../widgets/aylik_ozet_karti.dart';
 
 class AnaSayfaPage extends StatefulWidget {
   final List<Hatirlatici> hatirlaticilar;
@@ -51,6 +52,10 @@ class AnaSayfaPage extends StatefulWidget {
 
 class _AnaSayfaPageState extends State<AnaSayfaPage> {
   bool _showCompleted = false;
+
+  /// Aylık özet kartının anahtarı. Artırılınca kart yeniden kurulur ve
+  /// hakedişleri diskten yeniden okur (proje sayfasından dönüş, yenileme).
+  int _ozetSurumu = 0;
 
   String _formatTarih(DateTime tarih) {
     final aylar = [
@@ -198,6 +203,16 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                   ),
                 ),
               const SizedBox(height: 20),
+
+              // Tüm şantiyelerin aylık özeti
+              if (widget.projeler.isNotEmpty) ...[
+                AylikOzetKarti(
+                  key: ValueKey(_ozetSurumu),
+                  projeler: widget.projeler,
+                  projeGunlukKayitlari: widget.projeGunlukKayitlari,
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Sıradaki Hatırlatıcı Kartı (Varsa)
               if (sonrakiHatirlatici != null) ...[
@@ -525,9 +540,9 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     );
   }
 
-  void _projeyiAc(Proje proje, {int sekme = 0}) {
+  Future<void> _projeyiAc(Proje proje, {int sekme = 0}) async {
     final kayitlar = widget.projeGunlukKayitlari[proje.id] ?? <GunlukKayit>[];
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ProjeDetaySayfa(
@@ -541,6 +556,8 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
         ),
       ),
     );
+    // Proje sayfasında hakediş girilmiş olabilir; özet yeniden okunur.
+    if (mounted) setState(() => _ozetSurumu++);
   }
 
   /// Tek şantiye varsa doğrudan, yoksa seçtirerek bugünün formunu açar.
