@@ -70,6 +70,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   /// Açılışta gösterilecek sekme: 0 Genel, 1 Giriş (bugünün formu), 2 Puantaj,
   /// 3 Hakediş.
   final int baslangicSekmesi;
+  /// Verilirse form bugünün yerine bu günün kaydıyla açılır (aramadan geliş).
+  final DateTime? acilisTarihi;
 
   const ProjeDetaySayfa({
     super.key,
@@ -80,6 +82,7 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.projeGunlukKayitlari,
     required this.ekipler,
     this.baslangicSekmesi = 0,
+    this.acilisTarihi,
   });
 
   @override
@@ -150,6 +153,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     puantajBitisTarihi = DateTime.now();
     _ozelBaslangic = puantajBaslangicTarihi;
     _ozelBitis = puantajBitisTarihi;
+
+    final acilis = widget.acilisTarihi;
+    if (acilis != null) {
+      secilenTarih = DateTime(acilis.year, acilis.month, acilis.day);
+      _gosterilenAy = DateTime(acilis.year, acilis.month);
+    }
 
     _yukleKayit();
   }

@@ -7,6 +7,7 @@ import '../services/notification_service.dart';
 import '../services/storage_service.dart';
 import '../models/gunluk_kayit.dart';
 import 'proje_detay_sayfa.dart';
+import 'kayit_arama_sayfa.dart';
 import 'package:intl/intl.dart';
 import '../theme/theme_colors.dart';
 import '../widgets/aylik_ozet_karti.dart';
@@ -139,6 +140,11 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                         color: ThemeColors.textPrimary(context),
                       ),
                     ),
+                  ),
+                  IconButton(
+                    tooltip: 'Kayıtlarda ara',
+                    icon: Icon(Icons.search, color: ThemeColors.icon(context)),
+                    onPressed: _aramayiAc,
                   ),
                   _buildBulutGostergesi(),
                 ],
@@ -540,7 +546,21 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     );
   }
 
-  Future<void> _projeyiAc(Proje proje, {int sekme = 0}) async {
+  /// Tüm şantiyelerin kayıtlarında arama; sonuca dokununca o günün kaydı açılır.
+  void _aramayiAc() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => KayitAramaSayfa(
+          projeler: widget.projeler,
+          projeGunlukKayitlari: widget.projeGunlukKayitlari,
+          onSec: (proje, tarih) => _projeyiAc(proje, sekme: 1, tarih: tarih),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _projeyiAc(Proje proje, {int sekme = 0, DateTime? tarih}) async {
     final kayitlar = widget.projeGunlukKayitlari[proje.id] ?? <GunlukKayit>[];
     await Navigator.push(
       context,
@@ -553,6 +573,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
           projeGunlukKayitlari: widget.projeGunlukKayitlari,
           ekipler: widget.ekipler,
           baslangicSekmesi: sekme,
+          acilisTarihi: tarih,
         ),
       ),
     );
