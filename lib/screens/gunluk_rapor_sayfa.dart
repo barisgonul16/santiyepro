@@ -250,14 +250,14 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [const Color(0xFF1A237E).withOpacity(0.4), const Color(0xFF0D47A1).withOpacity(0.4)]
+                    ? [const Color(0xFF1A237E).withValues(alpha: 0.4), const Color(0xFF0D47A1).withValues(alpha: 0.4)]
                     : [Colors.indigo.shade50, Colors.blue.shade50],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(
-                color: isDark ? Colors.indigo.withOpacity(0.3) : Colors.indigo.withOpacity(0.1),
+                color: isDark ? Colors.indigo.withValues(alpha: 0.3) : Colors.indigo.withValues(alpha: 0.1),
               ),
             ),
             child: Row(

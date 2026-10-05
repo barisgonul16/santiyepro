@@ -237,20 +237,18 @@ class ProjelerSayfaPage extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       color: ThemeColors.cardBackground(context),
                       icon: Icon(Icons.more_vert, size: 20, color: ThemeColors.textSecondary(context)),
-                      itemBuilder: (context) => [
+                      itemBuilder: (_) => [
                         PopupMenuItem(
                           child: Text('Düzenle', style: TextStyle(color: ThemeColors.textPrimary(context))),
-                          onTap: () => Future.delayed(
-                            Duration.zero,
-                            () => _projeDuzenleDialog(context, index, proje),
-                          ),
+                          onTap: () => Future.delayed(Duration.zero, () {
+                            if (context.mounted) _projeDuzenleDialog(context, index, proje);
+                          }),
                         ),
                         PopupMenuItem(
                           child: const Text('Sil', style: TextStyle(color: Colors.red)),
-                          onTap: () => Future.delayed(
-                            Duration.zero,
-                            () => _projeSilDialog(context, index, proje.ad),
-                          ),
+                          onTap: () => Future.delayed(Duration.zero, () {
+                            if (context.mounted) _projeSilDialog(context, index, proje.ad);
+                          }),
                         ),
                       ],
                     ),
@@ -400,7 +398,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
-                  value: secilenDurum,
+                  initialValue: secilenDurum,
                   dropdownColor: ThemeColors.cardBackground(context),
                   style: TextStyle(color: ThemeColors.textPrimary(context)),
                   decoration: InputDecoration(
@@ -438,8 +436,9 @@ class ProjelerSayfaPage extends StatelessWidget {
                       builder: (context, child) =>
                           Theme(data: ThemeData.dark(), child: child!),
                     );
-                    if (picked != null)
+                    if (picked != null) {
                       setState(() => baslangicTarihi = picked);
+                    }
                   },
                   icon: Icon(Icons.calendar_today),
                   label: Text(
@@ -558,7 +557,7 @@ class ProjelerSayfaPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
-                  value: secilenDurum,
+                  initialValue: secilenDurum,
                   dropdownColor: ThemeColors.cardBackground(context),
                   style: TextStyle(color: ThemeColors.textPrimary(context)),
                   decoration: InputDecoration(
@@ -596,8 +595,9 @@ class ProjelerSayfaPage extends StatelessWidget {
                       builder: (context, child) =>
                           Theme(data: ThemeData.dark(), child: child!),
                     );
-                    if (picked != null)
+                    if (picked != null) {
                       setState(() => baslangicTarihi = picked);
+                    }
                   },
                   icon: Icon(Icons.calendar_today),
                   label: Text(

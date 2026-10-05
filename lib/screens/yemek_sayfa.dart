@@ -155,6 +155,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
 
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory == null) return;
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -214,7 +215,6 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
   @override
   Widget build(BuildContext context) {
     final liste = _getYemekListesi();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -244,7 +244,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
           // Filtre Alanı
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            color: Colors.orange.withOpacity(0.1),
+            color: Colors.orange.withValues(alpha: 0.1),
             child: Column(
               children: [
                 Row(
@@ -327,7 +327,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                           ...widget.projeler.map((p) => DropdownMenuItem<String?>(
                             value: p.id,
                             child: Text(p.ad),
-                          )).toList(),
+                          )),
                         ],
                       ),
                     ),
@@ -340,7 +340,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.3),
+              color: Colors.orange.withValues(alpha: 0.3),
               border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(
@@ -452,7 +452,7 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.18),
+        color: Colors.orange.withValues(alpha: 0.18),
         border: const Border(
           top: BorderSide(color: Colors.orangeAccent, width: 1.5),
         ),

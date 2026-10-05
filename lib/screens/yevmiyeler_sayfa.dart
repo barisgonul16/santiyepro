@@ -191,6 +191,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
 
     String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
     if (selectedDirectory == null) return;
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -252,8 +253,8 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
 
     List<String> ekipAdlari = List.from(widget.ekipler)..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     
-    if (secilenEkip != null && secilenEkip!.isNotEmpty && !ekipAdlari.contains(secilenEkip)) {
-      ekipAdlari.insert(0, secilenEkip!);
+    if (secilenEkip != null && secilenEkip.isNotEmpty && !ekipAdlari.contains(secilenEkip)) {
+      ekipAdlari.insert(0, secilenEkip);
     }
 
     showDialog(
@@ -267,7 +268,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: secilenEkip,
+                  initialValue: secilenEkip,
                   dropdownColor: ThemeColors.cardBackground(context),
                   decoration: InputDecoration(labelText: 'Ekip Adı', labelStyle: TextStyle(color: ThemeColors.textSecondary(context))),
                   style: TextStyle(color: ThemeColors.textPrimary(context)),
@@ -477,7 +478,6 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
   @override
   Widget build(BuildContext context) {
     final liste = _getYevmiyeListesi();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -512,7 +512,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
           // Ay Seçici
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-            color: const Color(0xFF004D40).withOpacity(0.1),
+            color: const Color(0xFF004D40).withValues(alpha: 0.1),
             child: Row(
               children: [
                 const Icon(Icons.calendar_month, color: Color(0xFF00796B), size: 20),
@@ -571,7 +571,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF004D40).withOpacity(0.05),
+              color: const Color(0xFF004D40).withValues(alpha: 0.05),
               border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(
@@ -614,7 +614,7 @@ class _YevmiyelerSayfaPageState extends State<YevmiyelerSayfaPage> {
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF004D40).withOpacity(0.3),
+              color: const Color(0xFF004D40).withValues(alpha: 0.3),
               border: Border(bottom: BorderSide(color: ThemeColors.border(context))),
             ),
             child: Row(

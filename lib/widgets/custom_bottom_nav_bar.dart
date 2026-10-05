@@ -15,8 +15,6 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     // Açık sayfa kısayollarda yoksa (currentIndex -1) hiçbiri seçili
     // görünmemeli; BottomNavigationBar seçimsiz olamadığı için seçili renk
     // seçilmemiş renge eşitlenir.

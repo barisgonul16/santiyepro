@@ -280,7 +280,7 @@ class _PomodoroSayfaPageState extends State<PomodoroSayfaPage> {
           color: isSelected ? color : ThemeColors.border(context),
           width: 2,
         ),
-        backgroundColor: isSelected ? color.withOpacity(0.1) : Colors.transparent,
+        backgroundColor: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
       ),
       child: Text(
         mode,

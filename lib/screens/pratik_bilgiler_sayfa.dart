@@ -33,7 +33,7 @@ class _PratikBilgilerSayfaPageState extends State<PratikBilgilerSayfaPage> {
   final List<int> _diameters = [8, 10, 12, 14, 16, 18, 20, 22, 25, 28, 32];
 
   // --- Autocad State ---
-  List<Map<String, String>> _autocadCommands = [
+  final List<Map<String, String>> _autocadCommands = [
     {'key': 'A', 'cmd': 'Arc', 'desc': 'Yay çizer'},
     {'key': 'AA', 'cmd': 'Area', 'desc': 'Alan hesaplar'},
     {'key': 'B', 'cmd': 'Block', 'desc': 'Blok oluşturur'},
@@ -135,12 +135,13 @@ class _PratikBilgilerSayfaPageState extends State<PratikBilgilerSayfaPage> {
   @override
   Widget build(BuildContext context) {
     if (_selectedSection != null) {
-      return WillPopScope(
-        onWillPop: () async {
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
           setState(() {
             _selectedSection = null;
           });
-          return false;
         },
         child: Container(
           padding: const EdgeInsets.all(30),
@@ -275,12 +276,12 @@ class _PratikBilgilerSayfaPageState extends State<PratikBilgilerSayfaPage> {
             color: ThemeColors.cardBackground(context),
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
-              color: (section['color'] as Color).withOpacity(0.3),
+              color: (section['color'] as Color).withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -292,7 +293,7 @@ class _PratikBilgilerSayfaPageState extends State<PratikBilgilerSayfaPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: (section['color'] as Color).withOpacity(0.1),
+                  color: (section['color'] as Color).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -527,7 +528,7 @@ Betonarme Hesap Kabulleri:
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -540,16 +541,16 @@ Betonarme Hesap Kabulleri:
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              border: Border(bottom: BorderSide(color: color.withOpacity(0.3))),
+              border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.3))),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
+                    color: color.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -599,7 +600,7 @@ Betonarme Hesap Kabulleri:
       decoration: BoxDecoration(
         color: ThemeColors.cardBackground(context),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.blueGrey.withOpacity(0.5)),
+        border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -749,9 +750,9 @@ Betonarme Hesap Kabulleri:
           Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.2),
+              color: Colors.green.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.green.withOpacity(0.5)),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
             ),
             child: Text(
               'SONUÇ: $_selectedProjectCount Adet Ø$_selectedProjectDiameter yerine $requiredCount adet Ø$_targetDiameter kullanılabilir.',
@@ -852,7 +853,7 @@ Betonarme Hesap Kabulleri:
                             Text(e.value, style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
                           ],
                         ),
-                      )).toList(),
+                      )),
                     ],
                   ),
                 ),
@@ -870,7 +871,7 @@ Betonarme Hesap Kabulleri:
               borderRadius: BorderRadius.circular(10),
             ),
             child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.2)),
+              headingRowColor: WidgetStateProperty.all(Colors.blue.withValues(alpha: 0.2)),
               columns: [
                 DataColumn(label: Text('Bileşen', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
                 DataColumn(label: Text('C25', style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold))),
@@ -952,7 +953,7 @@ Betonarme Hesap Kabulleri:
         border: Border.all(color: ThemeColors.border(context)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -1075,7 +1076,7 @@ Betonarme Hesap Kabulleri:
                   horizontalMargin: 10,
                   border: TableBorder.all(color: Colors.grey.shade600, width: 1),
                   headingRowColor:
-                      MaterialStateProperty.all(Colors.teal.shade800),
+                      WidgetStateProperty.all(Colors.teal.shade800),
                   columns: List.generate(headers.length, (index) {
                     return DataColumn(
                       label: InkWell(
@@ -1320,7 +1321,7 @@ Betonarme Hesap Kabulleri:
               margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.redAccent.withOpacity(0.2),
+                  backgroundColor: Colors.redAccent.withValues(alpha: 0.2),
                   child: Text(
                     item['key']!,
                     style: TextStyle(
@@ -1364,7 +1365,7 @@ Betonarme Hesap Kabulleri:
 
   void _showAutocadEditDialog(BuildContext context, int? index) {
     bool isEditing = index != null;
-    final item = isEditing ? _autocadCommands[index!] : {'key': '', 'cmd': '', 'desc': ''};
+    final item = isEditing ? _autocadCommands[index] : {'key': '', 'cmd': '', 'desc': ''};
     final keyCtrl = TextEditingController(text: item['key']);
     final cmdCtrl = TextEditingController(text: item['cmd']);
     final descCtrl = TextEditingController(text: item['desc']);
@@ -1415,7 +1416,7 @@ Betonarme Hesap Kabulleri:
                      'desc': descCtrl.text
                    };
                    if (isEditing) {
-                     _autocadCommands[index!] = newItem;
+                     _autocadCommands[index] = newItem;
                    } else {
                      _autocadCommands.add(newItem);
                    }

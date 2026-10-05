@@ -1,10 +1,6 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:path_provider/path_provider.dart';
 import '../services/storage_service.dart';
 import '../theme/theme_colors.dart';
 
@@ -77,7 +73,7 @@ class FreehandObject extends DrawingObject {
   Map<String, dynamic> toJson() => {
     'type': 'freehand',
     'points': points.map((p) => {'dx': p.dx, 'dy': p.dy}).toList(),
-    'color': paintStyle.color.value,
+    'color': paintStyle.color.toARGB32(),
     'strokeWidth': paintStyle.strokeWidth,
   };
 
@@ -144,7 +140,7 @@ class LineObject extends DrawingObject {
     'type': 'line',
     'start': {'dx': start.dx, 'dy': start.dy},
     'end': {'dx': end.dx, 'dy': end.dy},
-    'color': paintStyle.color.value,
+    'color': paintStyle.color.toARGB32(),
     'strokeWidth': paintStyle.strokeWidth,
   };
 
@@ -201,7 +197,7 @@ class RectObject extends DrawingObject {
     'top': rect.top,
     'width': rect.width,
     'height': rect.height,
-    'color': paintStyle.color.value,
+    'color': paintStyle.color.toARGB32(),
     'strokeWidth': paintStyle.strokeWidth,
   };
 
@@ -258,7 +254,7 @@ class CircleObject extends DrawingObject {
     'type': 'circle',
     'center': {'dx': center.dx, 'dy': center.dy},
     'radius': radius,
-    'color': paintStyle.color.value,
+    'color': paintStyle.color.toARGB32(),
     'strokeWidth': paintStyle.strokeWidth,
   };
 
@@ -491,6 +487,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                         savedSketches.remove(name);
                       });
                       await _storageService.saveSketches(savedSketches);
+                      if (!context.mounted) return;
                       Navigator.pop(context); 
                     },
                   ),
@@ -669,11 +666,11 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
                         width: strokeWidth * 5,
                         height: strokeWidth * 5,
                         decoration: BoxDecoration(
-                          color: Colors.pink.withOpacity(0.5), // Dusty pink
+                          color: Colors.pink.withValues(alpha: 0.5), // Dusty pink
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.pinkAccent, width: 1),
                           boxShadow: [
-                             BoxShadow(color: Colors.pink.withOpacity(0.3), blurRadius: 4),
+                             BoxShadow(color: Colors.pink.withValues(alpha: 0.3), blurRadius: 4),
                           ]
                         ),
                       ),
@@ -818,7 +815,7 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
           color: selectedColor,
           shape: BoxShape.circle,
           border: Border.all(color: ThemeColors.textPrimary(context), width: 2),
-          boxShadow: [BoxShadow(color: selectedColor.withOpacity(0.4), blurRadius: 4)],
+          boxShadow: [BoxShadow(color: selectedColor.withValues(alpha: 0.4), blurRadius: 4)],
         ),
       ),
     );
@@ -876,25 +873,6 @@ class _EskizlerSayfaPageState extends State<EskizlerSayfaPage> {
     );
   }
 
-  Widget _buildColorButton(Color color) {
-    bool isSelected = selectedColor == color && currentMode != DrawingMode.eraser;
-    return GestureDetector(
-      onTap: () => setState(() {
-        selectedColor = color;
-        if (currentMode == DrawingMode.eraser) currentMode = DrawingMode.freehand;
-      }),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: isSelected ? Border.all(color: ThemeColors.textPrimary(context), width: 2) : null,
-        ),
-      ),
-    );
-  }
 }
 
 class _DrawingPainter extends CustomPainter {
@@ -938,12 +916,6 @@ class _DrawingPainter extends CustomPainter {
     
     // Draw selection highlight overlay
     if (selectedObject != null) {
-      Paint highlightPaint = Paint()
-        ..color = Colors.blue.withOpacity(0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 10
-        ..strokeCap = StrokeCap.round;
-        
        // This is expensive to redraw specifically for highlight using same draw logic,
        // but generic selection highlight is hard without bounds.
        // Let's just assume selection is visible by context.

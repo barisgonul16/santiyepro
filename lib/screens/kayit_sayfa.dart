@@ -151,6 +151,7 @@ class _KayitSayfaState extends State<KayitSayfa> {
                               loading = false;
                             });
                           } else {
+                            if (!context.mounted) return;
                             Navigator.pop(context); // Go back to login
                           }
                         }

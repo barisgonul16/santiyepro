@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import '../services/auth_service.dart';
 import 'kayit_sayfa.dart';
 

@@ -349,8 +349,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
               title: Text('Galeri', style: TextStyle(color: ThemeColors.textPrimary(context))),
               onTap: () async {
                 Navigator.pop(context);
-                final List<XFile>? images = await picker.pickMultiImage();
-                if (images != null && images.isNotEmpty) {
+                final List<XFile> images = await picker.pickMultiImage();
+                if (images.isNotEmpty) {
                   setState(() {
                     fotograflar.addAll(images.map((img) => img.path));
                   });
@@ -1298,9 +1298,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.2),
+              color: Colors.blue.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.blue.withOpacity(0.5)),
+              border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
             ),
             child: Row(
               children: [
@@ -1378,9 +1378,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1456,7 +1456,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                             children: [
                               if (idx > 0) ...[
                                 const SizedBox(height: 10),
-                                Divider(color: Colors.orange.withOpacity(0.3)),
+                                Divider(color: Colors.orange.withValues(alpha: 0.3)),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -1536,7 +1536,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               _buildMobileInputItem("Açıklama", ctrl.aciklamaController, sesli: true),
                             ],
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
@@ -1545,9 +1545,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withOpacity(0.1),
+                      color: Colors.purple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                      border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1622,7 +1622,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                             children: [
                               if (idx > 0) ...[
                                 const SizedBox(height: 10),
-                                Divider(color: Colors.purple.withOpacity(0.3)),
+                                Divider(color: Colors.purple.withValues(alpha: 0.3)),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
@@ -1650,7 +1650,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               _buildMobileInputItem("Açıklama", ctrl.aciklamaController, sesli: true),
                             ],
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
@@ -1962,7 +1962,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: sonFotograflar.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 6),
+                  separatorBuilder: (_, _) => const SizedBox(width: 6),
                   itemBuilder: (context, i) => InkWell(
                     onTap: () => _fotografBuyut(context, sonFotograflar, i),
                     child: ClipRRect(
@@ -2149,7 +2149,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             filled: true,
-            fillColor: dinliyor ? Colors.red.withOpacity(0.12) : Colors.black12,
+            fillColor: dinliyor ? Colors.red.withValues(alpha: 0.12) : Colors.black12,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
             hintText: dinliyor ? 'Dinliyorum, konuşun...' : (isNumeric ? '0' : null),
             hintStyle: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 13),
@@ -2436,7 +2436,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 width: genislik,
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: ThemeColors.isDark(context) ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                  color: ThemeColors.isDark(context) ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.04),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -2799,21 +2799,21 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       ),
       child: Column(
         children: [
-          satir(basliklar, baslik: true, renk: Colors.black.withOpacity(0.25)),
+          satir(basliklar, baslik: true, renk: Colors.black.withValues(alpha: 0.25)),
           if (satirlar.isEmpty)
             Padding(
               padding: const EdgeInsets.all(20),
               child: Text(bosMetin, style: TextStyle(color: ikincil)),
             )
           else ...[
-            satir(toplam, toplamSatiri: true, renk: Colors.blue.withOpacity(0.10)),
+            satir(toplam, toplamSatiri: true, renk: Colors.blue.withValues(alpha: 0.10)),
             for (int i = 0; i < satirlar.length; i++) ...[
-              satir(satirlar[i], renk: i.isOdd ? Colors.white.withOpacity(0.03) : null),
+              satir(satirlar[i], renk: i.isOdd ? Colors.white.withValues(alpha: 0.03) : null),
               // Satıra ait tam genişlikte not (ör. vinç açıklaması)
               if (altSatirlar != null && altSatirlar[i].isNotEmpty)
                 Container(
                   width: double.infinity,
-                  color: i.isOdd ? Colors.white.withOpacity(0.03) : null,
+                  color: i.isOdd ? Colors.white.withValues(alpha: 0.03) : null,
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 9),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2834,14 +2834,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   // --- Yardımcı Widgetlar (Aynı Kalıyor) ---
   void _galeriGoster() {
     List<Map<String, dynamic>> tumFotograflar = [];
-    if (widget.gunlukKayitlar != null) {
-      for (var kayit in widget.gunlukKayitlar) {
-        if (kayit.fotografYollari != null) {
-          for (var foto in kayit.fotografYollari) {
-            if (foto != null && foto.toString().trim().isNotEmpty) {
-              tumFotograflar.add({'tarih': kayit.tarih, 'yol': foto.toString()});
-            }
-          }
+    for (var kayit in widget.gunlukKayitlar) {
+      for (var foto in kayit.fotografYollari) {
+        if (foto.toString().trim().isNotEmpty) {
+          tumFotograflar.add({'tarih': kayit.tarih, 'yol': foto.toString()});
         }
       }
     }
@@ -2912,7 +2908,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                                 right: 0,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
-                                  color: Colors.black.withOpacity(0.65),
+                                  color: Colors.black.withValues(alpha: 0.65),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -2955,27 +2951,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         builder: (context) => FotografGoruntulePage(
           fotograflar: tumFotograflar,
           baslangicIndex: safeIndex,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      style: TextStyle(color: ThemeColors.textPrimary(context)),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
-        filled: true,
-        fillColor: ThemeColors.background(context),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: 12,
         ),
       ),
     );
@@ -3064,8 +3039,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           return Row(
             children: List.generate(7, (gunIndex) {
               final gunNo = haftaIndex * 7 + gunIndex - baslangicGunu + 1;
-              if (gunNo < 1 || gunNo > sonGun.day)
+              if (gunNo < 1 || gunNo > sonGun.day) {
                 return Expanded(child: Container());
+              }
               final tarih = DateTime(yil, ay, gunNo);
               final secili =
                   tarih.day == secilenTarih.day &&
@@ -3150,16 +3126,6 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     );
   }
 
-  Widget _buildDesktopInputWithLabel(String label, TextEditingController controller, String hint) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 11, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 5),
-        _buildTextField(controller, hint),
-      ],
-    );
-  }
 }
 
 class FotografGoruntulePage extends StatefulWidget {
@@ -3320,7 +3286,7 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
                         decoration: BoxDecoration(
                           color: Colors.black38,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.amber.withOpacity(0.5), width: 1),
+                          border: Border.all(color: Colors.amber.withValues(alpha: 0.5), width: 1),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -3386,9 +3352,9 @@ class _FotografGoruntulePageState extends State<FotografGoruntulePage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.75),
+                      color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.amber.withOpacity(0.6), width: 1.2),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 1.2),
                       boxShadow: const [
                         BoxShadow(
                           color: Colors.black45,

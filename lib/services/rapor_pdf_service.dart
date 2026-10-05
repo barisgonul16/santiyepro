@@ -305,14 +305,14 @@ class GunlukRaporPdf {
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
               baslik,
-              if (tablo != null) tablo,
+              ?tablo,
               if (fotoSatirlari.isNotEmpty) fotoSatirlari.first,
             ],
           ),
         )
       else ...[
         baslik,
-        if (tablo != null) tablo,
+        ?tablo,
         if (fotoSatirlari.isNotEmpty) fotoSatirlari.first,
       ],
       ...fotoSatirlari.skip(1),

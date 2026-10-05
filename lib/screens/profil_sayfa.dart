@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../theme/theme_colors.dart';
@@ -230,7 +229,7 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
                 // Çıkış bu cihazdaki verileri siler; buluta gitmemiş
                 // değişiklik varsa kullanıcı bunu açıkça görmeli.
                 final bekleyenler = await StorageService().gonderilmemisKoleksiyonlar();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 final bool? confirm = await showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -248,7 +247,7 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.15),
+                              color: Colors.red.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: Colors.redAccent),
                             ),
@@ -281,7 +280,7 @@ class _ProfilSayfaState extends State<ProfilSayfa> {
                   await StorageService().clearLocalData();
                   await _auth.signOut();
                   // Doğrudan Login sayfasına yönlendir
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (context) => const LoginSayfa()),
                       (route) => false,

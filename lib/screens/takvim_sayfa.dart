@@ -2,8 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/proje.dart';
 import '../models/gunluk_kayit.dart';
-import '../models/hatirlatici.dart';
-import '../services/notification_service.dart';
 import '../theme/theme_colors.dart';
 
 class TakvimSayfaPage extends StatefulWidget {
@@ -144,7 +142,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
     DateTime? lastUpdate;
     for (var p in widget.projeler) {
        if (p.sonGuncelleme != null) {
-         if (lastUpdate == null || p.sonGuncelleme!.isAfter(lastUpdate!)) {
+         if (lastUpdate == null || p.sonGuncelleme!.isAfter(lastUpdate)) {
            lastUpdate = p.sonGuncelleme;
          }
        }
@@ -180,7 +178,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                                 Row(
                                   children: [
                                     Text(
-                                      "${_monthNameFull(_focusedDay.month)}",
+                                      _monthNameFull(_focusedDay.month),
                                       style: TextStyle(
                                         fontSize: isMobile ? 20 : (Platform.isWindows ? 24 : 22), 
                                         fontWeight: FontWeight.bold, 
@@ -216,9 +214,9 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: Colors.blueAccent.withOpacity(0.2),
+                                  color: Colors.blueAccent.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+                                  border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.5)),
                                 ),
                                 child: const Text(
                                   "Bugün",
@@ -254,7 +252,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                              ),
                              child: Row(
                                children: [
-                                 Icon(Icons.access_time, size: 12, color: Colors.greenAccent.withOpacity(0.8)),
+                                 Icon(Icons.access_time, size: 12, color: Colors.greenAccent.withValues(alpha: 0.8)),
                                  const SizedBox(width: 4),
                                  Text(
                                     lastUpdate != null 
@@ -478,7 +476,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                     color: color,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: color.withOpacity(0.4), blurRadius: 6, offset: const Offset(0, 2))
+                      BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 6, offset: const Offset(0, 2))
                     ]
                   ),
                 ),
@@ -500,7 +498,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                 else if (hasLog)
                   Row(
                     children: [
-                      Text("Rapor Tamam", style: TextStyle(color: Colors.greenAccent.withOpacity(0.8), fontSize: 12)),
+                      Text("Rapor Tamam", style: TextStyle(color: Colors.greenAccent.withValues(alpha: 0.8), fontSize: 12)),
                       const SizedBox(width: 6),
                       const Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
                     ],
@@ -508,7 +506,7 @@ class _TakvimSayfaPageState extends State<TakvimSayfaPage> {
                 else
                   Row(
                     children: [
-                      Text("Eksik", style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontSize: 12)),
+                      Text("Eksik", style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.8), fontSize: 12)),
                       const SizedBox(width: 6),
                       const Icon(Icons.cancel, color: Colors.redAccent, size: 18),
                     ],

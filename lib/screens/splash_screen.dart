@@ -14,7 +14,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late AnimationController _mainController;
   late Animation<double> _craneEntrance;
   late Animation<double> _symbolDrop;
-  late Animation<double> _symbolSwing;
   late Animation<Offset> _symbolFlight;
   late Animation<double> _symbolOpacity;
 
@@ -39,13 +38,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       curve: const Interval(0.15, 0.30, curve: Curves.elasticOut),
     ));
     
-    // 3. Fırlatma öncesi sallanma (%30 - %60)
-    // 2-3 kez hızla sallanır
-    _symbolSwing = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
-      parent: _mainController,
-      curve: const Interval(0.30, 0.60, curve: Curves.easeInOut),
-    ));
-
     // 4. Fırlatma (%60 - %90)
     _symbolFlight = Tween<Offset>(
       begin: Offset.zero,
@@ -73,7 +65,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    const Color darkGreen = Color(0xFF0D2B1D); 
     const Color lightGreen = Color(0xFF1A4D33);
     const Color buildingColor = Color(0xFF081C13);
     const Color symbolColor = Color(0xFFE0E0E0);
@@ -254,7 +245,6 @@ class CranePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color..style = PaintingStyle.fill;
-    final stroke = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2;
 
     canvas.drawRect(Rect.fromLTWH(40, 0, 15, size.height), paint); // Kule
     canvas.drawRect(Rect.fromLTWH(0, 50, size.width * 0.8, 15), paint); // Kol

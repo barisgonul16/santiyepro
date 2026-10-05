@@ -232,8 +232,6 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: ListView(
@@ -260,7 +258,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
                 style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
               ),
               value: _settings.isDarkMode,
-              activeColor: Colors.blue,
+              activeThumbColor: Colors.blue,
               onChanged: (value) {
                 setState(() {
                   _settings = _settings.copyWith(isDarkMode: value);
@@ -311,7 +309,7 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (page['color'] as Color).withOpacity(0.2),
+                    color: (page['color'] as Color).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(page['icon'] as IconData, color: page['color'] as Color),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
 import '../models/not.dart';
 import '../theme/theme_colors.dart';
 
@@ -25,7 +24,6 @@ class NotlarSayfaPage extends StatefulWidget {
 class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
   final SpeechToText _speechToText = SpeechToText();
   bool _speechEnabled = false;
-  bool _isListening = false;
 
   @override
   void initState() {
@@ -40,16 +38,12 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
 
   void _startListening(Function(String) onResult) async {
     await _speechToText.listen(onResult: (result) => onResult(result.recognizedWords));
-    setState(() {
-      _isListening = true;
-    });
+    setState(() {});
   }
 
   void _stopListening() async {
     await _speechToText.stop();
-    setState(() {
-      _isListening = false;
-    });
+    setState(() {});
   }
 
   void _notEkleDialog(BuildContext context) {
@@ -102,10 +96,9 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                             tooltip: 'Madde İşareti',
                             onPressed: () {
                               final text = icerikController.text;
-                              final selection = icerikController.selection;
                               final newText = text.isEmpty 
                                   ? '• ' 
-                                  : (text.endsWith('\n') ? '${text}• ' : '$text\n• ');
+                                  : (text.endsWith('\n') ? '$text• ' : '$text\n• ');
                               icerikController.text = newText;
                               icerikController.selection = TextSelection.fromPosition(
                                 TextPosition(offset: newText.length),
@@ -286,7 +279,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
                               final text = icerikController.text;
                               final newText = text.isEmpty 
                                   ? '• ' 
-                                  : (text.endsWith('\n') ? '${text}• ' : '$text\n• ');
+                                  : (text.endsWith('\n') ? '$text• ' : '$text\n• ');
                               icerikController.text = newText;
                               icerikController.selection = TextSelection.fromPosition(
                                 TextPosition(offset: newText.length),
@@ -567,7 +560,7 @@ class _NotlarSayfaPageState extends State<NotlarSayfaPage> {
         decoration: BoxDecoration(
           color: ThemeColors.cardBackground(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.orange.withOpacity(0.3), width: 1),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

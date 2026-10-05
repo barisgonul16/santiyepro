@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart'; // Just in case, though not used directly in MainScreen but Haritalar uses it
+// Just in case, though not used directly in MainScreen but Haritalar uses it
 import 'models/hatirlatici.dart';
 import 'models/proje.dart';
 import 'models/gorev.dart';
@@ -32,7 +32,6 @@ import 'services/calendar_service.dart';
 import 'screens/finans_sayfa.dart';
 
 import 'screens/malzemeler_sayfa.dart';
-import 'screens/yevmiyeler_sayfa.dart';
 import 'screens/login_sayfa.dart';
 import 'widgets/custom_bottom_nav_bar.dart';
 import 'services/storage_service.dart';
@@ -399,7 +398,6 @@ class _MainScreenState extends State<MainScreen> {
   // Ayarlar
   AppSettings _appSettings = AppSettings();
 
-  bool _isLoading = true;
 
   @override
   void initState() {
@@ -586,8 +584,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadAllData() async {
-    setState(() => _isLoading = true);
-    
     // Sync already handled in AuthWrapper for authenticated users
     
     final projects = await _storageService.loadProjects();
@@ -646,8 +642,6 @@ class _MainScreenState extends State<MainScreen> {
          ];
          _storageService.saveLocations(savedLocations);
       }
-      
-      _isLoading = false;
     });
 
     // Reschedule all future pending reminders to ensure they are active in the system
@@ -764,93 +758,6 @@ class _MainScreenState extends State<MainScreen> {
           yeniHatirlatici.baslik,
           yeniHatirlatici.aciklama,
           scheduledTime,
-        );
-      }
-    });
-  }
-
-  Future<void> _hatirlaticiErtele(int index, int gunSayisi) async {
-    await NotificationService().requestPermissions();
-    setState(() {
-       // Cancel old
-      NotificationService().cancelNotification(hatirlaticilar[index].id.hashCode);
-
-      hatirlaticilar[index].tarih = hatirlaticilar[index].tarih.add(
-        Duration(days: gunSayisi),
-      );
-      _storageService.saveReminders(hatirlaticilar);
-      
-       // Schedule new
-       final item = hatirlaticilar[index];
-       DateTime scheduledTime = DateTime(
-        item.tarih.year,
-        item.tarih.month,
-        item.tarih.day,
-        item.saat.hour,
-        item.saat.minute,
-      );
-      
-      if (scheduledTime.isAfter(DateTime.now())) {
-        NotificationService().scheduleNotification(
-          item.id.hashCode,
-          item.baslik,
-          item.aciklama,
-          scheduledTime,
-        );
-      }
-    });
-  }
-
-  Future<void> _hatirlaticiErteleOzel(int index, DateTime yeniTarih, TimeOfDay yeniSaat) async {
-    await NotificationService().requestPermissions();
-    setState(() {
-       // Cancel old
-      NotificationService().cancelNotification(hatirlaticilar[index].id.hashCode);
-
-      hatirlaticilar[index].tarih = yeniTarih;
-      hatirlaticilar[index].saat = yeniSaat;
-      _storageService.saveReminders(hatirlaticilar);
-
-      // Schedule new
-      DateTime scheduledTime = DateTime(
-        yeniTarih.year,
-        yeniTarih.month,
-        yeniTarih.day,
-        yeniSaat.hour,
-        yeniSaat.minute,
-      );
-
-      if (scheduledTime.isAfter(DateTime.now())) {
-        NotificationService().scheduleNotification(
-          hatirlaticilar[index].id.hashCode,
-          hatirlaticilar[index].baslik,
-          hatirlaticilar[index].aciklama,
-          scheduledTime,
-        );
-      }
-    });
-  }
-
-  Future<void> _hatirlaticiErteleDakika(int index, int dakika) async {
-    await NotificationService().requestPermissions();
-    setState(() {
-       // Cancel old
-      NotificationService().cancelNotification(hatirlaticilar[index].id.hashCode);
-
-      final anlik = DateTime.now();
-      final yeniZaman = anlik.add(Duration(minutes: dakika));
-
-      hatirlaticilar[index].tarih = DateTime(yeniZaman.year, yeniZaman.month, yeniZaman.day);
-      hatirlaticilar[index].saat = TimeOfDay(hour: yeniZaman.hour, minute: yeniZaman.minute);
-      _storageService.saveReminders(hatirlaticilar);
-
-      // Schedule new
-      if (yeniZaman.isAfter(DateTime.now())) {
-        NotificationService().scheduleNotification(
-          hatirlaticilar[index].id.hashCode,
-          hatirlaticilar[index].baslik,
-          hatirlaticilar[index].aciklama,
-          yeniZaman,
         );
       }
     });
@@ -1356,7 +1263,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildSideMenu({required bool isDrawer}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: isDrawer ? 304 : 250, // Standard drawer width or fixed sidebar width
       color: ThemeColors.headerBackground(context),
@@ -1528,7 +1434,7 @@ class _MainScreenState extends State<MainScreen> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                        backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
                         child: const Icon(Icons.person, color: Colors.blueAccent, size: 20),
                       ),
                       const SizedBox(width: 10),

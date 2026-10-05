@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'profil_sayfa.dart';
 import '../models/hatirlatici.dart';
 import '../models/proje.dart';
 import '../models/gorev.dart';
@@ -12,41 +10,6 @@ import 'proje_detay_sayfa.dart';
 import 'package:intl/intl.dart';
 import '../theme/theme_colors.dart';
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  // Bu değerler parent widget (main.dart) tarafından yönetildiği için
-  // burada sadece dummy veya storage'dan okunan verileri göstereceğiz.
-  // Ancak mimari gereği main.dart sayfaları yönettiği için,
-  // AnaSayfaPage aslında parametre almalıydı.
-  // Mevcut yapıda main.dart içindeki _getPage fonksiyonu parametre almıyor gibi görünüyor,
-  // fakat main.dart'ı incelediğimizde parametre almadığını gördük (veya ben kaçırdım).
-  // EĞER main.dart parametre geçmiyorsa bu sayfada veriler sıfırdan yüklenmeli veya
-  // state management kullanılmalı.
-  // Ancak best practice olarak main.dart güncellenmeli ve buraya veriler parametre olarak gelmeli.
-  // Şimdilik storage servisi burada tekrar çağırmak yerine,
-  // main.dart'taki yapıyı bozmadan stateless/stateful widget yapısına uyumlu
-  // parametre alan bir AnaSayfaPage tanımlayalım ve main.dart'ı ona göre güncelleyelim.
-  
-  // Fakat önce dosya yapısını koruyalım. main.dart'ta AnaSayfaPage parametre alıyordu?
-  // Kontrol ettiğimde main.dart'ta:
-  // case 0: return AnaSayfaPage(...) şeklinde bir kullanım YOKTU,
-  // sadece 'Ana Sayfa' title'ı ve içeriği vardı.
-  // main.dart'ı tekrar kontrol etmemek için güvenli yol:
-  // AnaSayfaPage'i parametre alacak şekilde tasarlayalım.
-  
-  @override
-  Widget build(BuildContext context) {
-      return const Center(child: Text("Hata: AnaSayfaPage doğrudan kullanılmamalı, parametreler gerekli."));
-  }
-}
-
-// Doğru sınıf ismi ve parametreler
 class AnaSayfaPage extends StatefulWidget {
   final List<Hatirlatici> hatirlaticilar;
   final List<Proje> projeler;
@@ -249,7 +212,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Colors.orange.withValues(alpha: 0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 5),
                       ),
@@ -260,7 +223,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(Icons.notifications_active, color: Colors.white, size: 30),
@@ -449,7 +412,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                        ),
                        subtitle: Text(
                          "${_formatTarih(hatirlatici.tarih)}, ${_formatSaat(hatirlatici.saat)}",
-                         style: TextStyle(color: ThemeColors.textTertiary(context).withOpacity(0.7)),
+                         style: TextStyle(color: ThemeColors.textTertiary(context).withValues(alpha: 0.7)),
                        ),
                        trailing: IconButton(
                          icon: Icon(Icons.refresh, color: Colors.green),
@@ -542,7 +505,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: renk.withOpacity(0.5)),
+                border: Border.all(color: renk.withValues(alpha: 0.5)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -643,9 +606,9 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: ThemeColors.uyari(context).withOpacity(0.12),
+          color: ThemeColors.uyari(context).withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: ThemeColors.uyari(context).withOpacity(0.5)),
+          border: Border.all(color: ThemeColors.uyari(context).withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
@@ -764,7 +727,7 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.notifications_outlined, color: Colors.orange),
@@ -790,9 +753,9 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.2),
+                              color: Colors.blue.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.blue.withOpacity(0.5)),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.5)),
                             ),
                             child: const Text(
                               'Takvim',

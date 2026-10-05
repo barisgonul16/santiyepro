@@ -250,7 +250,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                   decoration: BoxDecoration(
                     color: seciliMi
                         ? Colors.purple
-                        : (bugunMu ? Colors.purple.withOpacity(0.3) : Colors.transparent),
+                        : (bugunMu ? Colors.purple.withValues(alpha: 0.3) : Colors.transparent),
                     border: Border.all(color: ThemeColors.border(context), width: 1),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -407,7 +407,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF1a2a3a), // Mavi tonlu
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +455,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
         color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : ThemeColors.background(context),
         borderRadius: BorderRadius.circular(8),
         border: gorev.tamamlandi
-            ? Border.all(color: Colors.green.withOpacity(0.5), width: 2)
+            ? Border.all(color: Colors.green.withValues(alpha: 0.5), width: 2)
             : null,
       ),
       child: Column(
@@ -650,7 +650,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
                     decoration: BoxDecoration(
                       color: seciliMi
                           ? Colors.purple
-                          : (bugunMu ? Colors.purple.withOpacity(0.3) : Colors.transparent),
+                          : (bugunMu ? Colors.purple.withValues(alpha: 0.3) : Colors.transparent),
                       border: Border.all(color: ThemeColors.border(context), width: 1),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -807,7 +807,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF1a2a3a), // Mavi tonlu
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -855,7 +855,7 @@ class _GorevlerSayfaPageState extends State<GorevlerSayfaPage> {
         color: gorev.tamamlandi ? const Color(0xFF1a3d1a) : ThemeColors.background(context),
         borderRadius: BorderRadius.circular(8),
         border: gorev.tamamlandi
-            ? Border.all(color: Colors.green.withOpacity(0.5), width: 2)
+            ? Border.all(color: Colors.green.withValues(alpha: 0.5), width: 2)
             : null,
       ),
       child: Column(

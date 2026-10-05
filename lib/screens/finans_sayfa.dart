@@ -3,7 +3,6 @@ import 'package:file_picker/file_picker.dart' as pkr;
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:excel/excel.dart' as xls;
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 import '../models/fatura.dart';
 import '../models/harcama.dart';
@@ -353,10 +352,6 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
     );
   }
 
-  double _toplamFaturaTutar() {
-    return widget.faturalar.fold(0, (sum, item) => sum + item.tutar);
-  }
-
   double _toplamHarcamaSadece() {
     return widget.harcamalar
         .where((h) => !h.isReimbursement)
@@ -367,10 +362,6 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
     return widget.harcamalar
         .where((h) => h.isReimbursement)
         .fold(0.0, (sum, item) => sum + item.tutar);
-  }
-
-  double _toplamHarcamaTutar() {
-    return _toplamHarcamaSadece();
   }
 
   void _resimGoster(String path) {
@@ -729,7 +720,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
                   dropdownColor: const Color(0xFF2C2C2C),
-                  value: secilenProje,
+                  initialValue: secilenProje,
                   decoration: InputDecoration(
                     labelText: "Şantiye Seçin",
                     labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
@@ -854,7 +845,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                     Switch(
                       value: isReimbursement,
                       onChanged: (val) => setState(() => isReimbursement = val),
-                      activeColor: Colors.grey,
+                      activeThumbColor: Colors.grey,
                       activeTrackColor: ThemeColors.border(context),
                       inactiveThumbColor: Colors.grey,
                       inactiveTrackColor: ThemeColors.border(context),
@@ -917,7 +908,7 @@ class _FinansSayfaPageState extends State<FinansSayfaPage> with SingleTickerProv
                 const SizedBox(height: 15),
                 DropdownButtonFormField<String>(
                   dropdownColor: const Color(0xFF2C2C2C),
-                  value: kategori,
+                  initialValue: kategori,
                   decoration: InputDecoration(
                     labelText: "Kategori",
                     labelStyle: TextStyle(color: ThemeColors.textTertiary(context)),
