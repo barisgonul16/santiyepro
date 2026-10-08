@@ -6,6 +6,7 @@ import '../models/app_settings.dart';
 import '../services/settings_service.dart';
 import '../services/storage_service.dart';
 import '../services/update_service.dart';
+import '../services/ai_kayit_service.dart';
 
 class AyarlarSayfaPage extends StatefulWidget {
   final AppSettings currentSettings;
@@ -46,11 +47,49 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
   @override
   void initState() {
     super.initState();
+    _aiAnahtariYukle();
     _settings = widget.currentSettings;
   }
 
   final _storageService = StorageService();
   bool _yedeklemeCalisiyor = false;
+
+  // Sesle kayıt için yapay zekâ anahtarı (yalnızca bu cihazda saklanır).
+  final _aiAnahtarKutusu = TextEditingController();
+  bool _aiAnahtarGizli = true;
+  bool _aiDeneniyor = false;
+
+  Future<void> _aiAnahtariYukle() async {
+    final a = await AiKayitService.anahtar();
+    if (mounted) setState(() => _aiAnahtarKutusu.text = a);
+  }
+
+  /// Anahtarı kaydeder ve Google'a küçük bir sorguyla çalıştığını dener.
+  Future<void> _aiAnahtariKaydet() async {
+    FocusScope.of(context).unfocus();
+    await AiKayitService.anahtarKaydet(_aiAnahtarKutusu.text);
+    if (_aiAnahtarKutusu.text.trim().isEmpty) {
+      _bilgiGoster('Anahtar silindi. Sesle kayıt kapalı.', Colors.orange);
+      return;
+    }
+    setState(() => _aiDeneniyor = true);
+    try {
+      final model = await AiKayitService().anahtariDene();
+      _bilgiGoster('Anahtar çalışıyor. Kullanılacak model: $model', Colors.green);
+    } on AiKayitHatasi catch (e) {
+      _bilgiGoster(e.mesaj, Colors.red);
+    } catch (e) {
+      _bilgiGoster('Anahtar denenemedi: internet bağlantını kontrol et.', Colors.red);
+    } finally {
+      if (mounted) setState(() => _aiDeneniyor = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _aiAnahtarKutusu.dispose();
+    super.dispose();
+  }
 
   void _bilgiGoster(String mesaj, Color renk) {
     if (!mounted) return;
@@ -322,6 +361,49 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
             );
           }),
 
+          const SizedBox(height: 30),
+
+          // Sesle kayıt (yapay zekâ)
+          _buildSectionTitle('Sesle Kayıt (Yapay Zekâ)'),
+          const SizedBox(height: 10),
+          Text(
+            'Ana sayfadaki mikrofonla günü anlatırsın; yapay zekâ şantiye şantiye '
+            'kayıt taslağı çıkarır, sen onaylayınca kaydedilir. Bunun için ücretsiz '
+            'bir Google Gemini anahtarı gerekir: aistudio.google.com/apikey adresinden '
+            'alıp aşağıya yapıştır. Anahtar yalnızca bu cihazda saklanır.',
+            style: TextStyle(
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _aiAnahtarKutusu,
+            obscureText: _aiAnahtarGizli,
+            autocorrect: false,
+            enableSuggestions: false,
+            style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color),
+            decoration: InputDecoration(
+              labelText: 'Gemini API anahtarı',
+              border: const OutlineInputBorder(),
+              suffixIcon: IconButton(
+                tooltip: _aiAnahtarGizli ? 'Göster' : 'Gizle',
+                icon: Icon(_aiAnahtarGizli ? Icons.visibility : Icons.visibility_off),
+                onPressed: () => setState(() => _aiAnahtarGizli = !_aiAnahtarGizli),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: FilledButton.icon(
+              onPressed: _aiDeneniyor ? null : _aiAnahtariKaydet,
+              icon: _aiDeneniyor
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.check),
+              label: Text(_aiDeneniyor ? 'Deneniyor…' : 'Kaydet ve dene'),
+            ),
+          ),
           const SizedBox(height: 30),
 
           // Yedekleme

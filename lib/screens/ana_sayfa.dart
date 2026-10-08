@@ -8,6 +8,7 @@ import '../services/storage_service.dart';
 import '../models/gunluk_kayit.dart';
 import 'proje_detay_sayfa.dart';
 import 'kayit_arama_sayfa.dart';
+import 'sesli_kayit_sayfa.dart';
 import 'package:intl/intl.dart';
 import '../theme/theme_colors.dart';
 import '../widgets/aylik_ozet_karti.dart';
@@ -151,20 +152,37 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
               ),
               const SizedBox(height: 14),
 
-              // Bugünün kaydı
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: aktifProjeler.isEmpty ? null : () => _bugununKaydiSec(aktifProjeler),
-                  icon: const Icon(Icons.add_circle_outline, size: 24),
-                  label: const Text('Bugünün kaydını gir', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              // Bugünün kaydı: elle ya da sesle
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: aktifProjeler.isEmpty ? null : () => _bugununKaydiSec(aktifProjeler),
+                      icon: const Icon(Icons.add_circle_outline, size: 24),
+                      label: const Text('Bugünün kaydını gir', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Sesle kayıt',
+                    child: ElevatedButton(
+                      onPressed: aktifProjeler.isEmpty ? null : () => _sesliKayitAc(aktifProjeler),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Icon(Icons.mic, size: 24),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -543,6 +561,26 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
           ),
         );
       },
+    );
+  }
+
+  /// Günü anlatıp yapay zekâya kayıtlara çevirtme. Kayıtlar onaydan sonra yazılır.
+  Future<void> _sesliKayitAc(List<Proje> aktifProjeler) async {
+    final ozet = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SesliKayitSayfa(
+          projeler: aktifProjeler,
+          projeGunlukKayitlari: widget.projeGunlukKayitlari,
+          onKayitEkle: (id, kayit) => widget.onGunlukKayitEkle(id, kayit),
+          onKayitGuncelle: (id, i, kayit) => widget.onGunlukKayitGuncelle(id, i, kayit),
+        ),
+      ),
+    );
+    if (!mounted || ozet == null) return;
+    setState(() => _ozetSurumu++);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Kaydedildi: $ozet'), backgroundColor: Colors.green.shade700),
     );
   }
 
