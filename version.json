@@ -1,4 +1,4 @@
 {
-  "version": "2.6.0+9",
-  "notes": "v2.6.0 Güncellemesi:\n- Ana sayfada aylık özet: tüm şantiyelerin ay ay adam-günü ve hakedişi.\n- Kayıtlarda arama: ana sayfadaki büyüteç.\n- Son kayıtlarda ekip sayıları renkli çubuk olarak.\n- Hakediş sekmesi (2.5.0): dönem, metraj, verim.\n- Güncelleme artık doğrudan indiriliyor."
+  "version": "2.6.1+10",
+  "notes": "v2.6.1 Güncellemesi:\n- Sesle kayıt: ana sayfadaki turuncu mikrofonla günü anlat; yapay zekâ şantiye şantiye kayıt taslağı çıkarır, sen onaylayınca kaydedilir.\n- Kullanmak için Ayarlar > Sesle Kayıt bölümüne kendi ücretsiz Gemini anahtarını gir (kart bağlama)."
 }
