@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -386,9 +387,12 @@ $metin
       }
     } on AiKayitHatasi {
       rethrow;
+    } on TimeoutException catch (e) {
+      appLog('Gemini zaman aşımı: $e');
+      throw const AiKayitHatasi('Yapay zekâ zamanında yanıt vermedi. Biraz sonra yeniden dene.');
     } catch (e) {
       appLog('Gemini isteği başarısız: $e');
-      throw const AiKayitHatasi('Yapay zekâya ulaşılamadı. İnternet bağlantını kontrol et.');
+      throw AiKayitHatasi('Yapay zekâya ulaşılamadı. İnternet bağlantını kontrol et. (${e.runtimeType})');
     }
     if (yanit.statusCode == 404) {
       // Seçili model kaldırılmış olabilir; bir sonraki denemede yeniden seçilir.
