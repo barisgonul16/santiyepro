@@ -1,4 +1,4 @@
 {
-  "version": "2.6.1+10",
-  "notes": "v2.6.1 Güncellemesi:\n- Sesle kayıt: ana sayfadaki turuncu mikrofonla günü anlat; yapay zekâ şantiye şantiye kayıt taslağı çıkarır, sen onaylayınca kaydedilir.\n- Kullanmak için Ayarlar > Sesle Kayıt bölümüne kendi ücretsiz Gemini anahtarını gir (kart bağlama)."
+  "version": "2.6.2+11",
+  "notes": "v2.6.2 Güncellemesi:\n- Sesle kayıt: yemek sayısı artık notlara değil yemek alanlarına yazılıyor; tek sayı söylenirse ekiplere dağıtılıp onay ekranında uyarıyla gösteriliyor.\n- Sesle yazma: konuşurken duraklayınca daha önce yazılanlar silinmiyor."
 }
