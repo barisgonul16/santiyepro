@@ -186,6 +186,10 @@ class AiKayitService {
         return const AiKayitHatasi('Yapay zekâ anahtarı kabul edilmedi. Ayarlar\'dan anahtarı kontrol et.');
       case 429:
         return const AiKayitHatasi('Ücretsiz kullanım sınırına ulaşıldı. Biraz sonra yeniden dene.');
+      case 500:
+      case 503:
+      case 504:
+        return AiKayitHatasi('Yapay zekâ servisi şu an yoğun (kod ${yanit.statusCode}). Birkaç dakika sonra yeniden dene.');
       default:
         return AiKayitHatasi('Yapay zekâ yanıt vermedi (kod ${yanit.statusCode}). Biraz sonra yeniden dene.');
     }
@@ -354,25 +358,32 @@ $metin
     if (a.isEmpty) {
       throw const AiKayitHatasi('Yapay zekâ anahtarı girilmemiş. Ayarlar > Sesle kayıt bölümünden ekle.');
     }
-    final http.Response yanit;
+    final istek = jsonEncode({
+      'contents': [
+        {
+          'parts': [
+            {'text': yonerge(metin, projeler, bugun)}
+          ]
+        }
+      ],
+      'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json'},
+    });
+    // 500/503/504 Google tarafındaki geçici yoğunluktur: bekleyip yeniden dener,
+    // son denemede daha hafif yedek modele geçer.
+    const bekleme = [Duration(seconds: 2), Duration(seconds: 5)];
+    late http.Response yanit;
     try {
       final model = await _modelSec(a);
-      yanit = await _istemci
-          .post(
-            Uri.parse('$_taban/models/$model:generateContent'),
-            headers: _basliklar(a),
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': yonerge(metin, projeler, bugun)}
-                  ]
-                }
-              ],
-              'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json'},
-            }),
-          )
-          .timeout(const Duration(seconds: 45));
+      for (var deneme = 0;; deneme++) {
+        final kullanilan = deneme == bekleme.length && model != _tercihler.last ? _tercihler.last : model;
+        yanit = await _istemci
+            .post(Uri.parse('$_taban/models/$kullanilan:generateContent'), headers: _basliklar(a), body: istek)
+            .timeout(const Duration(seconds: 45));
+        final gecici = yanit.statusCode == 500 || yanit.statusCode == 503 || yanit.statusCode == 504;
+        if (!gecici || deneme >= bekleme.length) break;
+        appLog('Gemini ${yanit.statusCode}, ${deneme + 1}. yeniden deneme');
+        await Future.delayed(bekleme[deneme]);
+      }
     } on AiKayitHatasi {
       rethrow;
     } catch (e) {
