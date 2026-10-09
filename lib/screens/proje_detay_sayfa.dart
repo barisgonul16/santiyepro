@@ -16,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../services/app_log.dart';
 import 'hakedis_sekmesi.dart';
+import '../services/ses_metni.dart';
 import '../widgets/ekip_cubugu.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -107,7 +108,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final SpeechToText _ses = SpeechToText();
   bool _sesHazir = false;
   TextEditingController? _dinlenen; // şu an sesle doldurulan kutu
-  String _dinlemeOncesi = ''; // dinleme başlamadan önce kutudaki metin
+  SesMetniBirlestirici? _sesBirlestirici; // konuşma sonuçlarını yazıyı silmeden birleştirir
   final kalipciController = TextEditingController();
   final demirciController = TextEditingController();
   final digerController = TextEditingController();
@@ -407,7 +408,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       );
       return;
     }
-    _dinlemeOncesi = controller.text.trimRight();
+    // Duraklayıp yeniden başlayan tanıma önceki yazıyı silmesin.
+    _sesBirlestirici = SesMetniBirlestirici(controller.text);
     setState(() => _dinlenen = controller);
     try {
       // Türkçe varsa Türkçe, yoksa cihazın varsayılan dili.
@@ -422,8 +424,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         pauseFor: const Duration(seconds: 4),
         onResult: (sonuc) {
           if (!identical(_dinlenen, controller)) return;
-          final soylenen = sonuc.recognizedWords.trim();
-          final metin = [_dinlemeOncesi, soylenen].where((x) => x.isNotEmpty).join(' ');
+          final metin = _sesBirlestirici?.sonuc(sonuc.recognizedWords, son: sonuc.finalResult) ?? controller.text;
           controller.value = TextEditingValue(
             text: metin,
             selection: TextSelection.collapsed(offset: metin.length),

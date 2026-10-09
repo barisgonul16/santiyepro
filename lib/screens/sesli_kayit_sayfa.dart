@@ -5,6 +5,7 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import '../services/ai_kayit_service.dart';
+import '../services/ses_metni.dart';
 import '../theme/theme_colors.dart';
 
 /// Sesle kayıt: kullanıcı günün işlerini anlatır, yapay zekâ şantiye şantiye
@@ -38,7 +39,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
 
   bool _sesHazir = false;
   bool _dinliyor = false;
-  String _dinlemeOncesi = '';
+  SesMetniBirlestirici? _birlestirici;
   bool _cozuluyor = false;
   String? _hata;
 
@@ -58,6 +59,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
   Future<void> _dinle() async {
     if (_dinliyor) {
       await _ses.stop();
+      _birlestirici?.bitir();
       if (mounted) setState(() => _dinliyor = false);
       return;
     }
@@ -65,7 +67,10 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
       _sesHazir = _sesHazir ||
           await _ses.initialize(
             onStatus: (durum) {
-              if (mounted && (durum == 'done' || durum == 'notListening')) setState(() => _dinliyor = false);
+              if (durum == 'done' || durum == 'notListening') {
+                _birlestirici?.bitir();
+                if (mounted) setState(() => _dinliyor = false);
+              }
             },
             onError: (_) {
               if (mounted) setState(() => _dinliyor = false);
@@ -81,7 +86,8 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     }
     final diller = await _ses.locales();
     final turkce = diller.where((d) => d.localeId.toLowerCase().startsWith('tr')).toList();
-    _dinlemeOncesi = _metin.text.trim();
+    // Duraklayıp yeniden başlayan tanıma önceki yazıyı silmesin.
+    _birlestirici = SesMetniBirlestirici(_metin.text);
     setState(() {
       _dinliyor = true;
       _hata = null;
@@ -93,8 +99,12 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
         pauseFor: const Duration(seconds: 6),
       ),
       onResult: (sonuc) {
-        final soylenen = sonuc.recognizedWords.trim();
-        _metin.text = [_dinlemeOncesi, soylenen].where((x) => x.isNotEmpty).join(' ');
+        final b = _birlestirici;
+        if (b == null || !mounted) return;
+        final yeni = b.sonuc(sonuc.recognizedWords, son: sonuc.finalResult);
+        setState(() {
+          _metin.value = TextEditingValue(text: yeni, selection: TextSelection.collapsed(offset: yeni.length));
+        });
       },
     );
   }
@@ -111,6 +121,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     try {
       final (taslaklar, anlasilmayan) = await _servis.cozumle(metin, widget.projeler, DateTime.now());
       if (!mounted) return;
+      taslaklar.forEach(_yemegiDagit);
       setState(() {
         _taslaklar = taslaklar;
         _anlasilmayan = anlasilmayan;
@@ -126,6 +137,21 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     } finally {
       if (mounted) setState(() => _cozuluyor = false);
     }
+  }
+
+  /// Yemek ekip ayrımı olmadan söylendiyse, o günün çalışan sayılarına (taslaktaki
+  /// ya da kayıtlı) göre ekiplere dağıtır.
+  void _yemegiDagit(SesliKayitTaslagi t) {
+    GunlukKayit? mevcut;
+    if (t.projeId.isNotEmpty) {
+      final sira = _mevcutSira(t);
+      if (sira >= 0) mevcut = widget.projeGunlukKayitlari[t.projeId]![sira];
+    }
+    t.yemegiDagit(
+      kalipci: t.kalipci > 0 ? t.kalipci : (mevcut?.kalipci ?? 0),
+      demirci: t.demirci > 0 ? t.demirci : (mevcut?.demirci ?? 0),
+      diger: t.diger > 0 ? t.diger : (mevcut?.diger ?? 0),
+    );
   }
 
   /// O şantiyede o güne ait kaydın sırası; yoksa -1.
@@ -220,7 +246,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           minLines: 5,
           maxLines: 12,
           style: TextStyle(color: ThemeColors.textPrimary(context)),
-          onChanged: (_) => setState(() {}),
+          onChanged: (v) => setState(() => _birlestirici?.elleDegisti(v)),
           decoration: InputDecoration(
             hintText: 'Söylediklerin burada görünür; elle de yazabilir ya da düzeltebilirsin.',
             hintStyle: TextStyle(color: ThemeColors.textTertiary(context)),
@@ -326,6 +352,21 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           ),
         );
 
+    Widget yemekKutusu(String etiket, int deger, ValueChanged<int> degisti) => Expanded(
+          child: TextFormField(
+            key: ValueKey('${identityHashCode(t)}-$etiket-${t.yemekSurumu}'),
+            initialValue: deger == 0 ? '' : '$deger',
+            style: metin,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: kutu(etiket).copyWith(hintText: '0'),
+            onChanged: (v) => setState(() {
+              degisti(int.tryParse(v) ?? 0);
+              t.yemekDagitildi = false;
+            }),
+          ),
+        );
+
     Widget yazi(String etiket, String deger, ValueChanged<String> degisti) => Padding(
           padding: const EdgeInsets.only(top: 8),
           child: TextFormField(
@@ -371,6 +412,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     onChanged: (v) => setState(() {
                       t.projeId = v ?? '';
                       _hata = null;
+                      if (t.yemekDagitildi) _yemegiDagit(t);
                     }),
                   ),
                 ),
@@ -415,6 +457,24 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     sayi('Diğer', t.diger, (v) => t.diger = v),
                   ],
                 ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    yemekKutusu('Yemek kalıpçı', t.yemekKalipci, (v) => t.yemekKalipci = v),
+                    const SizedBox(width: 8),
+                    yemekKutusu('Yemek demirci', t.yemekDemirci, (v) => t.yemekDemirci = v),
+                    const SizedBox(width: 8),
+                    yemekKutusu('Yemek diğer', t.yemekDiger, (v) => t.yemekDiger = v),
+                  ],
+                ),
+                if (t.yemekDagitildi)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Yemek toplam ${t.yemekToplam} olarak söylendi; çalışan sayısına göre ekiplere dağıtıldı. Kontrol et.',
+                      style: ikincil.copyWith(color: ThemeColors.uyari(context)),
+                    ),
+                  ),
                 yazi('Kalıpçı işi', t.kalipciIs, (v) => t.kalipciIs = v),
                 yazi('Demirci işi', t.demirciIs, (v) => t.demirciIs = v),
                 yazi('Beton', t.beton, (v) => t.beton = v),

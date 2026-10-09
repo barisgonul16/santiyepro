@@ -225,4 +225,130 @@ void main() {
       expect(cagri, 0);
     });
   });
+
+  group('Yemek', () {
+    test('yapay zekâya yemek kuralı ve alanları gönderilir', () {
+      final yonerge = AiKayitService.yonerge('x', projeler, bugun);
+      expect(yonerge, contains('"yemek":0'));
+      expect(yonerge, contains('"yemekKalipci":0'));
+      expect(yonerge, contains('Yemek bilgisini ASLA "notlar" alanına yazma'));
+    });
+
+    test('yemek alanları taslağa okunur; yalnızca yemek söylenen kayıt boş sayılmaz', () {
+      final (t, _) = AiKayitService.taslaklariCoz(
+        jsonEncode({
+          'kayitlar': [
+            {'projeId': 'g', 'tarih': '2026-10-09', 'yemek': 12},
+            {'projeId': 'k', 'tarih': '2026-10-09', 'yemekKalipci': 5, 'yemekDemirci': '3'},
+          ],
+        }),
+        projeler,
+        bugun,
+      );
+      expect(t.length, 2);
+      expect((t[0].yemekToplam, t[0].yemekKalipci), (12, 0));
+      expect((t[1].yemekKalipci, t[1].yemekDemirci, t[1].yemekToplam), (5, 3, 0));
+    });
+
+    SesliKayitTaslagi taslak({int toplam = 0, int k = 0, int d = 0, int g = 0}) => SesliKayitTaslagi(
+          projeId: 'g',
+          soylenenAd: '',
+          tarih: DateTime(2026, 10, 9),
+          yemekToplam: toplam,
+          yemekKalipci: k,
+          yemekDemirci: d,
+          yemekDiger: g,
+        );
+
+    test('tek sayı olarak söylenen yemek çalışan sayısına göre dağıtılır, toplam korunur', () {
+      for (final (toplam, kal, dem, dig) in [(10, 5, 2, 0), (11, 5, 4, 2), (7, 1, 1, 1), (3, 8, 0, 0), (1, 5, 5, 5)]) {
+        final t = taslak(toplam: toplam)..yemegiDagit(kalipci: kal, demirci: dem, diger: dig);
+        expect(t.yemekKalipci + t.yemekDemirci + t.yemekDiger, toplam, reason: '$toplam yemek, $kal/$dem/$dig kişi');
+        expect(t.yemekDagitildi, isTrue);
+      }
+      final t = taslak(toplam: 10)..yemegiDagit(kalipci: 5, demirci: 2, diger: 0);
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (7, 3, 0));
+      // Çalışan sayısı yoksa tamamı kalıpçıya yazılır.
+      final bos = taslak(toplam: 6)..yemegiDagit(kalipci: 0, demirci: 0, diger: 0);
+      expect((bos.yemekKalipci, bos.yemekDemirci, bos.yemekDiger), (6, 0, 0));
+      // Şantiye değişince yeniden dağıtılabilir.
+      final once = t.yemekSurumu;
+      t.yemegiDagit(kalipci: 1, demirci: 1, diger: 0);
+      expect((t.yemekKalipci, t.yemekDemirci), (5, 5));
+      expect(t.yemekSurumu, greaterThan(once));
+    });
+
+    test('ekip ekip söylenen yemeğe dokunulmaz; mevcut kaydın yemeği boşsa korunur', () {
+      final t = taslak(toplam: 12, k: 5, d: 3)..yemegiDagit(kalipci: 9, demirci: 9, diger: 9);
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (5, 3, 0));
+      expect(t.yemekDagitildi, isFalse);
+
+      final mevcut = GunlukKayit(tarih: DateTime(2026, 10, 9), yemekKalipci: 4, yemekDemirci: 2, yemekDiger: 1);
+      final sonuc = taslak(k: 6).kayda(mevcut);
+      expect((sonuc.yemekKalipci, sonuc.yemekDemirci, sonuc.yemekDiger), (6, 2, 1));
+    });
+
+    testWidgets('"yemek 10" notlara değil yemek alanlarına yazılır', (tester) async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'deneme-anahtari'});
+      tester.view.physicalSize = const Size(1080, 4200);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.reset);
+
+      final simdi = DateTime.now();
+      final gun = '${simdi.year}-${simdi.month.toString().padLeft(2, '0')}-${simdi.day.toString().padLeft(2, '0')}';
+      final eklenen = <(String, GunlukKayit)>[];
+      final istemci = MockClient((istek) async {
+        if (istek.method == 'GET') {
+          return http.Response(
+              jsonEncode({
+                'models': [
+                  {'name': 'models/gemini-9-flash', 'supportedGenerationMethods': ['generateContent']},
+                ]
+              }),
+              200);
+        }
+        return http.Response.bytes(
+            utf8.encode(jsonEncode({
+              'candidates': [
+                {
+                  'content': {
+                    'parts': [
+                      {
+                        'text': jsonEncode({
+                          'kayitlar': [
+                            {'projeId': 'g', 'soylenenAd': 'Gera', 'tarih': gun, 'kalipci': 5, 'demirci': 2, 'yemek': 10},
+                          ],
+                        })
+                      }
+                    ]
+                  }
+                }
+              ]
+            })),
+            200);
+      });
+
+      await tester.pumpWidget(MaterialApp(
+        home: SesliKayitSayfa(
+          projeler: projeler,
+          projeGunlukKayitlari: const {},
+          onKayitEkle: (id, k) => eklenen.add((id, k)),
+          onKayitGuncelle: (a, b, c) {},
+          servis: AiKayitService(istemci: istemci),
+        ),
+      ));
+      await tester.enterText(find.byType(TextField), 'gerada 5 kalıpçı 2 demirci yemek 10');
+      await tester.pump();
+      await tester.tap(find.text('Kayıtlara çevir'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Yemek toplam 10 olarak söylendi'), findsOneWidget);
+      await tester.tap(find.text('1 kaydı kaydet'));
+      await tester.pumpAndSettle();
+
+      final k = eklenen.single.$2;
+      expect((k.yemekKalipci, k.yemekDemirci, k.yemekDiger), (7, 3, 0));
+      expect(k.notlar, '');
+    });
+  });
 }

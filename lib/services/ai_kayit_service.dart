@@ -20,6 +20,17 @@ class SesliKayitTaslagi {
   String demirciIs;
   String beton;
   String notlar;
+  /// Yemek yiyen kişi sayısı, ekip ekip.
+  int yemekKalipci;
+  int yemekDemirci;
+  int yemekDiger;
+  /// Yemek ekip ayrımı yapılmadan tek sayı olarak söylendiyse o sayı.
+  final int yemekToplam;
+  /// Ekip payları [yemekToplam]'dan çalışan sayılarına göre türetildi (kullanıcı
+  /// düzeltene kadar onay ekranında uyarı gösterilir).
+  bool yemekDagitildi = false;
+  /// Dağıtım yenilenince artar; onay ekranındaki kutuları tazelemek için.
+  int yemekSurumu = 0;
   final List<VincBilgisi> vincler;
   final List<YevmiyeBilgisi> yevmiyeler;
 
@@ -34,6 +45,10 @@ class SesliKayitTaslagi {
     this.demirciIs = '',
     this.beton = '',
     this.notlar = '',
+    this.yemekKalipci = 0,
+    this.yemekDemirci = 0,
+    this.yemekDiger = 0,
+    this.yemekToplam = 0,
     List<VincBilgisi>? vincler,
     List<YevmiyeBilgisi>? yevmiyeler,
   })  : vincler = vincler ?? [],
@@ -47,8 +62,40 @@ class SesliKayitTaslagi {
       demirciIs.trim().isEmpty &&
       beton.trim().isEmpty &&
       notlar.trim().isEmpty &&
+      yemekKalipci == 0 &&
+      yemekDemirci == 0 &&
+      yemekDiger == 0 &&
+      yemekToplam == 0 &&
       vincler.isEmpty &&
       yevmiyeler.isEmpty;
+
+  /// Yemek yalnızca toplam olarak söylendiyse, çalışan sayılarına göre ekiplere
+  /// dağıtır (en büyük kalan yöntemi; toplam her zaman korunur). Çalışan sayısı
+  /// yoksa tamamı kalıpçıya yazılır. Ekip ekip söylenmişse dokunmaz.
+  void yemegiDagit({required int kalipci, required int demirci, required int diger}) {
+    if (yemekToplam <= 0) return;
+    if (!yemekDagitildi && yemekKalipci + yemekDemirci + yemekDiger > 0) return;
+
+    final sayilar = [kalipci, demirci, diger];
+    final toplam = sayilar.fold<int>(0, (a, b) => a + b);
+    var pay = [yemekToplam, 0, 0];
+    if (toplam > 0) {
+      final ham = [for (final s in sayilar) yemekToplam * s / toplam];
+      pay = [for (final h in ham) h.floor()];
+      var kalan = yemekToplam - pay.fold<int>(0, (a, b) => a + b);
+      final sira = [0, 1, 2]..sort((a, b) => (ham[b] - pay[b]).compareTo(ham[a] - pay[a]));
+      for (final i in sira) {
+        if (kalan <= 0) break;
+        pay[i]++;
+        kalan--;
+      }
+    }
+    yemekKalipci = pay[0];
+    yemekDemirci = pay[1];
+    yemekDiger = pay[2];
+    yemekDagitildi = true;
+    yemekSurumu++;
+  }
 
   /// Taslağı o günün kaydına işler. [mevcut] varsa üzerine eklenir: verilen
   /// sayılar eskisinin yerine geçer, metinler sona eklenir, vinç ve yevmiye
@@ -67,9 +114,9 @@ class SesliKayitTaslagi {
       kalipci: kalipci > 0 ? kalipci : temel.kalipci,
       demirci: demirci > 0 ? demirci : temel.demirci,
       diger: diger > 0 ? diger : temel.diger,
-      yemekKalipci: temel.yemekKalipci,
-      yemekDemirci: temel.yemekDemirci,
-      yemekDiger: temel.yemekDiger,
+      yemekKalipci: yemekKalipci > 0 ? yemekKalipci : temel.yemekKalipci,
+      yemekDemirci: yemekDemirci > 0 ? yemekDemirci : temel.yemekDemirci,
+      yemekDiger: yemekDiger > 0 ? yemekDiger : temel.yemekDiger,
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),
@@ -215,11 +262,12 @@ Kurallar:
 - "beton": dökülen beton (yeri ve varsa miktarı, ör. "bodrum perde betonu 40 m³").
 - "vincler": vinç çalıştıysa her biri için firma, başlangıç ve bitiş saati ("HH:MM", 24 saat), mola (dakika) ve açıklama. Saat söylenmediyse boş bırak.
 - "yevmiyeler": yevmiyeli iş varsa ekip adı, miktar (yevmiye sayısı, yarım gün 0.5) ve açıklama.
-- "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, hava, ziyaret).
+- Yemek: o gün yemek yiyen / yemek verilen kişi sayısı. Yemek bilgisini ASLA "notlar" alanına yazma. Kalıpçı, demirci ya da diğerleri için ayrı ayrı söylendiyse "yemekKalipci", "yemekDemirci", "yemekDiger" alanlarına yaz. Ekip ayrımı yapmadan tek sayı söylendiyse ("yemek 12", "12 kişilik yemek", "yemekli 12 kişi") yalnızca "yemek" alanına yaz. Söylenmediyse hepsi 0.
+- "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, hava, ziyaret). Yemek sayısı notlara yazılmaz.
 - "anlasilmayan": hiçbir kayda yerleştiremediğin kısım varsa kısaca yaz, yoksa boş bırak.
 
 Yalnızca şu biçimde JSON döndür:
-{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
+{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
 
 Söylenen not:
 """
@@ -273,6 +321,10 @@ $metin
         demirciIs: yazi(k['demirciIs']),
         beton: yazi(k['beton']),
         notlar: yazi(k['notlar']),
+        yemekKalipci: tam(k['yemekKalipci']),
+        yemekDemirci: tam(k['yemekDemirci']),
+        yemekDiger: tam(k['yemekDiger']),
+        yemekToplam: tam(k['yemek']),
         vincler: [
           for (final v in (k['vincler'] is List ? k['vincler'] as List : const []))
             if (v is Map && (yazi(v['firma']).isNotEmpty || saat(v['baslangic']).isNotEmpty || yazi(v['aciklama']).isNotEmpty))
