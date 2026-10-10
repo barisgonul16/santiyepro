@@ -122,6 +122,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final yemekKalipciController = TextEditingController();
   final yemekDemirciController = TextEditingController();
   final yemekDigerController = TextEditingController();
+  final yemekKahvaltiController = TextEditingController();
+  final yemekAksamController = TextEditingController();
   bool isYemekKalipciManuel = false;
   bool isYemekDemirciManuel = false;
   bool isYemekDigerManuel = false;
@@ -178,6 +180,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     yemekKalipciController.dispose();
     yemekDemirciController.dispose();
     yemekDigerController.dispose();
+    yemekKahvaltiController.dispose();
+    yemekAksamController.dispose();
     for (var ctrl in _vincFormList) {
       ctrl.dispose();
     }
@@ -206,6 +210,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     yemekKalipciController.text = _sifirBos(kayit.yemekKalipci);
     yemekDemirciController.text = _sifirBos(kayit.yemekDemirci);
     yemekDigerController.text = _sifirBos(kayit.yemekDiger);
+    yemekKahvaltiController.text = _sifirBos(kayit.yemekKahvalti);
+    yemekAksamController.text = _sifirBos(kayit.yemekAksam);
     kalipciIsController.text = kayit.kalipciYapilanIs;
     demirciIsController.text = kayit.demirciYapilanIs;
     notlarController.text = kayit.notlar;
@@ -262,6 +268,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   String _formImzasi() => jsonEncode([
         kalipciController.text, demirciController.text, digerController.text,
         yemekKalipciController.text, yemekDemirciController.text, yemekDigerController.text,
+        yemekKahvaltiController.text, yemekAksamController.text,
         kalipciIsController.text, demirciIsController.text,
         notlarController.text, betonController.text,
         fotograflar,
@@ -502,6 +509,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         yemekKalipci: int.tryParse(yemekKalipciController.text) ?? 0,
         yemekDemirci: int.tryParse(yemekDemirciController.text) ?? 0,
         yemekDiger: int.tryParse(yemekDigerController.text) ?? 0,
+        yemekKahvalti: int.tryParse(yemekKahvaltiController.text) ?? 0,
+        yemekAksam: int.tryParse(yemekAksamController.text) ?? 0,
         kalipciYapilanIs: kalipciIsController.text,
         demirciYapilanIs: demirciIsController.text,
         notlar: notlarController.text,
@@ -1704,6 +1713,22 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                               ),
                             ],
                           ),
+                          // Kahvaltı / akşam: projede açıksa ya da o güne sayı girilmişse görünür.
+                          if (widget.proje.kahvaltiAcik || yemekKahvaltiController.text.isNotEmpty ||
+                              widget.proje.aksamAcik || yemekAksamController.text.isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                if (widget.proje.kahvaltiAcik || yemekKahvaltiController.text.isNotEmpty)
+                                  Expanded(child: _buildMobileInputItem("Kahvaltı", yemekKahvaltiController, isNumeric: true)),
+                                if ((widget.proje.kahvaltiAcik || yemekKahvaltiController.text.isNotEmpty) &&
+                                    (widget.proje.aksamAcik || yemekAksamController.text.isNotEmpty))
+                                  const SizedBox(width: 8),
+                                if (widget.proje.aksamAcik || yemekAksamController.text.isNotEmpty)
+                                  Expanded(child: _buildMobileInputItem("Akşam yemeği", yemekAksamController, isNumeric: true)),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

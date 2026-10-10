@@ -11,6 +11,10 @@ class Proje {
   /// Ana sayfadaki "kayıt girilmedi" uyarısına dahil edilsin mi. Ara sıra
   /// iş girilen projelerde (ör. ilave işler) kapatılır.
   bool kayitHatirlatma;
+  /// Günlük kayıtta kahvaltı / akşam yemeği sayı kutuları gösterilsin mi.
+  /// Varsayılan kapalı; öğle yemeği her projede vardır.
+  bool kahvaltiAcik;
+  bool aksamAcik;
 
   Proje({
     required this.id,
@@ -21,6 +25,8 @@ class Proje {
     this.durum = "Devam Ediyor",
     this.sonGuncelleme,
     this.kayitHatirlatma = true,
+    this.kahvaltiAcik = false,
+    this.aksamAcik = false,
   });
 
   /// Başlangıçtan bugüne geçen gün (başlangıç günü 1. gün sayılır).
@@ -47,6 +53,8 @@ class Proje {
         'durum': durum,
         'sonGuncelleme': sonGuncelleme?.toIso8601String(),
         'kayitHatirlatma': kayitHatirlatma,
+        'kahvaltiAcik': kahvaltiAcik,
+        'aksamAcik': aksamAcik,
       };
 
   factory Proje.fromJson(Map<String, dynamic> json) {
@@ -60,6 +68,8 @@ class Proje {
       sonGuncelleme: jsonTarihOpsiyonel(json['sonGuncelleme']),
       // Eski kayıtlarda alan yok: hatırlatma açık kabul edilir.
       kayitHatirlatma: jsonMantik(json['kayitHatirlatma'], true),
+      kahvaltiAcik: jsonMantik(json['kahvaltiAcik'], false),
+      aksamAcik: jsonMantik(json['aksamAcik'], false),
     );
   }
 }

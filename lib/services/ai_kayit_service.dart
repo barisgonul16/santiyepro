@@ -118,6 +118,8 @@ class SesliKayitTaslagi {
       yemekKalipci: yemekKalipci > 0 ? yemekKalipci : temel.yemekKalipci,
       yemekDemirci: yemekDemirci > 0 ? yemekDemirci : temel.yemekDemirci,
       yemekDiger: yemekDiger > 0 ? yemekDiger : temel.yemekDiger,
+      yemekKahvalti: temel.yemekKahvalti,
+      yemekAksam: temel.yemekAksam,
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),

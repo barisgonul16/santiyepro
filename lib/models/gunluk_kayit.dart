@@ -90,6 +90,9 @@ class GunlukKayit {
   int yemekKalipci;
   int yemekDemirci;
   int yemekDiger;
+  /// İsteğe bağlı: projede açıksa girilen kahvaltı ve akşam yemeği kişi sayıları.
+  int yemekKahvalti;
+  int yemekAksam;
 
   // Vinç bilgileri (Legacy)
   String vincFirmaAdi;
@@ -114,6 +117,8 @@ class GunlukKayit {
     this.yemekKalipci = 0,
     this.yemekDemirci = 0,
     this.yemekDiger = 0,
+    this.yemekKahvalti = 0,
+    this.yemekAksam = 0,
     this.kalipciYapilanIs = '',
     this.demirciYapilanIs = '',
     this.notlar = '',
@@ -169,6 +174,8 @@ class GunlukKayit {
         'yemekKalipci': yemekKalipci,
         'yemekDemirci': yemekDemirci,
         'yemekDiger': yemekDiger,
+        'yemekKahvalti': yemekKahvalti,
+        'yemekAksam': yemekAksam,
         'kalipciYapilanIs': kalipciYapilanIs,
         'demirciYapilanIs': demirciYapilanIs,
         'notlar': notlar,
@@ -221,6 +228,8 @@ class GunlukKayit {
       yemekKalipci: jsonTamsayi(json['yemekKalipci']),
       yemekDemirci: jsonTamsayi(json['yemekDemirci']),
       yemekDiger: jsonTamsayi(json['yemekDiger']),
+      yemekKahvalti: jsonTamsayi(json['yemekKahvalti']),
+      yemekAksam: jsonTamsayi(json['yemekAksam']),
       kalipciYapilanIs: jsonMetin(json['kalipciYapilanIs']),
       demirciYapilanIs: jsonMetin(json['demirciYapilanIs']),
       notlar: jsonMetin(json['notlar']),

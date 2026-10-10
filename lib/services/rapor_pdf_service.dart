@@ -227,6 +227,11 @@ class GunlukRaporPdf {
       if (kayit.yemekDiger > 0) 'diğer ${kayit.yemekDiger}',
     ];
     if (yemek.isNotEmpty) satirlar.add(['Yemek', yemek.join(', ')]);
+    final digerOgun = [
+      if (kayit.yemekKahvalti > 0) 'kahvaltı ${kayit.yemekKahvalti}',
+      if (kayit.yemekAksam > 0) 'akşam ${kayit.yemekAksam}',
+    ];
+    if (digerOgun.isNotEmpty) satirlar.add(['Kahvaltı / Akşam', digerOgun.join(', ')]);
     if (kayit.notlar.trim().isNotEmpty) satirlar.add(['Notlar', kayit.notlar.trim()]);
 
     final baslik = pw.Container(

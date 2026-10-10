@@ -495,6 +495,8 @@ class ProjelerSayfaPage extends StatelessWidget {
     DateTime? baslangicTarihi = proje.baslangicTarihi;
     String secilenDurum = proje.durum;
     bool kayitHatirlatma = proje.kayitHatirlatma;
+    bool kahvaltiAcik = proje.kahvaltiAcik;
+    bool aksamAcik = proje.aksamAcik;
 
     showDialog(
       context: context,
@@ -619,6 +621,26 @@ class ProjelerSayfaPage extends StatelessWidget {
                     style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
                   ),
                 ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: kahvaltiAcik,
+                  onChanged: (v) => setState(() => kahvaltiAcik = v),
+                  title: Text('Kahvaltı sayısı', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                  subtitle: Text(
+                    'Günlük kayıtta kahvaltı kişi sayısı kutusu gösterilir.',
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+                  ),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: aksamAcik,
+                  onChanged: (v) => setState(() => aksamAcik = v),
+                  title: Text('Akşam yemeği sayısı', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                  subtitle: Text(
+                    'Günlük kayıtta akşam yemeği kişi sayısı kutusu gösterilir.',
+                    style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+                  ),
+                ),
               ],
             ),
           ),
@@ -642,6 +664,8 @@ class ProjelerSayfaPage extends StatelessWidget {
                       durum: secilenDurum,
                       sonGuncelleme: proje.sonGuncelleme,
                       kayitHatirlatma: kayitHatirlatma,
+                      kahvaltiAcik: kahvaltiAcik,
+                      aksamAcik: aksamAcik,
                     ),
                   );
                   Navigator.pop(context);
