@@ -1,4 +1,4 @@
 {
-  "version": "2.6.3+12",
-  "notes": "v2.6.3 Güncellemesi:\n- Sesle kayıt: \"yapay zekâya ulaşılamadı\" hatası giderildi; yoğun ya da yavaş modelde hızlı modele geçiliyor.\n- Anahtardaki görünmez karakterler temizleniyor, hata iletileri nedeni söylüyor.\n- Ayarlar > Sesle Kayıt: \"Kaydet ve dene\" gerçek deneme yapıyor."
+  "version": "2.7.0+13",
+  "notes": "v2.7.0 Güncellemesi:\n- Kahvaltı ve akşam yemeği: projeye göre açılır (Projeler > ⋮ > Düzenle).\n- Kayıt girişinde, Yemek sayfasında, Excel ve PDF raporunda öğün sayıları.\n- Sesle kayıt kahvaltı/akşam yemeğini de anlıyor.\n- Tüm cihazları aynı sürüme güncelleyin."
 }
