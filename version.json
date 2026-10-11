@@ -1,4 +1,4 @@
 {
-  "version": "2.7.0+13",
-  "notes": "v2.7.0 Güncellemesi:\n- Kahvaltı ve akşam yemeği: projeye göre açılır (Projeler > ⋮ > Düzenle).\n- Kayıt girişinde, Yemek sayfasında, Excel ve PDF raporunda öğün sayıları.\n- Sesle kayıt kahvaltı/akşam yemeğini de anlıyor.\n- Tüm cihazları aynı sürüme güncelleyin."
+  "version": "2.7.1+14",
+  "notes": "v2.7.1 Güncellemesi:\n- Yemek Sayıları kartı öğle yemeğiyle açılır; başlığın sağındaki ok kahvaltı ve akşam yemeğini açar/kapatır.\n- Tüm cihazları aynı sürüme güncelleyin."
 }
