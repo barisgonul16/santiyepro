@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gunluk_kayit.dart';
@@ -145,17 +147,35 @@ class AiKayitService {
   static const String _modelAyari = 'gemini_model';
   static const String _taban = 'https://generativelanguage.googleapis.com/v1beta';
 
-  /// Önce bunlar denenir; hiçbiri yoksa hesabın model listesinden "flash"
-  /// içeren ilk uygun model seçilir. Model adları zamanla değiştiği için sabit
-  /// tek bir ada güvenilmez.
-  static const List<String> _tercihler = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+  /// Hesabın model listesi alınamazsa denenecek modeller.
+  static const List<String> _yedekModeller = [
+    'gemini-flash-lite-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-latest',
+  ];
+
+  /// Metin ayıklama için uygun olmayan model türleri.
+  static const List<String> _istenmeyen = [
+    'image', 'tts', 'live', 'audio', 'embedding', 'vision', 'robotics', 'computer', 'omni', 'preview', 'thinking',
+  ];
+
+  /// Anahtardaki boşluk, satır sonu, görünmez ve Türkçe karakterleri ayıklar.
+  /// Telefondan yapıştırılan anahtarlarda bunlar bulunabiliyor; başlığa
+  /// yazılamadıkları için istek hiç gitmeden "ulaşılamadı" hatası çıkıyordu.
+  static String anahtariTemizle(String ham) {
+    final kodlar = ham.runes.where((r) => r >= 0x21 && r <= 0x7E).toList();
+    var s = String.fromCharCodes(kodlar);
+    // Yanlışlıkla kopyalanan tırnaklar.
+    s = s.replaceAll('"', '').replaceAll("'", '').replaceAll('`', '');
+    return s;
+  }
 
   static Future<String> anahtar() async =>
-      (await SharedPreferences.getInstance()).getString(_anahtarAyari)?.trim() ?? '';
+      anahtariTemizle((await SharedPreferences.getInstance()).getString(_anahtarAyari) ?? '');
 
   static Future<void> anahtarKaydet(String deger) async {
     final prefs = await SharedPreferences.getInstance();
-    final temiz = deger.trim();
+    final temiz = anahtariTemizle(deger);
     if (temiz.isEmpty) {
       await prefs.remove(_anahtarAyari);
     } else {
@@ -166,72 +186,197 @@ class AiKayitService {
   }
 
   final http.Client _istemci;
-  AiKayitService({http.Client? istemci}) : _istemci = istemci ?? http.Client();
+  final Duration _istekZamanAsimi;
+  final Duration _listeZamanAsimi;
+
+  AiKayitService({
+    http.Client? istemci,
+    Duration istekZamanAsimi = const Duration(seconds: 25),
+    Duration listeZamanAsimi = const Duration(seconds: 15),
+  })  : _istemci = istemci ?? http.Client(),
+        _istekZamanAsimi = istekZamanAsimi,
+        _listeZamanAsimi = listeZamanAsimi;
 
   Map<String, String> _basliklar(String anahtar) => {
         'Content-Type': 'application/json',
         'x-goog-api-key': anahtar,
       };
 
-  AiKayitHatasi _hata(http.Response yanit) {
-    String ayrinti = '';
+  /// Hata gövdesinden (varsa) hatanın durumu ve iletisi.
+  static (String durum, String ileti, String neden) _hataAyrintisi(http.Response yanit) {
     try {
-      ayrinti = (jsonDecode(utf8.decode(yanit.bodyBytes))['error']['message'] ?? '').toString();
-    } catch (_) {}
-    appLog('Gemini hatası ${yanit.statusCode}: $ayrinti');
+      final e = jsonDecode(utf8.decode(yanit.bodyBytes))['error'];
+      String neden = '';
+      for (final d in (e['details'] ?? const []) as List) {
+        if (d is Map && d['reason'] != null) neden = '${d['reason']}';
+      }
+      return ('${e['status'] ?? ''}', '${e['message'] ?? ''}', neden);
+    } catch (_) {
+      return ('', '', '');
+    }
+  }
+
+  /// Anahtarın kendisiyle ilgili bir hata mı? (Bu durumda başka model denenmez.)
+  static bool _anahtarHatasi(http.Response yanit) {
+    if (yanit.statusCode == 401 || yanit.statusCode == 403) return true;
+    if (yanit.statusCode == 400) {
+      final (_, ileti, neden) = _hataAyrintisi(yanit);
+      return neden == 'API_KEY_INVALID' || ileti.toLowerCase().contains('api key');
+    }
+    return false;
+  }
+
+  AiKayitHatasi _hata(http.Response yanit) {
+    final (durum, ileti, _) = _hataAyrintisi(yanit);
+    appLog('Gemini hatası ${yanit.statusCode} $durum: $ileti');
+    if (_anahtarHatasi(yanit)) {
+      return const AiKayitHatasi('Yapay zekâ anahtarı kabul edilmedi. Ayarlar\'dan anahtarı silip yeniden yapıştır.');
+    }
     switch (yanit.statusCode) {
-      case 400:
-      case 401:
-      case 403:
-        return const AiKayitHatasi('Yapay zekâ anahtarı kabul edilmedi. Ayarlar\'dan anahtarı kontrol et.');
       case 429:
         return const AiKayitHatasi('Ücretsiz kullanım sınırına ulaşıldı. Biraz sonra yeniden dene.');
+      case 500:
+      case 502:
+      case 503:
+      case 504:
+        return const AiKayitHatasi('Yapay zekâ şu an çok yoğun. Birkaç dakika sonra yeniden dene.');
       default:
         return AiKayitHatasi('Yapay zekâ yanıt vermedi (kod ${yanit.statusCode}). Biraz sonra yeniden dene.');
     }
   }
 
-  /// Bu anahtarla kullanılabilen, metin üreten bir "flash" modeli bulur.
-  Future<String> _modelSec(String anahtar) async {
-    final prefs = await SharedPreferences.getInstance();
-    final kayitli = prefs.getString(_modelAyari);
-    if (kayitli != null && kayitli.isNotEmpty) return kayitli;
-
-    final yanit = await _istemci
-        .get(Uri.parse('$_taban/models?pageSize=200'), headers: _basliklar(anahtar))
-        .timeout(const Duration(seconds: 20));
-    if (yanit.statusCode != 200) throw _hata(yanit);
-    final modeller = ((jsonDecode(utf8.decode(yanit.bodyBytes))['models'] ?? []) as List)
-        .where((m) => ((m['supportedGenerationMethods'] ?? []) as List).contains('generateContent'))
-        .map((m) => (m['name'] as String).replaceFirst('models/', ''))
-        .toList();
-
-    String? secilen;
-    for (final t in _tercihler) {
-      if (modeller.contains(t)) {
-        secilen = t;
-        break;
-      }
+  /// Bağlantı ve biçim hatalarını anlaşılır iletiye çevirir.
+  static AiKayitHatasi _istisna(Object e) {
+    if (e is AiKayitHatasi) return e;
+    if (e is TimeoutException) {
+      return const AiKayitHatasi('Yapay zekâ zamanında yanıt vermedi. Biraz sonra yeniden dene.');
     }
-    // Ses, görsel ve canlı modeller metin işi için uygun değil.
-    const istenmeyen = ['image', 'tts', 'live', 'audio', 'embedding', 'vision', 'thinking'];
-    secilen ??= modeller.cast<String?>().firstWhere(
-          (m) => m!.contains('flash') && !istenmeyen.any(m.contains),
-          orElse: () => null,
-        );
-    if (secilen == null) {
-      throw const AiKayitHatasi('Bu anahtarla kullanılabilecek uygun bir yapay zekâ modeli bulunamadı.');
+    if (e is FormatException) {
+      return const AiKayitHatasi('Anahtarda geçersiz karakter var. Ayarlar\'dan anahtarı silip yeniden yapıştır.');
     }
-    await prefs.setString(_modelAyari, secilen);
-    return secilen;
+    if (e is SocketException || e is http.ClientException) {
+      return const AiKayitHatasi('Google\'a bağlanılamadı. İnternet bağlantını kontrol et.');
+    }
+    appLog('Gemini isteği başarısız: $e');
+    return AiKayitHatasi('Beklenmeyen hata (${e.runtimeType}). Yeniden dene.');
   }
 
-  /// Anahtarın çalıştığını dener; çalışıyorsa seçilen modelin adını döndürür.
+  /// Denenecek modeller, sırayla. Hızlı "lite" modeller önde: büyük modeller
+  /// ücretsiz katmanda sık sık yoğun (503) ya da çok yavaş oluyor.
+  Future<List<String>> _adaylar(String anahtar) async {
+    final prefs = await SharedPreferences.getInstance();
+    final onceki = prefs.getString(_modelAyari) ?? '';
+
+    var bulunan = <String>[];
+    try {
+      final yanit = await _istemci
+          .get(Uri.parse('$_taban/models?pageSize=200'), headers: _basliklar(anahtar))
+          .timeout(_listeZamanAsimi);
+      if (yanit.statusCode == 200) {
+        bulunan = ((jsonDecode(utf8.decode(yanit.bodyBytes))['models'] ?? []) as List)
+            .where((m) => ((m['supportedGenerationMethods'] ?? []) as List).contains('generateContent'))
+            .map((m) => (m['name'] as String).replaceFirst('models/', ''))
+            .toList();
+      } else if (_anahtarHatasi(yanit)) {
+        throw _hata(yanit);
+      }
+    } on AiKayitHatasi {
+      rethrow;
+    } on TimeoutException {
+      // Liste alınamadı; yedek adlarla devam edilir.
+    } on FormatException {
+      rethrow;
+    } catch (e) {
+      if (e is SocketException || e is http.ClientException) rethrow;
+      appLog('Model listesi okunamadı: $e');
+    }
+
+    final uygun = bulunan.where((m) => m.contains('flash') && !_istenmeyen.any(m.contains)).toList();
+    int sirala(String a, String b) {
+      final la = a.contains('latest') ? 0 : 1, lb = b.contains('latest') ? 0 : 1;
+      if (la != lb) return la - lb;
+      return b.compareTo(a); // yeni sürüm önce
+    }
+
+    final lite = uygun.where((m) => m.contains('lite')).toList()..sort(sirala);
+    final buyuk = uygun.where((m) => !m.contains('lite')).toList()..sort(sirala);
+
+    final adaylar = <String>[
+      if (onceki.isNotEmpty && (bulunan.isEmpty || bulunan.contains(onceki))) onceki,
+      ...(lite.isEmpty && buyuk.isEmpty ? _yedekModeller : [...lite.take(3), ...buyuk.take(1)]),
+    ];
+    return adaylar.toSet().toList();
+  }
+
+  /// Aday modelleri sırayla dener; ilk başarılı yanıtın metnini ve modelini
+  /// döndürür. Anahtar hatasında ya da bağlantı yokken başka model denenmez.
+  Future<(String, String)> _uret(String anahtar, String istem) async {
+    final prefs = await SharedPreferences.getInstance();
+    final adaylar = await _adaylar(anahtar);
+    AiKayitHatasi? sonHata;
+
+    for (final model in adaylar) {
+      try {
+        final yanit = await _istemci
+            .post(
+              Uri.parse('$_taban/models/$model:generateContent'),
+              headers: _basliklar(anahtar),
+              body: jsonEncode({
+                'contents': [
+                  {
+                    'parts': [
+                      {'text': istem}
+                    ]
+                  }
+                ],
+                'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json'},
+              }),
+            )
+            .timeout(_istekZamanAsimi);
+
+        if (yanit.statusCode == 200) {
+          final String metin;
+          try {
+            final govde = jsonDecode(utf8.decode(yanit.bodyBytes));
+            metin = ((govde['candidates'] as List).first['content']['parts'] as List)
+                .map((p) => p['text'] ?? '')
+                .join();
+          } catch (_) {
+            sonHata = const AiKayitHatasi('Yapay zekâ boş yanıt verdi. Yeniden dene.');
+            continue;
+          }
+          await prefs.setString(_modelAyari, model);
+          return (model, metin);
+        }
+
+        final hata = _hata(yanit);
+        if (_anahtarHatasi(yanit)) throw hata;
+        sonHata = hata; // yoğunluk, kota ya da modele özgü hata: sıradaki model
+      } on AiKayitHatasi {
+        rethrow;
+      } on TimeoutException catch (e) {
+        sonHata = _istisna(e);
+      } catch (e) {
+        if (e is SocketException || e is http.ClientException || e is FormatException) throw _istisna(e);
+        sonHata = _istisna(e);
+      }
+    }
+    // Hiçbiri çalışmadıysa bir sonraki denemede yeniden seçilsin.
+    await prefs.remove(_modelAyari);
+    throw sonHata ?? const AiKayitHatasi('Yapay zekâya ulaşılamadı. Biraz sonra yeniden dene.');
+  }
+
+  /// Anahtarın çalıştığını dener; çalışıyorsa cevap veren modelin adını döndürür.
   Future<String> anahtariDene() async {
     final a = await anahtar();
     if (a.isEmpty) throw const AiKayitHatasi('Önce anahtarı gir.');
     (await SharedPreferences.getInstance()).remove(_modelAyari);
-    return _modelSec(a);
+    try {
+      final (model, _) = await _uret(a, 'Yalnızca {"tamam":true} JSON nesnesini döndür.');
+      return model;
+    } catch (e) {
+      throw _istisna(e);
+    }
   }
 
   static String _gun(DateTime t) =>
@@ -354,46 +499,11 @@ $metin
     if (a.isEmpty) {
       throw const AiKayitHatasi('Yapay zekâ anahtarı girilmemiş. Ayarlar > Sesle kayıt bölümünden ekle.');
     }
-    final http.Response yanit;
     try {
-      final model = await _modelSec(a);
-      yanit = await _istemci
-          .post(
-            Uri.parse('$_taban/models/$model:generateContent'),
-            headers: _basliklar(a),
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': yonerge(metin, projeler, bugun)}
-                  ]
-                }
-              ],
-              'generationConfig': {'temperature': 0, 'responseMimeType': 'application/json'},
-            }),
-          )
-          .timeout(const Duration(seconds: 45));
-    } on AiKayitHatasi {
-      rethrow;
+      final (_, cevap) = await _uret(a, yonerge(metin, projeler, bugun));
+      return taslaklariCoz(cevap, projeler, bugun);
     } catch (e) {
-      appLog('Gemini isteği başarısız: $e');
-      throw const AiKayitHatasi('Yapay zekâya ulaşılamadı. İnternet bağlantını kontrol et.');
+      throw _istisna(e);
     }
-    if (yanit.statusCode == 404) {
-      // Seçili model kaldırılmış olabilir; bir sonraki denemede yeniden seçilir.
-      (await SharedPreferences.getInstance()).remove(_modelAyari);
-    }
-    if (yanit.statusCode != 200) throw _hata(yanit);
-
-    final String cevap;
-    try {
-      final govde = jsonDecode(utf8.decode(yanit.bodyBytes));
-      cevap = ((govde['candidates'] as List).first['content']['parts'] as List)
-          .map((p) => p['text'] ?? '')
-          .join();
-    } catch (_) {
-      throw const AiKayitHatasi('Yapay zekâ boş yanıt verdi. Yeniden dene.');
-    }
-    return taslaklariCoz(cevap, projeler, bugun);
   }
 }

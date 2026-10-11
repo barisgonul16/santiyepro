@@ -75,7 +75,9 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
     setState(() => _aiDeneniyor = true);
     try {
       final model = await AiKayitService().anahtariDene();
-      _bilgiGoster('Anahtar çalışıyor. Kullanılacak model: $model', Colors.green);
+      final temiz = await AiKayitService.anahtar();
+      if (mounted) setState(() => _aiAnahtarKutusu.text = temiz);
+      _bilgiGoster('Anahtar çalışıyor (${temiz.length} karakter). Kullanılacak model: $model', Colors.green);
     } on AiKayitHatasi catch (e) {
       _bilgiGoster(e.mesaj, Colors.red);
     } catch (e) {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -349,6 +350,156 @@ void main() {
       final k = eklenen.single.$2;
       expect((k.yemekKalipci, k.yemekDemirci, k.yemekDiger), (7, 3, 0));
       expect(k.notlar, '');
+    });
+  });
+
+  group('Yapay zekâ bağlantısı: yedek model ve anahtar temizliği', () {
+    const geciciJson = '{"kayitlar":[{"projeId":"g","tarih":"2026-10-09","kalipci":2}]}';
+
+    http.Response gemini(String metin) => http.Response.bytes(
+        utf8.encode(jsonEncode({
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {'text': metin}
+                ]
+              }
+            }
+          ]
+        })),
+        200);
+
+    http.Response liste(List<String> adlar) => http.Response(
+        jsonEncode({
+          'models': [
+            for (final a in adlar) {'name': 'models/$a', 'supportedGenerationMethods': ['generateContent']},
+          ]
+        }),
+        200);
+
+    http.Response hata(int kod, String durum, String ileti) => http.Response(
+        jsonEncode({
+          'error': {'code': kod, 'status': durum, 'message': ileti}
+        }),
+        kod);
+
+    String modelAdi(http.BaseRequest r) => r.url.path.split('/').last.split(':').first;
+
+    test('anahtardaki boşluk, satır sonu, görünmez ve Türkçe karakter, tırnak temizlenir', () {
+      expect(AiKayitService.anahtariTemizle('AIza​ABC-def_12\n'), 'AIzaABC-def_12');
+      expect(AiKayitService.anahtariTemizle('  "abc.DEF_9"  '), 'abc.DEF_9');
+      expect(AiKayitService.anahtariTemizle('çAB 12ğ'), 'AB12');
+    });
+
+    test('kayıtlı anahtar temizlenmiş okunur', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'abc​123\n'});
+      expect(await AiKayitService.anahtar(), 'abc123');
+    });
+
+    test('hızlı (lite) model önce denenir; yoğunsa sıradaki modele geçilir ve çalışan hatırlanır', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      final denenen = <String>[];
+      final servis = AiKayitService(
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') {
+            return liste(['gemini-flash-latest', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-2.5-flash-image']);
+          }
+          denenen.add(modelAdi(r));
+          return denenen.length == 1 ? hata(503, 'UNAVAILABLE', 'high demand') : gemini(geciciJson);
+        }),
+      );
+      final (t, _) = await servis.cozumle('gerada 2 kalıpçı', projeler, bugun);
+      expect(t.single.kalipci, 2);
+      expect(denenen, ['gemini-flash-lite-latest', 'gemini-3.5-flash-lite']);
+      expect((await SharedPreferences.getInstance()).getString('gemini_model'), 'gemini-3.5-flash-lite');
+    });
+
+    test('önceki başarılı model bir sonraki istekte ilk denenir', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k', 'gemini_model': 'gemini-3.5-flash-lite'});
+      final denenen = <String>[];
+      final servis = AiKayitService(
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') return liste(['gemini-flash-lite-latest', 'gemini-3.5-flash-lite']);
+          denenen.add(modelAdi(r));
+          return gemini(geciciJson);
+        }),
+      );
+      await servis.cozumle('x', projeler, bugun);
+      expect(denenen, ['gemini-3.5-flash-lite']);
+    });
+
+    test('hepsi yoğunsa "çok yoğun" der, ağ hatası gibi göstermez', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      var istek = 0;
+      final servis = AiKayitService(
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') return liste(['gemini-flash-lite-latest', 'gemini-flash-latest']);
+          istek++;
+          return hata(503, 'UNAVAILABLE', 'high demand');
+        }),
+      );
+      await expectLater(
+        servis.cozumle('x', projeler, bugun),
+        throwsA(isA<AiKayitHatasi>().having((e) => e.mesaj, 'mesaj', contains('çok yoğun'))),
+      );
+      expect(istek, 2);
+    });
+
+    test('yavaş model zaman aşımına düşünce sıradaki denenir', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      final denenen = <String>[];
+      final servis = AiKayitService(
+        istekZamanAsimi: const Duration(milliseconds: 80),
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') return liste(['gemini-flash-lite-latest', 'gemini-3.5-flash-lite']);
+          denenen.add(modelAdi(r));
+          if (denenen.length == 1) await Future<void>.delayed(const Duration(milliseconds: 400));
+          return gemini(geciciJson);
+        }),
+      );
+      final (t, _) = await servis.cozumle('x', projeler, bugun);
+      expect(t.length, 1);
+      expect(denenen.length, 2);
+    });
+
+    test('anahtar reddedilirse başka model denenmez', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      var istek = 0;
+      final servis = AiKayitService(
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') return liste(['gemini-flash-lite-latest', 'gemini-3.5-flash-lite']);
+          istek++;
+          return hata(403, 'PERMISSION_DENIED', 'forbidden');
+        }),
+      );
+      await expectLater(
+        servis.cozumle('x', projeler, bugun),
+        throwsA(isA<AiKayitHatasi>().having((e) => e.mesaj, 'mesaj', contains('anahtarı kabul edilmedi'))),
+      );
+      expect(istek, 1);
+    });
+
+    test('bağlantı yoksa ve başlıkta geçersiz karakter varsa anlaşılır ileti verir', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      await expectLater(
+        AiKayitService(istemci: MockClient((r) async => throw const SocketException('yok'))).cozumle('x', projeler, bugun),
+        throwsA(isA<AiKayitHatasi>().having((e) => e.mesaj, 'mesaj', contains('bağlanılamadı'))),
+      );
+      await expectLater(
+        AiKayitService(istemci: MockClient((r) async => throw const FormatException('Invalid HTTP header')))
+            .cozumle('x', projeler, bugun),
+        throwsA(isA<AiKayitHatasi>().having((e) => e.mesaj, 'mesaj', contains('geçersiz karakter'))),
+      );
+    });
+
+    test('anahtar denemesi çalışan modelin adını döndürür', () async {
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
+      final servis = AiKayitService(
+        istemci: MockClient((r) async =>
+            r.method == 'GET' ? liste(['gemini-flash-lite-latest']) : gemini('{"tamam":true}')),
+      );
+      expect(await servis.anahtariDene(), 'gemini-flash-lite-latest');
     });
   });
 }
