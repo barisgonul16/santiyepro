@@ -1,4 +1,4 @@
 {
-  "version": "2.6.2+11",
-  "notes": "v2.6.2 Güncellemesi:\n- Sesle kayıt: yemek sayısı artık notlara değil yemek alanlarına yazılıyor; tek sayı söylenirse ekiplere dağıtılıp onay ekranında uyarıyla gösteriliyor.\n- Sesle yazma: konuşurken duraklayınca daha önce yazılanlar silinmiyor."
+  "version": "2.6.3+12",
+  "notes": "v2.6.3 Güncellemesi:\n- Sesle kayıt: \"yapay zekâya ulaşılamadı\" hatası giderildi; yoğun ya da yavaş modelde hızlı modele geçiliyor.\n- Anahtardaki görünmez karakterler temizleniyor, hata iletileri nedeni söylüyor.\n- Ayarlar > Sesle Kayıt: \"Kaydet ve dene\" gerçek deneme yapıyor."
 }
