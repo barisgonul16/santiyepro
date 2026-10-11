@@ -1,4 +1,4 @@
 {
-  "version": "2.6.1+10",
-  "notes": "v2.6.1 Güncellemesi:\n- Sesle kayıt: ana sayfadaki turuncu mikrofonla günü anlat; yapay zekâ şantiye şantiye kayıt taslağı çıkarır, sen onaylayınca kaydedilir.\n- Kullanmak için Ayarlar > Sesle Kayıt bölümüne kendi ücretsiz Gemini anahtarını gir (kart bağlama)."
+  "version": "2.6.2+11",
+  "notes": "v2.6.2 Güncellemesi:\n- Yemek: istediğin projede kahvaltı ve akşam yemeği sayıları da girilebilir (Projeler > düzenle > Kahvaltı / Akşam yemeği sayısı; varsayılan kapalı). Yemek sayfası, Excel ve PDF rapora da yansır.\n- Sesle kayıt: \"kahvaltı 8, akşam 6\" gibi söylenen öğünler de kaydedilir.\n- Sesle kayıt: yapay zekâ servisi yoğunken (503) otomatik yeniden dener; hata mesajları daha anlaşılır."
 }
