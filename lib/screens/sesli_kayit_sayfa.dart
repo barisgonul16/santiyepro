@@ -352,6 +352,10 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           ),
         );
 
+    final secili = widget.projeler.where((p) => p.id == t.projeId);
+    final kahvaltiGoster = t.yemekKahvalti > 0 || (secili.isNotEmpty && secili.first.kahvaltiAcik);
+    final aksamGoster = t.yemekAksam > 0 || (secili.isNotEmpty && secili.first.aksamAcik);
+
     Widget yemekKutusu(String etiket, int deger, ValueChanged<int> degisti) => Expanded(
           child: TextFormField(
             key: ValueKey('${identityHashCode(t)}-$etiket-${t.yemekSurumu}'),
@@ -467,6 +471,18 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     yemekKutusu('Yemek diğer', t.yemekDiger, (v) => t.yemekDiger = v),
                   ],
                 ),
+                // Kahvaltı / akşam: projede açıksa ya da söylendiyse görünür.
+                if (kahvaltiGoster || aksamGoster) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      if (kahvaltiGoster) yemekKutusu('Kahvaltı', t.yemekKahvalti, (v) => t.yemekKahvalti = v),
+                      if (kahvaltiGoster && aksamGoster) const SizedBox(width: 8),
+                      if (aksamGoster) yemekKutusu('Akşam yemeği', t.yemekAksam, (v) => t.yemekAksam = v),
+                      if (!(kahvaltiGoster && aksamGoster)) const Spacer(),
+                    ],
+                  ),
+                ],
                 if (t.yemekDagitildi)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),

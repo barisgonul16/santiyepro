@@ -25,6 +25,9 @@ class SesliKayitTaslagi {
   int yemekKalipci;
   int yemekDemirci;
   int yemekDiger;
+  /// Öğle dışındaki öğünler (isteğe bağlı): kahvaltı ve akşam yemeği kişi sayısı.
+  int yemekKahvalti;
+  int yemekAksam;
   /// Yemek ekip ayrımı yapılmadan tek sayı olarak söylendiyse o sayı.
   final int yemekToplam;
   /// Ekip payları [yemekToplam]'dan çalışan sayılarına göre türetildi (kullanıcı
@@ -49,6 +52,8 @@ class SesliKayitTaslagi {
     this.yemekKalipci = 0,
     this.yemekDemirci = 0,
     this.yemekDiger = 0,
+    this.yemekKahvalti = 0,
+    this.yemekAksam = 0,
     this.yemekToplam = 0,
     List<VincBilgisi>? vincler,
     List<YevmiyeBilgisi>? yevmiyeler,
@@ -66,6 +71,8 @@ class SesliKayitTaslagi {
       yemekKalipci == 0 &&
       yemekDemirci == 0 &&
       yemekDiger == 0 &&
+      yemekKahvalti == 0 &&
+      yemekAksam == 0 &&
       yemekToplam == 0 &&
       vincler.isEmpty &&
       yevmiyeler.isEmpty;
@@ -118,8 +125,8 @@ class SesliKayitTaslagi {
       yemekKalipci: yemekKalipci > 0 ? yemekKalipci : temel.yemekKalipci,
       yemekDemirci: yemekDemirci > 0 ? yemekDemirci : temel.yemekDemirci,
       yemekDiger: yemekDiger > 0 ? yemekDiger : temel.yemekDiger,
-      yemekKahvalti: temel.yemekKahvalti,
-      yemekAksam: temel.yemekAksam,
+      yemekKahvalti: yemekKahvalti > 0 ? yemekKahvalti : temel.yemekKahvalti,
+      yemekAksam: yemekAksam > 0 ? yemekAksam : temel.yemekAksam,
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),
@@ -270,11 +277,12 @@ Kurallar:
 - "vincler": vinç çalıştıysa her biri için firma, başlangıç ve bitiş saati ("HH:MM", 24 saat), mola (dakika) ve açıklama. Saat söylenmediyse boş bırak.
 - "yevmiyeler": yevmiyeli iş varsa ekip adı, miktar (yevmiye sayısı, yarım gün 0.5) ve açıklama.
 - Yemek: o gün yemek yiyen / yemek verilen kişi sayısı. Yemek bilgisini ASLA "notlar" alanına yazma. Kalıpçı, demirci ya da diğerleri için ayrı ayrı söylendiyse "yemekKalipci", "yemekDemirci", "yemekDiger" alanlarına yaz. Ekip ayrımı yapmadan tek sayı söylendiyse ("yemek 12", "12 kişilik yemek", "yemekli 12 kişi") yalnızca "yemek" alanına yaz. Söylenmediyse hepsi 0.
+- Kahvaltı ve akşam yemeği: yalnızca açıkça "kahvaltı" ya da "akşam yemeği" denirse kişi sayısını "yemekKahvalti" / "yemekAksam" alanına yaz; bunları "yemek" alanına katma. Sadece "yemek" denirse öğle yemeğidir ("yemek" ve ekip alanları).
 - "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, hava, ziyaret). Yemek sayısı notlara yazılmaz.
 - "anlasilmayan": hiçbir kayda yerleştiremediğin kısım varsa kısaca yaz, yoksa boş bırak.
 
 Yalnızca şu biçimde JSON döndür:
-{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
+{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"yemekKahvalti":0,"yemekAksam":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
 
 Söylenen not:
 """
@@ -331,6 +339,8 @@ $metin
         yemekKalipci: tam(k['yemekKalipci']),
         yemekDemirci: tam(k['yemekDemirci']),
         yemekDiger: tam(k['yemekDiger']),
+        yemekKahvalti: tam(k['yemekKahvalti']),
+        yemekAksam: tam(k['yemekAksam']),
         yemekToplam: tam(k['yemek']),
         vincler: [
           for (final v in (k['vincler'] is List ? k['vincler'] as List : const []))

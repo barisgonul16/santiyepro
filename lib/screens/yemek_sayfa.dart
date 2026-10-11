@@ -46,7 +46,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
       final kayitlar = widget.projeGunlukKayitlari[proje.id] ?? [];
       for (int i = 0; i < kayitlar.length; i++) {
         final kayit = kayitlar[i];
-        final toplamYemek = kayit.yemekKalipci + kayit.yemekDemirci + kayit.yemekDiger;
+        final toplamYemek = kayit.yemekKalipci + kayit.yemekDemirci + kayit.yemekDiger +
+            kayit.yemekKahvalti + kayit.yemekAksam;
 
         if (toplamYemek > 0) {
           // Ay Filtresi
@@ -65,6 +66,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
             'kalipci': kayit.yemekKalipci,
             'demirci': kayit.yemekDemirci,
             'diger': kayit.yemekDiger,
+            'kahvalti': kayit.yemekKahvalti,
+            'aksam': kayit.yemekAksam,
             'toplamYemek': toplamYemek,
           });
         }
@@ -174,6 +177,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
         xls.TextCellValue("Kalıpçı"),
         xls.TextCellValue("Demirci"),
         xls.TextCellValue("Diğer"),
+        xls.TextCellValue("Kahvaltı"),
+        xls.TextCellValue("Akşam"),
         xls.TextCellValue("Toplam"),
       ]);
 
@@ -185,6 +190,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
           xls.IntCellValue(item['kalipci']),
           xls.IntCellValue(item['demirci']),
           xls.IntCellValue(item['diger']),
+          xls.IntCellValue(item['kahvalti']),
+          xls.IntCellValue(item['aksam']),
           xls.IntCellValue(item['toplamYemek']),
         ]);
       }
@@ -350,6 +357,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                 _buildHeaderCell('Kalıp', '', flex: 1, isSortable: false),
                 _buildHeaderCell('Demir', '', flex: 1, isSortable: false),
                 _buildHeaderCell('Diğer', '', flex: 1, isSortable: false),
+                _buildHeaderCell('Kah.', '', flex: 1, isSortable: false),
+                _buildHeaderCell('Akş.', '', flex: 1, isSortable: false),
                 _buildHeaderCell('Top.', 'toplamYemek', flex: 1),
               ],
             ),
@@ -414,6 +423,20 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                             Expanded(
                               flex: 1,
                               child: Text(
+                                '${item['kahvalti']}',
+                                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
+                                '${item['aksam']}',
+                                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 1,
+                              child: Text(
                                 '${item['toplamYemek']}',
                                 style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 14),
                               ),
@@ -437,6 +460,8 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
     final int toplamKalipci = liste.fold(0, (sum, item) => sum + (item['kalipci'] as int));
     final int toplamDemirci = liste.fold(0, (sum, item) => sum + (item['demirci'] as int));
     final int toplamDiger   = liste.fold(0, (sum, item) => sum + (item['diger']   as int));
+    final int toplamKahvalti = liste.fold(0, (sum, item) => sum + (item['kahvalti'] as int));
+    final int toplamAksam   = liste.fold(0, (sum, item) => sum + (item['aksam']   as int));
     final int genelToplam   = liste.fold(0, (sum, item) => sum + (item['toplamYemek'] as int));
 
     // Başlık etiketi: aylık mı yoksa tarih aralığı mı?
@@ -514,6 +539,34 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                     Text('Diğer', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
                     Text(
                       '$toplamDiger',
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Kahvaltı
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Kah.', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
+                    Text(
+                      '$toplamKahvalti',
+                      style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Akşam
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Akş.', style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10)),
+                    Text(
+                      '$toplamAksam',
                       style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],

@@ -227,6 +227,20 @@ void main() {
   });
 
   group('Yemek', () {
+    test('kahvaltı ve akşam alanları gönderilir, taslağa okunur, kayda işlenir', () {
+      expect(AiKayitService.yonerge('x', projeler, bugun), contains('"yemekKahvalti":0'));
+      final (t, _) = AiKayitService.taslaklariCoz(
+        jsonEncode({
+          'kayitlar': [
+            {'projeId': 'g', 'tarih': '2026-10-09', 'yemekKahvalti': 8, 'yemekAksam': '6'},
+          ]
+        }),
+        projeler,
+        bugun,
+      );
+      expect((t[0].yemekKahvalti, t[0].yemekAksam, t[0].bos), (8, 6, false));
+    });
+
     test('yapay zekâya yemek kuralı ve alanları gönderilir', () {
       final yonerge = AiKayitService.yonerge('x', projeler, bugun);
       expect(yonerge, contains('"yemek":0'));
