@@ -86,10 +86,17 @@ class GunlukKayit {
   String beton;
   List<String> fotografYollari; // Fotoğrafların yolları
 
-  // Yemek bilgileri
+  // Yemek bilgileri. yemek* alanları öğle yemeğidir (eski kayıtlar böyle
+  // tutuldu); kahvaltı ve akşam yemeği yalnızca projede açıldıysa girilir.
   int yemekKalipci;
   int yemekDemirci;
   int yemekDiger;
+  int kahvaltiKalipci;
+  int kahvaltiDemirci;
+  int kahvaltiDiger;
+  int aksamKalipci;
+  int aksamDemirci;
+  int aksamDiger;
 
   // Vinç bilgileri (Legacy)
   String vincFirmaAdi;
@@ -114,6 +121,12 @@ class GunlukKayit {
     this.yemekKalipci = 0,
     this.yemekDemirci = 0,
     this.yemekDiger = 0,
+    this.kahvaltiKalipci = 0,
+    this.kahvaltiDemirci = 0,
+    this.kahvaltiDiger = 0,
+    this.aksamKalipci = 0,
+    this.aksamDemirci = 0,
+    this.aksamDiger = 0,
     this.kalipciYapilanIs = '',
     this.demirciYapilanIs = '',
     this.notlar = '',
@@ -161,6 +174,14 @@ class GunlukKayit {
     }
   }
 
+  /// Öğle yemeği yiyen toplam kişi (eski "yemek" alanları).
+  int get ogleYemegi => yemekKalipci + yemekDemirci + yemekDiger;
+  int get kahvaltiYemegi => kahvaltiKalipci + kahvaltiDemirci + kahvaltiDiger;
+  int get aksamYemegi => aksamKalipci + aksamDemirci + aksamDiger;
+
+  /// Üç öğünün toplamı.
+  int get toplamYemek => ogleYemegi + kahvaltiYemegi + aksamYemegi;
+
   Map<String, dynamic> toJson() => {
         'tarih': tarih.toIso8601String(),
         'kalipci': kalipci,
@@ -169,6 +190,12 @@ class GunlukKayit {
         'yemekKalipci': yemekKalipci,
         'yemekDemirci': yemekDemirci,
         'yemekDiger': yemekDiger,
+        'kahvaltiKalipci': kahvaltiKalipci,
+        'kahvaltiDemirci': kahvaltiDemirci,
+        'kahvaltiDiger': kahvaltiDiger,
+        'aksamKalipci': aksamKalipci,
+        'aksamDemirci': aksamDemirci,
+        'aksamDiger': aksamDiger,
         'kalipciYapilanIs': kalipciYapilanIs,
         'demirciYapilanIs': demirciYapilanIs,
         'notlar': notlar,
@@ -221,6 +248,12 @@ class GunlukKayit {
       yemekKalipci: jsonTamsayi(json['yemekKalipci']),
       yemekDemirci: jsonTamsayi(json['yemekDemirci']),
       yemekDiger: jsonTamsayi(json['yemekDiger']),
+      kahvaltiKalipci: jsonTamsayi(json['kahvaltiKalipci']),
+      kahvaltiDemirci: jsonTamsayi(json['kahvaltiDemirci']),
+      kahvaltiDiger: jsonTamsayi(json['kahvaltiDiger']),
+      aksamKalipci: jsonTamsayi(json['aksamKalipci']),
+      aksamDemirci: jsonTamsayi(json['aksamDemirci']),
+      aksamDiger: jsonTamsayi(json['aksamDiger']),
       kalipciYapilanIs: jsonMetin(json['kalipciYapilanIs']),
       demirciYapilanIs: jsonMetin(json['demirciYapilanIs']),
       notlar: jsonMetin(json['notlar']),

@@ -122,9 +122,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final yemekKalipciController = TextEditingController();
   final yemekDemirciController = TextEditingController();
   final yemekDigerController = TextEditingController();
-  bool isYemekKalipciManuel = false;
-  bool isYemekDemirciManuel = false;
-  bool isYemekDigerManuel = false;
+  final kahvaltiKalipciController = TextEditingController();
+  final kahvaltiDemirciController = TextEditingController();
+  final kahvaltiDigerController = TextEditingController();
+  final aksamKalipciController = TextEditingController();
+  final aksamDemirciController = TextEditingController();
+  final aksamDigerController = TextEditingController();
 
   // --- Vinç State Değişkenleri ---
   final List<VincFormControllers> _vincFormList = [];
@@ -178,6 +181,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     yemekKalipciController.dispose();
     yemekDemirciController.dispose();
     yemekDigerController.dispose();
+    kahvaltiKalipciController.dispose();
+    kahvaltiDemirciController.dispose();
+    kahvaltiDigerController.dispose();
+    aksamKalipciController.dispose();
+    aksamDemirciController.dispose();
+    aksamDigerController.dispose();
     for (var ctrl in _vincFormList) {
       ctrl.dispose();
     }
@@ -200,12 +209,15 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     demirciController.text = _sifirBos(kayit.demirci);
     digerController.text = _sifirBos(kayit.diger);
     
-    isYemekKalipciManuel = false;
-    isYemekDemirciManuel = false;
-    isYemekDigerManuel = false;
     yemekKalipciController.text = _sifirBos(kayit.yemekKalipci);
     yemekDemirciController.text = _sifirBos(kayit.yemekDemirci);
     yemekDigerController.text = _sifirBos(kayit.yemekDiger);
+    kahvaltiKalipciController.text = _sifirBos(kayit.kahvaltiKalipci);
+    kahvaltiDemirciController.text = _sifirBos(kayit.kahvaltiDemirci);
+    kahvaltiDigerController.text = _sifirBos(kayit.kahvaltiDiger);
+    aksamKalipciController.text = _sifirBos(kayit.aksamKalipci);
+    aksamDemirciController.text = _sifirBos(kayit.aksamDemirci);
+    aksamDigerController.text = _sifirBos(kayit.aksamDiger);
     kalipciIsController.text = kayit.kalipciYapilanIs;
     demirciIsController.text = kayit.demirciYapilanIs;
     notlarController.text = kayit.notlar;
@@ -262,6 +274,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   String _formImzasi() => jsonEncode([
         kalipciController.text, demirciController.text, digerController.text,
         yemekKalipciController.text, yemekDemirciController.text, yemekDigerController.text,
+        kahvaltiKalipciController.text,
+        kahvaltiDemirciController.text,
+        kahvaltiDigerController.text,
+        aksamKalipciController.text,
+        aksamDemirciController.text,
+        aksamDigerController.text,
         kalipciIsController.text, demirciIsController.text,
         notlarController.text, betonController.text,
         fotograflar,
@@ -502,6 +520,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         yemekKalipci: int.tryParse(yemekKalipciController.text) ?? 0,
         yemekDemirci: int.tryParse(yemekDemirciController.text) ?? 0,
         yemekDiger: int.tryParse(yemekDigerController.text) ?? 0,
+        kahvaltiKalipci: int.tryParse(kahvaltiKalipciController.text) ?? 0,
+        kahvaltiDemirci: int.tryParse(kahvaltiDemirciController.text) ?? 0,
+        kahvaltiDiger: int.tryParse(kahvaltiDigerController.text) ?? 0,
+        aksamKalipci: int.tryParse(aksamKalipciController.text) ?? 0,
+        aksamDemirci: int.tryParse(aksamDemirciController.text) ?? 0,
+        aksamDiger: int.tryParse(aksamDigerController.text) ?? 0,
         kalipciYapilanIs: kalipciIsController.text,
         demirciYapilanIs: demirciIsController.text,
         notlar: notlarController.text,
@@ -710,6 +734,21 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         xls.TextCellValue("Açıklama"),
       ]);
 
+      // Yemek sayfası yalnızca dışa aktarılan kayıtlarda yemek varsa eklenir;
+      // her öğün ayrı satırdır.
+      xls.Sheet? yemekSheet;
+      if (kayitlar.any((k) => k.toplamYemek > 0)) {
+        yemekSheet = excel['Yemek'];
+        yemekSheet.appendRow([
+          xls.TextCellValue("Tarih"),
+          xls.TextCellValue("Öğün"),
+          xls.TextCellValue("Kalıpçı"),
+          xls.TextCellValue("Demirci"),
+          xls.TextCellValue("Diğer"),
+          xls.TextCellValue("Toplam"),
+        ]);
+      }
+
       // Fotoğraf Klasörü Hazırla
       final fotoKlasorAdi = "${dosyaAdi}_Fotograflar";
       final fotoKlasorYolu = "$selectedDirectory/$fotoKlasorAdi";
@@ -764,6 +803,25 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           xls.TextCellValue(kayit.beton),
           xls.TextCellValue(kopyalananFotolar.join(", ")),
         ]);
+
+        if (yemekSheet != null) {
+          final ogunler = [
+            ('Kahvaltı', kayit.kahvaltiKalipci, kayit.kahvaltiDemirci, kayit.kahvaltiDiger),
+            ('Öğle yemeği', kayit.yemekKalipci, kayit.yemekDemirci, kayit.yemekDiger),
+            ('Akşam yemeği', kayit.aksamKalipci, kayit.aksamDemirci, kayit.aksamDiger),
+          ];
+          for (final (ad, k, dm, dg) in ogunler) {
+            if (k + dm + dg == 0) continue;
+            yemekSheet.appendRow([
+              xls.TextCellValue(tarihStr),
+              xls.TextCellValue(ad),
+              xls.IntCellValue(k),
+              xls.IntCellValue(dm),
+              xls.IntCellValue(dg),
+              xls.IntCellValue(k + dm + dg),
+            ]);
+          }
+        }
         
         if (kayit.vincler.isNotEmpty) {
           for (var v in kayit.vincler) {
@@ -1683,26 +1741,9 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                             ],
                           ),
                           const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildMobileInputItem("Kalıpçı Y.", yemekKalipciController, isNumeric: true, onChanged: (val) {
-                                  isYemekKalipciManuel = true;
-                                }),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildMobileInputItem("Demirci Y.", yemekDemirciController, isNumeric: true, onChanged: (val) {
-                                  isYemekDemirciManuel = true;
-                                }),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildMobileInputItem("Diğer Y.", yemekDigerController, isNumeric: true, onChanged: (val) {
-                                  isYemekDigerManuel = true;
-                                }),
-                              ),
-                            ],
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: _yemekBolumleri(),
                           ),
                         ],
                       ),
@@ -2111,6 +2152,53 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
   /// [sesli]: kutunun sağına mikrofon düğmesi koyar ve uzun metin satırlara
   /// sarılır (sesle yazılan cümleler tek satıra sığmaz).
+  /// Yemek kartının içeriği. Kahvaltı ve akşam yemeği yalnızca projede
+  /// açıldıysa (ya da o güne değer girilmişse) görünür; böylece açık olmayan
+  /// projelerde ekran eskisi gibi kalır.
+  List<Widget> _yemekBolumleri() {
+    bool dolu(List<TextEditingController> l) => l.any((c) => c.text.trim().isNotEmpty);
+    final kahvaltiGoster = widget.proje.kahvaltiVar ||
+        dolu([kahvaltiKalipciController, kahvaltiDemirciController, kahvaltiDigerController]);
+    final aksamGoster = widget.proje.aksamVar ||
+        dolu([aksamKalipciController, aksamDemirciController, aksamDigerController]);
+    final baslikli = kahvaltiGoster || aksamGoster;
+
+    Widget satir(String? baslik, TextEditingController k, TextEditingController dm, TextEditingController dg) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (baslik != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(baslik,
+                  style: const TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+            ),
+          Row(
+            children: [
+              Expanded(child: _buildMobileInputItem("Kalıpçı Y.", k, isNumeric: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildMobileInputItem("Demirci Y.", dm, isNumeric: true)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildMobileInputItem("Diğer Y.", dg, isNumeric: true)),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return [
+      if (kahvaltiGoster) ...[
+        satir('Kahvaltı', kahvaltiKalipciController, kahvaltiDemirciController, kahvaltiDigerController),
+        const SizedBox(height: 12),
+      ],
+      satir(baslikli ? 'Öğle yemeği' : null, yemekKalipciController, yemekDemirciController, yemekDigerController),
+      if (aksamGoster) ...[
+        const SizedBox(height: 12),
+        satir('Akşam yemeği', aksamKalipciController, aksamDemirciController, aksamDigerController),
+      ],
+    ];
+  }
+
   Widget _buildMobileInputItem(String label, TextEditingController controller, {int maxLines = 1, bool isNumeric = false, bool sesli = false, Function(String)? onChanged}) {
     final dinliyor = sesli && identical(_dinlenen, controller);
     return Column(

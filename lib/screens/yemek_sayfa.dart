@@ -32,6 +32,9 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
   bool _useMonthlyFilter = true;
   String? _secilenProjeId;
 
+  /// Gösterilen öğün: 'tumu', 'kahvalti', 'ogle', 'aksam'.
+  String _ogun = 'tumu';
+
   final List<String> _aylar = [
     'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
     'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
@@ -46,7 +49,20 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
       final kayitlar = widget.projeGunlukKayitlari[proje.id] ?? [];
       for (int i = 0; i < kayitlar.length; i++) {
         final kayit = kayitlar[i];
-        final toplamYemek = kayit.yemekKalipci + kayit.yemekDemirci + kayit.yemekDiger;
+        // Seçili öğüne göre ekip sayıları ("tümü" üç öğünün toplamıdır).
+        final ogleDahil = _ogun == 'tumu' || _ogun == 'ogle';
+        final kahvaltiDahil = _ogun == 'tumu' || _ogun == 'kahvalti';
+        final aksamDahil = _ogun == 'tumu' || _ogun == 'aksam';
+        final kal = (ogleDahil ? kayit.yemekKalipci : 0) +
+            (kahvaltiDahil ? kayit.kahvaltiKalipci : 0) +
+            (aksamDahil ? kayit.aksamKalipci : 0);
+        final dem = (ogleDahil ? kayit.yemekDemirci : 0) +
+            (kahvaltiDahil ? kayit.kahvaltiDemirci : 0) +
+            (aksamDahil ? kayit.aksamDemirci : 0);
+        final dig = (ogleDahil ? kayit.yemekDiger : 0) +
+            (kahvaltiDahil ? kayit.kahvaltiDiger : 0) +
+            (aksamDahil ? kayit.aksamDiger : 0);
+        final toplamYemek = kal + dem + dig;
 
         if (toplamYemek > 0) {
           // Ay Filtresi
@@ -62,10 +78,14 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
             'projeId': proje.id,
             'projeAdi': proje.ad,
             'tarih': kayit.tarih,
-            'kalipci': kayit.yemekKalipci,
-            'demirci': kayit.yemekDemirci,
-            'diger': kayit.yemekDiger,
+            'kalipci': kal,
+            'demirci': dem,
+            'diger': dig,
             'toplamYemek': toplamYemek,
+            // Öğün toplamları (satırın altındaki döküm ve Excel için).
+            'kahvalti': kayit.kahvaltiYemegi,
+            'ogle': kayit.ogleYemegi,
+            'aksam': kayit.aksamYemegi,
           });
         }
       }
@@ -168,6 +188,10 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
       xls.Sheet sheetObject = excel['Yemekler'];
       excel.delete('Sheet1');
 
+      // Kahvaltı ya da akşam yemeği girilmiş kayıt varsa öğün toplamları da
+      // eklenir; yoksa dosya eskisi gibi kalır.
+      final ogunSutunlari = liste.any((i) => (i['kahvalti'] as int) > 0 || (i['aksam'] as int) > 0);
+
       sheetObject.appendRow([
         xls.TextCellValue("Tarih"),
         xls.TextCellValue("Proje Adı"),
@@ -175,6 +199,9 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
         xls.TextCellValue("Demirci"),
         xls.TextCellValue("Diğer"),
         xls.TextCellValue("Toplam"),
+        if (ogunSutunlari) xls.TextCellValue("Kahvaltı"),
+        if (ogunSutunlari) xls.TextCellValue("Öğle yemeği"),
+        if (ogunSutunlari) xls.TextCellValue("Akşam yemeği"),
       ]);
 
       for (var item in liste) {
@@ -186,6 +213,9 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
           xls.IntCellValue(item['demirci']),
           xls.IntCellValue(item['diger']),
           xls.IntCellValue(item['toplamYemek']),
+          if (ogunSutunlari) xls.IntCellValue(item['kahvalti']),
+          if (ogunSutunlari) xls.IntCellValue(item['ogle']),
+          if (ogunSutunlari) xls.IntCellValue(item['aksam']),
         ]);
       }
 
@@ -333,6 +363,10 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                     ),
                   ],
                 ),
+                if (_ekOgunGorunur()) ...[
+                  const SizedBox(height: 10),
+                  _buildOgunSecici(),
+                ],
               ],
             ),
           ),
@@ -384,10 +418,20 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
                             ),
                             Expanded(
                               flex: 3,
-                              child: Text(
-                                item['projeAdi'],
-                                style: TextStyle(color: Colors.blueAccent.shade100, fontSize: 12, fontWeight: FontWeight.w500),
-                                overflow: TextOverflow.ellipsis,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item['projeAdi'],
+                                    style: TextStyle(color: Colors.blueAccent.shade100, fontSize: 12, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (_ogunDokumu(item).isNotEmpty)
+                                    Text(
+                                      _ogunDokumu(item),
+                                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 10),
+                                    ),
+                                ],
                               ),
                             ),
                             Expanded(
@@ -431,6 +475,57 @@ class _YemekSayfaPageState extends State<YemekSayfaPage> {
         ],
       ),
     );
+  }
+
+  /// Kahvaltı ya da akşam yemeği kullanılıyorsa (projede açık ya da girilmiş
+  /// kayıt var) öğün seçici gösterilir; aksi halde sayfa eskisi gibi kalır.
+  bool _ekOgunGorunur() {
+    if (widget.projeler.any((p) => p.kahvaltiVar || p.aksamVar)) return true;
+    return widget.projeGunlukKayitlari.values
+        .any((liste) => liste.any((k) => k.kahvaltiYemegi > 0 || k.aksamYemegi > 0));
+  }
+
+  Widget _buildOgunSecici() {
+    const secenekler = [
+      ('tumu', 'Tümü'),
+      ('kahvalti', 'Kahvaltı'),
+      ('ogle', 'Öğle'),
+      ('aksam', 'Akşam'),
+    ];
+    return Row(
+      children: [
+        const Icon(Icons.restaurant, color: Colors.orange, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Wrap(
+            spacing: 8,
+            children: [
+              for (final (kod, ad) in secenekler)
+                ChoiceChip(
+                  label: Text(ad),
+                  selected: _ogun == kod,
+                  selectedColor: Colors.orange.withValues(alpha: 0.4),
+                  onSelected: (_) => setState(() => _ogun = kod),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "Kah. 8 · Öğle 10 · Akş. 6": yalnızca "Tümü" görünümünde ve kahvaltı ya da
+  /// akşam yemeği girilmişse.
+  String _ogunDokumu(Map<String, dynamic> item) {
+    if (_ogun != 'tumu') return '';
+    final parcalar = [
+      if ((item['kahvalti'] as int) > 0) 'Kah. ${item['kahvalti']}',
+      if ((item['ogle'] as int) > 0) 'Öğle ${item['ogle']}',
+      if ((item['aksam'] as int) > 0) 'Akş. ${item['aksam']}',
+    ];
+    return parcalar.length > 1 || (item['kahvalti'] as int) > 0 || (item['aksam'] as int) > 0
+        ? parcalar.join(' · ')
+        : '';
   }
 
   Widget _buildToplamSatiri(List<Map<String, dynamic>> liste) {

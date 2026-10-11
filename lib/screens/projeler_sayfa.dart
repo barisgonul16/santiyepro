@@ -336,6 +336,8 @@ class ProjelerSayfaPage extends StatelessWidget {
     final toplamGunController = TextEditingController();
     DateTime? baslangicTarihi;
     String secilenDurum = "Devam Ediyor";
+    bool kahvaltiVar = false;
+    bool aksamVar = false;
 
     showDialog(
       context: context,
@@ -451,6 +453,14 @@ class ProjelerSayfaPage extends StatelessWidget {
                     side: BorderSide(color: ThemeColors.textTertiary(context)),
                   ),
                 ),
+                const SizedBox(height: 8),
+                _ogunSecenekleri(
+                  context,
+                  kahvaltiVar: kahvaltiVar,
+                  aksamVar: aksamVar,
+                  kahvaltiDegisti: (v) => setState(() => kahvaltiVar = v),
+                  aksamDegisti: (v) => setState(() => aksamVar = v),
+                ),
               ],
             ),
           ),
@@ -472,6 +482,8 @@ class ProjelerSayfaPage extends StatelessWidget {
                       baslangicTarihi: baslangicTarihi!,
                       toplamGun: int.parse(toplamGunController.text),
                       durum: secilenDurum,
+                      kahvaltiVar: kahvaltiVar,
+                      aksamVar: aksamVar,
                     ),
                   );
                   Navigator.pop(context);
@@ -495,6 +507,8 @@ class ProjelerSayfaPage extends StatelessWidget {
     DateTime? baslangicTarihi = proje.baslangicTarihi;
     String secilenDurum = proje.durum;
     bool kayitHatirlatma = proje.kayitHatirlatma;
+    bool kahvaltiVar = proje.kahvaltiVar;
+    bool aksamVar = proje.aksamVar;
 
     showDialog(
       context: context,
@@ -619,6 +633,13 @@ class ProjelerSayfaPage extends StatelessWidget {
                     style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
                   ),
                 ),
+                _ogunSecenekleri(
+                  context,
+                  kahvaltiVar: kahvaltiVar,
+                  aksamVar: aksamVar,
+                  kahvaltiDegisti: (v) => setState(() => kahvaltiVar = v),
+                  aksamDegisti: (v) => setState(() => aksamVar = v),
+                ),
               ],
             ),
           ),
@@ -642,6 +663,8 @@ class ProjelerSayfaPage extends StatelessWidget {
                       durum: secilenDurum,
                       sonGuncelleme: proje.sonGuncelleme,
                       kayitHatirlatma: kayitHatirlatma,
+                      kahvaltiVar: kahvaltiVar,
+                      aksamVar: aksamVar,
                     ),
                   );
                   Navigator.pop(context);
@@ -683,4 +706,34 @@ class ProjelerSayfaPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Proje penceresindeki öğün seçenekleri: kahvaltı ve akşam yemeği her projede
+/// olmaz, bu yüzden projeye göre açılır.
+Widget _ogunSecenekleri(
+  BuildContext context, {
+  required bool kahvaltiVar,
+  required bool aksamVar,
+  required ValueChanged<bool> kahvaltiDegisti,
+  required ValueChanged<bool> aksamDegisti,
+}) {
+  final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12);
+  return Column(
+    children: [
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: kahvaltiVar,
+        onChanged: kahvaltiDegisti,
+        title: Text('Kahvaltı yemeği', style: TextStyle(color: ThemeColors.textPrimary(context))),
+        subtitle: Text('Kayıt girişinde kahvaltı sayıları da sorulur.', style: ikincil),
+      ),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: aksamVar,
+        onChanged: aksamDegisti,
+        title: Text('Akşam yemeği', style: TextStyle(color: ThemeColors.textPrimary(context))),
+        subtitle: Text('Kayıt girişinde akşam yemeği sayıları da sorulur.', style: ikincil),
+      ),
+    ],
+  );
 }

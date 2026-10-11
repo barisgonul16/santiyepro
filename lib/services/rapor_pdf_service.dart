@@ -221,12 +221,22 @@ class GunlukRaporPdf {
         }).join('\n'),
       ]);
     }
-    final yemek = [
-      if (kayit.yemekKalipci > 0) 'kalıpçı ${kayit.yemekKalipci}',
-      if (kayit.yemekDemirci > 0) 'demirci ${kayit.yemekDemirci}',
-      if (kayit.yemekDiger > 0) 'diğer ${kayit.yemekDiger}',
-    ];
-    if (yemek.isNotEmpty) satirlar.add(['Yemek', yemek.join(', ')]);
+    String ogun(int kalipci, int demirci, int diger) => [
+          if (kalipci > 0) 'kalıpçı $kalipci',
+          if (demirci > 0) 'demirci $demirci',
+          if (diger > 0) 'diğer $diger',
+        ].join(', ');
+    final ogleYemegi = ogun(kayit.yemekKalipci, kayit.yemekDemirci, kayit.yemekDiger);
+    final kahvalti = ogun(kayit.kahvaltiKalipci, kayit.kahvaltiDemirci, kayit.kahvaltiDiger);
+    final aksam = ogun(kayit.aksamKalipci, kayit.aksamDemirci, kayit.aksamDiger);
+    if (kahvalti.isEmpty && aksam.isEmpty) {
+      // Yalnızca öğle yemeği: eski görünüm.
+      if (ogleYemegi.isNotEmpty) satirlar.add(['Yemek', ogleYemegi]);
+    } else {
+      if (kahvalti.isNotEmpty) satirlar.add(['Kahvaltı', kahvalti]);
+      if (ogleYemegi.isNotEmpty) satirlar.add(['Öğle yemeği', ogleYemegi]);
+      if (aksam.isNotEmpty) satirlar.add(['Akşam yemeği', aksam]);
+    }
     if (kayit.notlar.trim().isNotEmpty) satirlar.add(['Notlar', kayit.notlar.trim()]);
 
     final baslik = pw.Container(

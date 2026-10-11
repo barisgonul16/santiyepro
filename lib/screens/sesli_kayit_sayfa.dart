@@ -154,6 +154,23 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     );
   }
 
+  Proje? _proje(String id) {
+    for (final p in widget.projeler) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Hangi öğünler toplam olarak söylendi (onay ekranındaki uyarı için).
+  String _dagitimNotu(SesliKayitTaslagi t) {
+    final parcalar = [
+      if (t.kahvaltiToplam > 0) 'Kahvaltı toplam ${t.kahvaltiToplam}',
+      if (t.yemekToplam > 0) 'Yemek toplam ${t.yemekToplam}',
+      if (t.aksamToplam > 0) 'Akşam toplam ${t.aksamToplam}',
+    ];
+    return '${parcalar.join(', ')} olarak söylendi; çalışan sayısına göre ekiplere dağıtıldı. Kontrol et.';
+  }
+
   /// O şantiyede o güne ait kaydın sırası; yoksa -1.
   int _mevcutSira(SesliKayitTaslagi t) {
     final liste = widget.projeGunlukKayitlari[t.projeId] ?? const <GunlukKayit>[];
@@ -332,6 +349,13 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     final metin = TextStyle(color: ThemeColors.textPrimary(context), fontSize: 14);
     final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12);
     final mevcutVar = t.projeId.isNotEmpty && _mevcutSira(t) >= 0;
+    // Kahvaltı ve akşam yemeği yalnızca projede açıksa ya da söylendiyse görünür.
+    final proje = _proje(t.projeId);
+    final kahvaltiGoster = (proje?.kahvaltiVar ?? false) ||
+        t.kahvaltiKalipci + t.kahvaltiDemirci + t.kahvaltiDiger + t.kahvaltiToplam > 0;
+    final aksamGoster = (proje?.aksamVar ?? false) ||
+        t.aksamKalipci + t.aksamDemirci + t.aksamDiger + t.aksamToplam > 0;
+    final ogleBasligi = kahvaltiGoster || aksamGoster ? 'Öğle yemeği' : 'Yemek';
 
     InputDecoration kutu(String etiket) => InputDecoration(
           isDense: true,
@@ -352,9 +376,9 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           ),
         );
 
-    Widget yemekKutusu(String etiket, int deger, ValueChanged<int> degisti) => Expanded(
+    Widget yemekKutusu(String ogun, String etiket, int deger, ValueChanged<int> degisti) => Expanded(
           child: TextFormField(
-            key: ValueKey('${identityHashCode(t)}-$etiket-${t.yemekSurumu}'),
+            key: ValueKey('${identityHashCode(t)}-$ogun-$etiket-${t.yemekSurumu}'),
             initialValue: deger == 0 ? '' : '$deger',
             style: metin,
             keyboardType: TextInputType.number,
@@ -365,6 +389,28 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
               t.yemekDagitildi = false;
             }),
           ),
+        );
+
+    Widget ogunSatiri(String baslik, int k, ValueChanged<int> kS, int dm, ValueChanged<int> dS, int dg,
+            ValueChanged<int> gS) =>
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 10, bottom: 6),
+              child: Text(baslik,
+                  style: const TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+            Row(
+              children: [
+                yemekKutusu(baslik, 'Kalıpçı', k, kS),
+                const SizedBox(width: 8),
+                yemekKutusu(baslik, 'Demirci', dm, dS),
+                const SizedBox(width: 8),
+                yemekKutusu(baslik, 'Diğer', dg, gS),
+              ],
+            ),
+          ],
         );
 
     Widget yazi(String etiket, String deger, ValueChanged<String> degisti) => Padding(
@@ -457,21 +503,19 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     sayi('Diğer', t.diger, (v) => t.diger = v),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    yemekKutusu('Yemek kalıpçı', t.yemekKalipci, (v) => t.yemekKalipci = v),
-                    const SizedBox(width: 8),
-                    yemekKutusu('Yemek demirci', t.yemekDemirci, (v) => t.yemekDemirci = v),
-                    const SizedBox(width: 8),
-                    yemekKutusu('Yemek diğer', t.yemekDiger, (v) => t.yemekDiger = v),
-                  ],
-                ),
+                if (kahvaltiGoster)
+                  ogunSatiri('Kahvaltı', t.kahvaltiKalipci, (v) => t.kahvaltiKalipci = v, t.kahvaltiDemirci,
+                      (v) => t.kahvaltiDemirci = v, t.kahvaltiDiger, (v) => t.kahvaltiDiger = v),
+                ogunSatiri(ogleBasligi, t.yemekKalipci, (v) => t.yemekKalipci = v, t.yemekDemirci,
+                    (v) => t.yemekDemirci = v, t.yemekDiger, (v) => t.yemekDiger = v),
+                if (aksamGoster)
+                  ogunSatiri('Akşam yemeği', t.aksamKalipci, (v) => t.aksamKalipci = v, t.aksamDemirci,
+                      (v) => t.aksamDemirci = v, t.aksamDiger, (v) => t.aksamDiger = v),
                 if (t.yemekDagitildi)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      'Yemek toplam ${t.yemekToplam} olarak söylendi; çalışan sayısına göre ekiplere dağıtıldı. Kontrol et.',
+                      _dagitimNotu(t),
                       style: ikincil.copyWith(color: ThemeColors.uyari(context)),
                     ),
                   ),
