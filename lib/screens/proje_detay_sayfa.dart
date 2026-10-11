@@ -1733,12 +1733,23 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          InkWell(
+                            onTap: _ogunSecenegiVar ? () => setState(() => _ekOgunlerSecim = !_ekOgunlerAcik) : null,
+                            child: Row(
                             children: [
                               const Icon(Icons.restaurant, color: Colors.orangeAccent, size: 20),
                               const SizedBox(width: 8),
-                              Text('Yemek Sayıları', style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                              Flexible(
+                                child: Text('Yemek Sayıları',
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                              ),
+                              const Spacer(),
+                              if (_ogunSecenegiVar)
+                                Icon(_ekOgunlerAcik ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                    color: ThemeColors.textSecondary(context)),
                             ],
+                          ),
                           ),
                           const SizedBox(height: 10),
                           Column(
@@ -2150,17 +2161,31 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     return satirlar;
   }
 
+  bool? _ekOgunlerSecim;
+
   /// [sesli]: kutunun sağına mikrofon düğmesi koyar ve uzun metin satırlara
   /// sarılır (sesle yazılan cümleler tek satıra sığmaz).
   /// Yemek kartının içeriği. Kahvaltı ve akşam yemeği yalnızca projede
   /// açıldıysa (ya da o güne değer girilmişse) görünür; böylece açık olmayan
   /// projelerde ekran eskisi gibi kalır.
+  bool _doluMu(List<TextEditingController> l) => l.any((c) => c.text.trim().isNotEmpty);
+
+  bool get _kahvaltiDolu =>
+      _doluMu([kahvaltiKalipciController, kahvaltiDemirciController, kahvaltiDigerController]);
+  bool get _aksamDolu => _doluMu([aksamKalipciController, aksamDemirciController, aksamDigerController]);
+
+  /// Projede kahvaltı/akşam açıksa (ya da o güne değer girilmişse) sağdaki
+  /// anahtar görünür.
+  bool get _ogunSecenegiVar => widget.proje.kahvaltiVar || widget.proje.aksamVar || _kahvaltiDolu || _aksamDolu;
+
+  /// Anahtar varsayılan olarak kapalıdır: yalnızca öğle yemeği görünür. O güne
+  /// kahvaltı/akşam değeri girilmişse açık başlar.
+  bool get _ekOgunlerAcik => _ekOgunlerSecim ?? (_kahvaltiDolu || _aksamDolu);
+
   List<Widget> _yemekBolumleri() {
-    bool dolu(List<TextEditingController> l) => l.any((c) => c.text.trim().isNotEmpty);
-    final kahvaltiGoster = widget.proje.kahvaltiVar ||
-        dolu([kahvaltiKalipciController, kahvaltiDemirciController, kahvaltiDigerController]);
-    final aksamGoster = widget.proje.aksamVar ||
-        dolu([aksamKalipciController, aksamDemirciController, aksamDigerController]);
+    final acik = _ogunSecenegiVar && _ekOgunlerAcik;
+    final kahvaltiGoster = acik && (widget.proje.kahvaltiVar || _kahvaltiDolu);
+    final aksamGoster = acik && (widget.proje.aksamVar || _aksamDolu);
     final baslikli = kahvaltiGoster || aksamGoster;
 
     Widget satir(String? baslik, TextEditingController k, TextEditingController dm, TextEditingController dg) {

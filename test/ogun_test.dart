@@ -185,6 +185,12 @@ void main() {
       expect(find.text('Öğle yemeği'), findsNothing);
 
       await ciz(_proje('b', 'Açık', kahvalti: true, aksam: true));
+      // Varsayılan: yalnızca öğle yemeği; sağdaki ok kahvaltı/akşamı açar.
+      expect(find.text('Kahvaltı'), findsNothing);
+      expect(find.text('Akşam yemeği'), findsNothing);
+      await tester.ensureVisible(find.byIcon(Icons.keyboard_arrow_down));
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down));
+      await tester.pumpAndSettle();
       expect(find.text('Kahvaltı'), findsOneWidget);
       expect(find.text('Öğle yemeği'), findsOneWidget);
       expect(find.text('Akşam yemeği'), findsOneWidget);
