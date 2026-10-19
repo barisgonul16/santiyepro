@@ -74,5 +74,9 @@
         <intent>
             <action android:name="android.speech.RecognitionService" />
         </intent>
+        <!-- Sesli görüşme: Android 11+ cihazda metin okuma (TTS) servisini görebilmek için -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
     </queries>
 </manifest>

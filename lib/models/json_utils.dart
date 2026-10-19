@@ -21,6 +21,14 @@ int jsonTamsayi(dynamic deger, [int varsayilan = 0]) {
   return varsayilan;
 }
 
+/// İsteğe bağlı tam sayı alanı. Okunamazsa null döner.
+int? jsonTamsayiOpsiyonel(dynamic deger) {
+  if (deger is int) return deger;
+  if (deger is num) return deger.round();
+  if (deger is String) return int.tryParse(deger);
+  return null;
+}
+
 double jsonOndalik(dynamic deger, [double varsayilan = 0]) {
   if (deger is double) return deger;
   if (deger is num) return deger.toDouble();

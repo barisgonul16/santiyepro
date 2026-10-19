@@ -10,6 +10,20 @@ import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/sesli_kayit_sayfa.dart';
 import 'package:santiyepro/services/ai_kayit_service.dart';
+import 'package:santiyepro/services/hava_servisi.dart';
+
+/// Ağa çıkmadan hava veren sahte servis.
+class _SahteHava implements HavaServisi {
+  final GunHavasi? sonuc;
+  final List<DateTime> istekler = [];
+  _SahteHava(this.sonuc);
+
+  @override
+  Future<GunHavasi?> gunHavasi(DateTime gun) async {
+    istekler.add(gun);
+    return sonuc;
+  }
+}
 
 Proje _proje(String id, String ad) =>
     Proje(id: id, ad: ad, aciklama: '', baslangicTarihi: DateTime(2026, 1, 1), toplamGun: 100);
@@ -261,35 +275,47 @@ void main() {
           yemekDiger: g,
         );
 
-    test('tek sayı olarak söylenen yemek çalışan sayısına göre dağıtılır, toplam korunur', () {
+    test('tek sayı söylenen yemek seçim bekler; ekip seçilince tamamı o ekibe yazılır', () {
+      final t = taslak(toplam: 20);
+      expect(t.ekipBekleyenOgunler, [YemekOgunu.ogle]);
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (0, 0, 0));
+      t.ogunuEkibeYaz(YemekOgunu.ogle, YemekEkibi.demirci);
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (0, 20, 0));
+      expect(t.ekipBekleyenOgunler, isEmpty);
+    });
+
+    test('çalışan sayısına göre dağıtılınca toplam korunur', () {
       for (final (toplam, kal, dem, dig) in [(10, 5, 2, 0), (11, 5, 4, 2), (7, 1, 1, 1), (3, 8, 0, 0), (1, 5, 5, 5)]) {
-        final t = taslak(toplam: toplam)..yemegiDagit(kalipci: kal, demirci: dem, diger: dig);
+        final t = taslak(toplam: toplam)..ogunuDagit(YemekOgunu.ogle, kalipci: kal, demirci: dem, diger: dig);
         expect(t.yemekKalipci + t.yemekDemirci + t.yemekDiger, toplam, reason: '$toplam yemek, $kal/$dem/$dig kişi');
-        expect(t.yemekDagitildi, isTrue);
+        expect(t.dagitilanOgunler, [YemekOgunu.ogle]);
       }
-      final t = taslak(toplam: 10)..yemegiDagit(kalipci: 5, demirci: 2, diger: 0);
+      final t = taslak(toplam: 10)..ogunuDagit(YemekOgunu.ogle, kalipci: 5, demirci: 2, diger: 0);
       expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (7, 3, 0));
       // Çalışan sayısı yoksa tamamı kalıpçıya yazılır.
-      final bos = taslak(toplam: 6)..yemegiDagit(kalipci: 0, demirci: 0, diger: 0);
+      final bos = taslak(toplam: 6)..ogunuDagit(YemekOgunu.ogle, kalipci: 0, demirci: 0, diger: 0);
       expect((bos.yemekKalipci, bos.yemekDemirci, bos.yemekDiger), (6, 0, 0));
       // Şantiye değişince yeniden dağıtılabilir.
       final once = t.yemekSurumu;
-      t.yemegiDagit(kalipci: 1, demirci: 1, diger: 0);
+      t.dagitilanlariYenile(kalipci: 1, demirci: 1, diger: 0);
       expect((t.yemekKalipci, t.yemekDemirci), (5, 5));
       expect(t.yemekSurumu, greaterThan(once));
     });
 
-    test('ekip ekip söylenen yemeğe dokunulmaz; mevcut kaydın yemeği boşsa korunur', () {
-      final t = taslak(toplam: 12, k: 5, d: 3)..yemegiDagit(kalipci: 9, demirci: 9, diger: 9);
+    test('ekip ekip söylenen yemek seçim beklemez; mevcut kaydın yemeği boşsa korunur', () {
+      final t = taslak(toplam: 12, k: 5, d: 3);
+      expect(t.ekipBekleyenOgunler, isEmpty);
       expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (5, 3, 0));
-      expect(t.yemekDagitildi, isFalse);
+      expect(t.dagitilanOgunler, isEmpty);
 
       final mevcut = GunlukKayit(tarih: DateTime(2026, 10, 9), yemekKalipci: 4, yemekDemirci: 2, yemekDiger: 1);
       final sonuc = taslak(k: 6).kayda(mevcut);
       expect((sonuc.yemekKalipci, sonuc.yemekDemirci, sonuc.yemekDiger), (6, 2, 1));
     });
 
-    testWidgets('"yemek 10" notlara değil yemek alanlarına yazılır', (tester) async {
+    /// "gerada 5 kalıpçı 2 demirci yemek 10" konuşmasını çözümleyip onay ekranına
+    /// gelir; yapay zekâ yemeği ekip ayırmadan tek sayı olarak verir.
+    Future<List<(String, GunlukKayit)>> onayEkraninaGel(WidgetTester tester, {HavaServisi? hava}) async {
       SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'deneme-anahtari'});
       tester.view.physicalSize = const Size(1080, 4200);
       tester.view.devicePixelRatio = 2.0;
@@ -336,20 +362,74 @@ void main() {
           onKayitEkle: (id, k) => eklenen.add((id, k)),
           onKayitGuncelle: (a, b, c) {},
           servis: AiKayitService(istemci: istemci),
+          havaServisi: hava,
         ),
       ));
       await tester.enterText(find.byType(TextField), 'gerada 5 kalıpçı 2 demirci yemek 10');
       await tester.pump();
       await tester.tap(find.text('Kayıtlara çevir'));
       await tester.pumpAndSettle();
+      return eklenen;
+    }
 
-      expect(find.textContaining('Yemek toplam 10 olarak söylendi'), findsOneWidget);
+    testWidgets('"yemek 10": notlara yazılmaz, hangi ekip olduğu sorulur, seçilmeden kaydedilmez', (tester) async {
+      final eklenen = await onayEkraninaGel(tester);
+
+      expect(find.textContaining('hangi ekip'), findsOneWidget);
+      // Seçilmeden kayıt yapılmaz.
+      await tester.tap(find.text('1 kaydı kaydet'));
+      await tester.pumpAndSettle();
+      expect(eklenen, isEmpty);
+      expect(find.textContaining('hangi ekibe ait'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ActionChip, 'Demirci'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('hangi ekip'), findsNothing);
+      await tester.tap(find.text('1 kaydı kaydet'));
+      await tester.pumpAndSettle();
+
+      final k = eklenen.single.$2;
+      expect((k.yemekKalipci, k.yemekDemirci, k.yemekDiger), (0, 10, 0));
+      expect(k.notlar, '');
+    });
+
+    testWidgets('yemek sayısı istenirse çalışan sayısına göre dağıtılır', (tester) async {
+      final eklenen = await onayEkraninaGel(tester);
+
+      await tester.tap(find.widgetWithText(ActionChip, 'Çalışan sayısına göre dağıt'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('çalışan sayısına göre ekiplere dağıtıldı'), findsOneWidget);
       await tester.tap(find.text('1 kaydı kaydet'));
       await tester.pumpAndSettle();
 
       final k = eklenen.single.$2;
       expect((k.yemekKalipci, k.yemekDemirci, k.yemekDiger), (7, 3, 0));
-      expect(k.notlar, '');
+    });
+
+    testWidgets('sesle kaydedilen kayda o günün havası eklenir; hava alınamazsa kayıt yine kaydedilir',
+        (tester) async {
+      final sahte = _SahteHava(const GunHavasi('kar', -3, 2));
+      final eklenen = await onayEkraninaGel(tester, hava: sahte);
+      await tester.tap(find.widgetWithText(ActionChip, 'Kalıpçı'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1 kaydı kaydet'));
+      await tester.pumpAndSettle();
+
+      expect(sahte.istekler.length, 1);
+      final k = eklenen.single.$2;
+      expect((k.hava, k.havaMin, k.havaMax, k.havaDurdu), ('kar', -3, 2, false));
+    });
+
+    testWidgets('hava alınamazsa sesle kayıt havasız kaydedilir', (tester) async {
+      final eklenen = await onayEkraninaGel(tester, hava: _SahteHava(null));
+      await tester.tap(find.widgetWithText(ActionChip, 'Kalıpçı'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('1 kaydı kaydet'));
+      await tester.pumpAndSettle();
+
+      final k = eklenen.single.$2;
+      expect((k.hava, k.havaMin, k.havaMax), ('', null, null));
+      expect(k.kalipci, 5);
     });
   });
 

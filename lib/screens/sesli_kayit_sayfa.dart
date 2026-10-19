@@ -5,6 +5,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import '../services/ai_kayit_service.dart';
+import '../services/hava_servisi.dart';
+import '../services/taslak_kaydi.dart';
 import '../services/ses_metni.dart';
 import '../theme/theme_colors.dart';
 
@@ -18,6 +20,11 @@ class SesliKayitSayfa extends StatefulWidget {
   final void Function(String projeId, int index, GunlukKayit kayit) onKayitGuncelle;
   /// Testlerde sahte servis vermek için.
   final AiKayitService? servis;
+  final HavaServisi? havaServisi;
+  /// Verilirse sayfa doğrudan bu taslakların onay ekranıyla açılır (sesli
+  /// görüşmede "hayır, düzelt" denince).
+  final List<SesliKayitTaslagi>? baslangicTaslaklari;
+  final String baslangicAnlasilmayan;
 
   const SesliKayitSayfa({
     super.key,
@@ -26,6 +33,9 @@ class SesliKayitSayfa extends StatefulWidget {
     required this.onKayitEkle,
     required this.onKayitGuncelle,
     this.servis,
+    this.havaServisi,
+    this.baslangicTaslaklari,
+    this.baslangicAnlasilmayan = '',
   });
 
   @override
@@ -38,6 +48,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
   late final AiKayitService _servis = widget.servis ?? AiKayitService();
 
   bool _sesHazir = false;
+  bool _kaydediliyor = false;
   bool _dinliyor = false;
   SesMetniBirlestirici? _birlestirici;
   bool _cozuluyor = false;
@@ -48,6 +59,16 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
   String _anlasilmayan = '';
 
   final _tarihBicimi = DateFormat('dd.MM.yyyy');
+
+  @override
+  void initState() {
+    super.initState();
+    final ilk = widget.baslangicTaslaklari;
+    if (ilk != null && ilk.isNotEmpty) {
+      _taslaklar = List.of(ilk);
+      _anlasilmayan = widget.baslangicAnlasilmayan;
+    }
+  }
 
   @override
   void dispose() {
@@ -121,7 +142,6 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     try {
       final (taslaklar, anlasilmayan) = await _servis.cozumle(metin, widget.projeler, DateTime.now());
       if (!mounted) return;
-      taslaklar.forEach(_yemegiDagit);
       setState(() {
         _taslaklar = taslaklar;
         _anlasilmayan = anlasilmayan;
@@ -139,19 +159,27 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     }
   }
 
-  /// Yemek ekip ayrımı olmadan söylendiyse, o günün çalışan sayılarına (taslaktaki
-  /// ya da kayıtlı) göre ekiplere dağıtır.
-  void _yemegiDagit(SesliKayitTaslagi t) {
+  /// Yemeği çalışan sayısına göre paylaştırmak için o günün çalışan sayıları:
+  /// taslaktaki, yoksa kayıtlı olan.
+  ({int kalipci, int demirci, int diger}) _calisanlar(SesliKayitTaslagi t) {
     GunlukKayit? mevcut;
     if (t.projeId.isNotEmpty) {
       final sira = _mevcutSira(t);
       if (sira >= 0) mevcut = widget.projeGunlukKayitlari[t.projeId]![sira];
     }
-    t.yemegiDagit(
+    return (
       kalipci: t.kalipci > 0 ? t.kalipci : (mevcut?.kalipci ?? 0),
       demirci: t.demirci > 0 ? t.demirci : (mevcut?.demirci ?? 0),
       diger: t.diger > 0 ? t.diger : (mevcut?.diger ?? 0),
     );
+  }
+
+  /// Şantiye ya da gün değişince, çalışan sayısına göre paylaştırılmış yemekler
+  /// yeni sayılara göre yenilenir.
+  void _dagitimiYenile(SesliKayitTaslagi t) {
+    if (t.dagitilanOgunler.isEmpty) return;
+    final c = _calisanlar(t);
+    t.dagitilanlariYenile(kalipci: c.kalipci, demirci: c.demirci, diger: c.diger);
   }
 
   Proje? _proje(String id) {
@@ -161,14 +189,16 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     return null;
   }
 
-  /// Hangi öğünler toplam olarak söylendi (onay ekranındaki uyarı için).
-  String _dagitimNotu(SesliKayitTaslagi t) {
-    final parcalar = [
-      if (t.kahvaltiToplam > 0) 'Kahvaltı toplam ${t.kahvaltiToplam}',
-      if (t.yemekToplam > 0) 'Yemek toplam ${t.yemekToplam}',
-      if (t.aksamToplam > 0) 'Akşam toplam ${t.aksamToplam}',
-    ];
-    return '${parcalar.join(', ')} olarak söylendi; çalışan sayısına göre ekiplere dağıtıldı. Kontrol et.';
+  String _ogunAdi(YemekOgunu o, String ogleBasligi) => switch (o) {
+        YemekOgunu.kahvalti => 'Kahvaltı',
+        YemekOgunu.ogle => ogleBasligi,
+        YemekOgunu.aksam => 'Akşam yemeği',
+      };
+
+  /// Çalışan sayısına göre paylaştırılan öğünler için onay ekranındaki uyarı.
+  String _dagitimNotu(SesliKayitTaslagi t, String ogleBasligi) {
+    final adlar = [for (final o in t.dagitilanOgunler) _ogunAdi(o, ogleBasligi)];
+    return '${adlar.join(', ')} çalışan sayısına göre ekiplere dağıtıldı. Kontrol et.';
   }
 
   /// O şantiyede o güne ait kaydın sırası; yoksa -1.
@@ -177,25 +207,28 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
     return liste.indexWhere((k) => DateUtils.isSameDay(k.tarih, t.tarih));
   }
 
-  void _kaydet() {
+  Future<void> _kaydet() async {
     final taslaklar = _taslaklar!;
     if (taslaklar.any((t) => t.projeId.isEmpty)) {
       setState(() => _hata = 'Şantiyesi seçilmemiş kayıt var. Şantiyeyi seç ya da o kaydı kaldır.');
       return;
     }
-    int yeni = 0, guncel = 0;
-    for (final t in taslaklar) {
-      final sira = _mevcutSira(t);
-      if (sira >= 0) {
-        final mevcut = widget.projeGunlukKayitlari[t.projeId]![sira];
-        widget.onKayitGuncelle(t.projeId, sira, t.kayda(mevcut));
-        guncel++;
-      } else {
-        widget.onKayitEkle(t.projeId, t.kayda(null));
-        yeni++;
-      }
+    if (taslaklar.any((t) => t.ekipBekleyenOgunler.isNotEmpty)) {
+      setState(() => _hata = 'Yemek sayısının hangi ekibe ait olduğunu seç (Kalıpçı, Demirci ya da Diğer).');
+      return;
     }
-    final ozet = [if (yeni > 0) '$yeni yeni kayıt', if (guncel > 0) '$guncel kayıt güncellendi'].join(', ');
+    setState(() {
+      _kaydediliyor = true;
+      _hata = null;
+    });
+    final ozet = await taslaklariKaydet(
+      taslaklar: taslaklar,
+      projeGunlukKayitlari: widget.projeGunlukKayitlari,
+      onKayitEkle: widget.onKayitEkle,
+      onKayitGuncelle: widget.onKayitGuncelle,
+      havaServisi: widget.havaServisi,
+    );
+    if (!mounted) return;
     Navigator.pop(context, ozet);
   }
 
@@ -328,9 +361,9 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
               Expanded(
                 flex: 2,
                 child: FilledButton.icon(
-                  onPressed: taslaklar.isEmpty ? null : _kaydet,
+                  onPressed: taslaklar.isEmpty || _kaydediliyor ? null : _kaydet,
                   icon: const Icon(Icons.check),
-                  label: Text('${taslaklar.length} kaydı kaydet'),
+                  label: Text(_kaydediliyor ? 'Kaydediliyor…' : '${taslaklar.length} kaydı kaydet'),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green.shade700,
                     foregroundColor: Colors.white,
@@ -376,7 +409,8 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           ),
         );
 
-    Widget yemekKutusu(String ogun, String etiket, int deger, ValueChanged<int> degisti) => Expanded(
+    Widget yemekKutusu(YemekOgunu o, String ogun, String etiket, int deger, ValueChanged<int> degisti) =>
+        Expanded(
           child: TextFormField(
             key: ValueKey('${identityHashCode(t)}-$ogun-$etiket-${t.yemekSurumu}'),
             initialValue: deger == 0 ? '' : '$deger',
@@ -386,13 +420,57 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
             decoration: kutu(etiket).copyWith(hintText: '0'),
             onChanged: (v) => setState(() {
               degisti(int.tryParse(v) ?? 0);
-              t.yemekDagitildi = false;
+              t.ogunuElleDegistirdi(o);
             }),
           ),
         );
 
-    Widget ogunSatiri(String baslik, int k, ValueChanged<int> kS, int dm, ValueChanged<int> dS, int dg,
-            ValueChanged<int> gS) =>
+    // Yemek tek sayı olarak söylendiyse hangi ekibe ait olduğu sorulur.
+    Widget bekleyenKutu(YemekOgunu o) {
+      final uyari = ThemeColors.uyari(context);
+      Widget secenek(String ad, VoidCallback basinca) => ActionChip(
+            label: Text(ad, style: const TextStyle(fontSize: 13)),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => setState(() {
+              basinca();
+              _hata = null;
+            }),
+          );
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+        decoration: BoxDecoration(
+          color: uyari.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: uyari.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('${t.ogunToplami(o)} kişi söylendi; hangi ekip için?',
+                style: metin.copyWith(fontSize: 13, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                secenek('Kalıpçı', () => t.ogunuEkibeYaz(o, YemekEkibi.kalipci)),
+                secenek('Demirci', () => t.ogunuEkibeYaz(o, YemekEkibi.demirci)),
+                secenek('Diğer', () => t.ogunuEkibeYaz(o, YemekEkibi.diger)),
+                secenek('Çalışan sayısına göre dağıt', () {
+                  final c = _calisanlar(t);
+                  t.ogunuDagit(o, kalipci: c.kalipci, demirci: c.demirci, diger: c.diger);
+                }),
+                secenek('Yok say', () => t.ogunuYoksay(o)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget ogunSatiri(YemekOgunu o, String baslik, int k, ValueChanged<int> kS, int dm, ValueChanged<int> dS,
+            int dg, ValueChanged<int> gS) =>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -403,13 +481,14 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
             ),
             Row(
               children: [
-                yemekKutusu(baslik, 'Kalıpçı', k, kS),
+                yemekKutusu(o, baslik, 'Kalıpçı', k, kS),
                 const SizedBox(width: 8),
-                yemekKutusu(baslik, 'Demirci', dm, dS),
+                yemekKutusu(o, baslik, 'Demirci', dm, dS),
                 const SizedBox(width: 8),
-                yemekKutusu(baslik, 'Diğer', dg, gS),
+                yemekKutusu(o, baslik, 'Diğer', dg, gS),
               ],
             ),
+            if (t.ekipBekleyenOgunler.contains(o)) bekleyenKutu(o),
           ],
         );
 
@@ -432,7 +511,9 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
       decoration: BoxDecoration(
         color: ThemeColors.cardBackground(context),
         borderRadius: BorderRadius.circular(10),
-        border: t.projeId.isEmpty ? Border.all(color: Colors.red.withValues(alpha: 0.6)) : null,
+        border: t.projeId.isEmpty || t.ekipBekleyenOgunler.isNotEmpty
+            ? Border.all(color: Colors.red.withValues(alpha: 0.6))
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,7 +539,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     onChanged: (v) => setState(() {
                       t.projeId = v ?? '';
                       _hata = null;
-                      if (t.yemekDagitildi) _yemegiDagit(t);
+                      _dagitimiYenile(t);
                     }),
                   ),
                 ),
@@ -471,7 +552,12 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                     firstDate: DateTime(2015),
                     lastDate: DateTime.now(),
                   );
-                  if (secilen != null && mounted) setState(() => t.tarih = secilen);
+                  if (secilen != null && mounted) {
+                    setState(() {
+                      t.tarih = secilen;
+                      _dagitimiYenile(t);
+                    });
+                  }
                 },
                 child: Text(_tarihBicimi.format(t.tarih)),
               ),
@@ -504,18 +590,18 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                   ],
                 ),
                 if (kahvaltiGoster)
-                  ogunSatiri('Kahvaltı', t.kahvaltiKalipci, (v) => t.kahvaltiKalipci = v, t.kahvaltiDemirci,
+                  ogunSatiri(YemekOgunu.kahvalti, 'Kahvaltı', t.kahvaltiKalipci, (v) => t.kahvaltiKalipci = v, t.kahvaltiDemirci,
                       (v) => t.kahvaltiDemirci = v, t.kahvaltiDiger, (v) => t.kahvaltiDiger = v),
-                ogunSatiri(ogleBasligi, t.yemekKalipci, (v) => t.yemekKalipci = v, t.yemekDemirci,
+                ogunSatiri(YemekOgunu.ogle, ogleBasligi, t.yemekKalipci, (v) => t.yemekKalipci = v, t.yemekDemirci,
                     (v) => t.yemekDemirci = v, t.yemekDiger, (v) => t.yemekDiger = v),
                 if (aksamGoster)
-                  ogunSatiri('Akşam yemeği', t.aksamKalipci, (v) => t.aksamKalipci = v, t.aksamDemirci,
+                  ogunSatiri(YemekOgunu.aksam, 'Akşam yemeği', t.aksamKalipci, (v) => t.aksamKalipci = v, t.aksamDemirci,
                       (v) => t.aksamDemirci = v, t.aksamDiger, (v) => t.aksamDiger = v),
-                if (t.yemekDagitildi)
+                if (t.dagitilanOgunler.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      _dagitimNotu(t),
+                      _dagitimNotu(t, ogleBasligi),
                       style: ikincil.copyWith(color: ThemeColors.uyari(context)),
                     ),
                   ),

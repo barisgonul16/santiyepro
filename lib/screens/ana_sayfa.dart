@@ -9,6 +9,8 @@ import '../models/gunluk_kayit.dart';
 import 'proje_detay_sayfa.dart';
 import 'kayit_arama_sayfa.dart';
 import 'sesli_kayit_sayfa.dart';
+import 'sesli_gorusme_sayfa.dart';
+import 'dart:io' show Platform;
 import 'package:intl/intl.dart';
 import '../theme/theme_colors.dart';
 import '../widgets/aylik_ozet_karti.dart';
@@ -54,6 +56,23 @@ class AnaSayfaPage extends StatefulWidget {
 
 class _AnaSayfaPageState extends State<AnaSayfaPage> {
   bool _showCompleted = false;
+
+  /// "Uygulama açılınca sesli görüşmeyi başlat" ayarı: uygulama her açılışta
+  /// bir kez, şantiyeler yüklenince görüşmeyi açar ("Hey Google, ŞantiyePro'yu
+  /// aç" ile eller serbest başlangıç).
+  static bool _acilisGorusmesiDenendi = false;
+  bool _acilisGorusmesiBekliyor = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_acilisGorusmesiDenendi && Platform.isAndroid) {
+      _acilisGorusmesiDenendi = true;
+      SesliGorusmeSayfa.acilistaBaslasinMi().then((acik) {
+        if (acik && mounted) setState(() => _acilisGorusmesiBekliyor = true);
+      });
+    }
+  }
 
   /// Aylık özet kartının anahtarı. Artırılınca kart yeniden kurulur ve
   /// hakedişleri diskten yeniden okur (proje sayfasından dönüş, yenileme).
@@ -105,6 +124,12 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
     }
 
     final aktifProjeler = widget.projeler.where((p) => p.durum != 'Tamamlandı').toList();
+    if (_acilisGorusmesiBekliyor && aktifProjeler.isNotEmpty) {
+      _acilisGorusmesiBekliyor = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _gorusmeAc(aktifProjeler);
+      });
+    }
     // 3-30 gündür kaydı olmayan devam eden şantiyeler. Daha uzun süredir
     // kayıt girilmeyen (fiilen durmuş) şantiyeler uyarıyı kalabalıklaştırmasın.
     final kayitsizlar = aktifProjeler.where((p) {
@@ -183,6 +208,22 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              // Eller serbest: uygulama sorar, sen sesle cevaplarsın.
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: aktifProjeler.isEmpty ? null : () => _gorusmeAc(aktifProjeler),
+                  icon: const Icon(Icons.record_voice_over),
+                  label: const Text('Sesli görüşme (eller serbest)', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                    side: BorderSide(color: Colors.orange.withValues(alpha: 0.6)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -570,6 +611,26 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
       context,
       MaterialPageRoute(
         builder: (context) => SesliKayitSayfa(
+          projeler: aktifProjeler,
+          projeGunlukKayitlari: widget.projeGunlukKayitlari,
+          onKayitEkle: (id, kayit) => widget.onGunlukKayitEkle(id, kayit),
+          onKayitGuncelle: (id, i, kayit) => widget.onGunlukKayitGuncelle(id, i, kayit),
+        ),
+      ),
+    );
+    if (!mounted || ozet == null) return;
+    setState(() => _ozetSurumu++);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Kaydedildi: $ozet'), backgroundColor: Colors.green.shade700),
+    );
+  }
+
+  /// Eller serbest kayıt görüşmesi.
+  Future<void> _gorusmeAc(List<Proje> aktifProjeler) async {
+    final ozet = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SesliGorusmeSayfa(
           projeler: aktifProjeler,
           projeGunlukKayitlari: widget.projeGunlukKayitlari,
           onKayitEkle: (id, kayit) => widget.onGunlukKayitEkle(id, kayit),

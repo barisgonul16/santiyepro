@@ -17,6 +17,7 @@ import 'package:intl/intl.dart';
 import '../services/app_log.dart';
 import 'hakedis_sekmesi.dart';
 import '../services/ses_metni.dart';
+import '../services/hava_servisi.dart';
 import '../widgets/ekip_cubugu.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
@@ -73,6 +74,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   final int baslangicSekmesi;
   /// Verilirse form bugünün yerine bu günün kaydıyla açılır (aramadan geliş).
   final DateTime? acilisTarihi;
+  /// Testlerde sahte servis vermek için.
+  final HavaServisi? havaServisi;
 
   const ProjeDetaySayfa({
     super.key,
@@ -84,6 +87,7 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.ekipler,
     this.baslangicSekmesi = 0,
     this.acilisTarihi,
+    this.havaServisi,
   });
 
   @override
@@ -93,6 +97,7 @@ class ProjeDetaySayfa extends StatefulWidget {
 class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     with SingleTickerProviderStateMixin {
   final _imageService = ImageService();
+  late final HavaServisi _havaServisi = widget.havaServisi ?? HavaServisi();
 
   // --- Genel Bakış State Değişkenleri ---
   DateTime secilenTarih = DateTime.now();
@@ -117,6 +122,12 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final notlarController = TextEditingController();
   final betonController = TextEditingController();
   List<String> fotograflar = [];
+
+  // --- Hava durumu (seçili günün kaydıyla birlikte saklanır) ---
+  String _hava = '';
+  int? _havaMin;
+  int? _havaMax;
+  bool _havaDurdu = false;
 
   // --- Yemek State Değişkenleri ---
   final yemekKalipciController = TextEditingController();
@@ -223,6 +234,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     notlarController.text = kayit.notlar;
     betonController.text = kayit.beton;
     fotograflar = List.from(kayit.fotografYollari);
+    _hava = kayit.hava;
+    _havaMin = kayit.havaMin;
+    _havaMax = kayit.havaMax;
+    _havaDurdu = kayit.havaDurdu;
 
     // Vinç listesini temizle ve yükle
     for (var ctrl in _vincFormList) {
@@ -264,6 +279,166 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     _kayitliImza = _formImzasi();
     if (mounted) setState(() {});
+    // Havası girilmemiş günün havası kendiliğinden alınır (yeni kayıt ya da
+    // eski kayıt); alınamazsa form olduğu gibi kalır.
+    if (_hava.isEmpty) unawaited(_havaOtomatikAl());
+  }
+
+  // --- Hava durumu ---
+
+  /// Seçili günün havasını internetten alıp forma yazar. Bu arada başka güne
+  /// geçildiyse ya da hava elle girildiyse dokunmaz ([zorla] hariç).
+  Future<bool> _havaOtomatikAl({bool zorla = false}) async {
+    final gun = DateUtils.dateOnly(secilenTarih);
+    if (!zorla && gun.isAfter(DateUtils.dateOnly(DateTime.now()))) return false;
+    final sonuc = await _havaServisi.gunHavasi(gun);
+    if (!mounted || sonuc == null) return false;
+    if (!DateUtils.isSameDay(gun, secilenTarih)) return false;
+    if (!zorla && _hava.isNotEmpty) return false;
+    final temizdi = !_kaydedilmemisDegisiklikVar;
+    setState(() {
+      _hava = sonuc.durum;
+      _havaMin = sonuc.enDusuk;
+      _havaMax = sonuc.enYuksek;
+    });
+    // Kendiliğinden gelen hava, kullanıcının yaptığı değişiklik sayılmaz.
+    if (temizdi) _kayitliImza = _formImzasi();
+    return true;
+  }
+
+  /// Hava ayrıntısı: durum seçimi, "çalışılamadı" işareti, yeniden alma.
+  Future<void> _havaSec() async {
+    String? mesaj;
+    var aliniyor = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: ThemeColors.cardBackground(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, sayfayiYenile) {
+          void degistir(VoidCallback islem) {
+            setState(islem);
+            sayfayiYenile(() {});
+          }
+
+          final sicaklik = HavaGosterim.sicaklik(_havaMin, _havaMax);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          sicaklik.isEmpty ? 'Hava durumu' : 'Hava durumu · $sicaklik',
+                          style: TextStyle(
+                              color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: aliniyor
+                            ? null
+                            : () async {
+                                sayfayiYenile(() {
+                                  aliniyor = true;
+                                  mesaj = null;
+                                });
+                                final alindi = await _havaOtomatikAl(zorla: true);
+                                if (!ctx.mounted) return;
+                                sayfayiYenile(() {
+                                  aliniyor = false;
+                                  if (!alindi) mesaj = 'Hava bilgisi alınamadı. İnternet bağlantısını kontrol et.';
+                                });
+                              },
+                        icon: const Icon(Icons.refresh, size: 18),
+                        label: const Text('Otomatik al'),
+                      ),
+                    ],
+                  ),
+                  if (mesaj != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(mesaj!, style: TextStyle(color: ThemeColors.uyari(context), fontSize: 12)),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final durum in HavaGosterim.durumlar)
+                        ChoiceChip(
+                          avatar: Icon(HavaGosterim.simge(durum), size: 18),
+                          label: Text(HavaGosterim.ad(durum)),
+                          showCheckmark: false,
+                          selected: _hava == durum,
+                          onSelected: (secildi) => degistir(() {
+                            _hava = secildi ? durum : '';
+                            // Hava kaldırılınca otomatik gelen sıcaklık da gider.
+                            if (!secildi) {
+                              _havaMin = null;
+                              _havaMax = null;
+                            }
+                          }),
+                        ),
+                    ],
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text('Hava nedeniyle çalışılamadı',
+                        style: TextStyle(color: ThemeColors.textPrimary(context))),
+                    value: _havaDurdu,
+                    onChanged: (v) => degistir(() => _havaDurdu = v),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Tarih başlığının ikinci satırı: gün adı + hava. Tek satırdır; havaya
+  /// dokununca ayrıntı penceresi açılır.
+  Widget _gunVeHavaSatiri() {
+    const gunler = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+    final ikincil = TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13);
+    final dolu = _hava.isNotEmpty;
+    final sicaklik = HavaGosterim.sicaklik(_havaMin, _havaMax);
+    final metin = sicaklik.isNotEmpty ? sicaklik : (dolu ? HavaGosterim.ad(_hava) : 'Hava');
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      children: [
+        Text(gunler[secilenTarih.weekday - 1], style: ikincil),
+        GestureDetector(
+          key: const Key('hava_satiri'),
+          behavior: HitTestBehavior.opaque,
+          onTap: _havaSec,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(dolu ? HavaGosterim.simge(_hava) : Icons.cloud_queue,
+                    size: 16,
+                    color: dolu ? ThemeColors.textPrimary(context) : ThemeColors.textTertiary(context)),
+                const SizedBox(width: 4),
+                Text(metin, style: dolu ? ikincil.copyWith(color: ThemeColors.textPrimary(context)) : ikincil),
+                if (_havaDurdu) ...[
+                  const SizedBox(width: 6),
+                  Text('· durdu',
+                      style: ikincil.copyWith(color: ThemeColors.uyari(context), fontWeight: FontWeight.bold)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   /// Sayı kutularında 0 boş gösterilir: kutuda "0" dururken yazılan rakam
@@ -283,6 +458,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         kalipciIsController.text, demirciIsController.text,
         notlarController.text, betonController.text,
         fotograflar,
+        [_hava, _havaMin, _havaMax, _havaDurdu],
         _vincFormList
             .map((v) => [v.firmaAdiController.text, v.baslangicController.text,
                          v.bitisController.text, v.molaController.text,
@@ -530,6 +706,10 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         demirciYapilanIs: demirciIsController.text,
         notlar: notlarController.text,
         beton: betonController.text,
+        hava: _hava,
+        havaMin: _havaMin,
+        havaMax: _havaMax,
+        havaDurdu: _havaDurdu,
         fotografYollari: List.from(fotograflar),
         vincler: _vincFormList
             .where((v) =>
@@ -700,6 +880,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       var excel = xls.Excel.createExcel();
       xls.Sheet sheetObject = excel['Puantaj'];
       excel.delete('Sheet1'); // Varsayılanı sil
+      final havaVar = kayitlar.any((k) => k.hava.isNotEmpty || k.havaDurdu);
 
       // Başlıklar
       sheetObject.appendRow([
@@ -713,6 +894,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         xls.TextCellValue("Notlar"),
         xls.TextCellValue("Beton"),
         xls.TextCellValue("Fotoğraf Dosyaları"),
+        if (havaVar) xls.TextCellValue("Hava"),
       ]);
 
       xls.Sheet vincSheet = excel['Vinç'];
@@ -802,6 +984,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
           xls.TextCellValue(kayit.notlar),
           xls.TextCellValue(kayit.beton),
           xls.TextCellValue(kopyalananFotolar.join(", ")),
+          if (havaVar) xls.TextCellValue(HavaGosterim.ozet(kayit)),
         ]);
 
         if (yemekSheet != null) {
@@ -993,7 +1176,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     
     csvData += "GÜNLÜK KAYITLAR\n";
-    csvData += "Tarih;Kalıpçı;Demirci;Diğer;Toplam;Kalıpçı İş;Demirci İş;Notlar;Beton;Fotoğraf Sayısı;Vinç Firma;Vinç Başlangıç;Vinç Bitiş;Vinç Mola\n";
+    csvData += "Tarih;Kalıpçı;Demirci;Diğer;Toplam;Kalıpçı İş;Demirci İş;Notlar;Beton;Fotoğraf Sayısı;Vinç Firma;Vinç Başlangıç;Vinç Bitiş;Vinç Mola;Hava\n";
 
     // Tarihe göre sırala
     final sortedKayitlar = List<GunlukKayit>.from(kayitlar);
@@ -1016,7 +1199,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       csvData += "${vFirma.replaceAll(';', ',')};";
       csvData += "$vBaslangic;";
       csvData += "$vBitis;";
-      csvData += "$vMola\n";
+      csvData += "$vMola;${HavaGosterim.ozet(kayit).replaceAll(';', ',')}\n";
     }
 
     try {
@@ -1400,10 +1583,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                             textAlign: TextAlign.center,
                             style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            const ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'][secilenTarih.weekday - 1],
-                            style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13),
-                          ),
+                          _gunVeHavaSatiri(),
                         ],
                       ),
                     ),
@@ -2086,6 +2266,18 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                 ],
               ),
             ),
+            if (k.hava.isNotEmpty || k.havaDurdu)
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Tooltip(
+                  message: HavaGosterim.ozet(k),
+                  child: Icon(
+                    k.hava.isNotEmpty ? HavaGosterim.simge(k.hava) : Icons.cloud_queue,
+                    size: 15,
+                    color: k.havaDurdu ? ThemeColors.uyari(context) : ThemeColors.textTertiary(context),
+                  ),
+                ),
+              ),
             if (k.fotografYollari.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(left: 6),
@@ -2519,6 +2711,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
       [Icons.precision_manufacturing, _PuantajOzeti.sayi(ozet.vincSaat), 'vinç saati', if (ozet.vincGun > 0) '(${ozet.vincGun} gün)'],
       [Icons.payments, _PuantajOzeti.sayi(ozet.yevmiye), 'yevmiye'],
       if (fotografGoster) [Icons.photo_camera, '${ozet.fotograf}', 'fotoğraf'],
+      // Yalnızca havadan dolayı çalışılamayan gün varsa görünür.
+      if (ozet.havaGunu > 0) [Icons.thunderstorm_outlined, '${ozet.havaGunu}', 'hava nedeniyle', '(gün)'],
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -3554,6 +3748,8 @@ class _PuantajOzeti {
   /// Vinç kaydı olan farklı gün sayısı.
   final int vincGun;
   final double yevmiye;
+  /// Hava nedeniyle çalışılamayan gün sayısı.
+  final int havaGunu;
 
   const _PuantajOzeti({
     required this.kayitGunu,
@@ -3564,6 +3760,7 @@ class _PuantajOzeti {
     required this.vincSaat,
     required this.vincGun,
     required this.yevmiye,
+    required this.havaGunu,
   });
 
   int get toplamAdamGun => kalipci + demirci + diger;
@@ -3590,6 +3787,7 @@ class _PuantajOzeti {
           0.0,
           (t, v) => t + (double.tryParse(vincNetSaat(v['baslangic'], v['bitis'], v['mola'])) ?? 0.0)),
       yevmiye: yevmiyeSatirlari(kayitlar).fold(0.0, (t, y) => t + (y['miktar'] as num).toDouble()),
+      havaGunu: kayitlar.where((k) => k.havaDurdu).length,
     );
   }
 

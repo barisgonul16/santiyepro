@@ -7,6 +7,12 @@ import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import 'app_log.dart';
 
+/// Yemek öğünleri. Öğle yemeği, eski kayıtlardaki "yemek" alanlarıdır.
+enum YemekOgunu { kahvalti, ogle, aksam }
+
+/// Yemeğin ait olduğu ekip.
+enum YemekEkibi { kalipci, demirci, diger }
+
 /// Yapay zekânın bir şantiye için konuşmadan çıkardığı taslak. Kullanıcı
 /// onaylamadan hiçbir şey kaydedilmez.
 class SesliKayitTaslagi {
@@ -37,10 +43,12 @@ class SesliKayitTaslagi {
   int aksamDemirci;
   int aksamDiger;
   final int aksamToplam;
-  /// Ekip payları [yemekToplam]'dan çalışan sayılarına göre türetildi (kullanıcı
-  /// düzeltene kadar onay ekranında uyarı gösterilir).
-  bool yemekDagitildi = false;
-  /// Dağıtım yenilenince artar; onay ekranındaki kutuları tazelemek için.
+  /// Çalışan sayısına göre ekiplere paylaştırılan öğünler (kullanıcı düzeltene
+  /// kadar onay ekranında uyarı gösterilir).
+  final Set<YemekOgunu> _dagitilan = {};
+  /// Kullanıcının "yok say" dediği, ekibi seçilmemiş tek sayılar.
+  final Set<YemekOgunu> _yoksayilan = {};
+  /// Yemek sayıları koddan değişince artar; onay ekranındaki kutuları tazelemek için.
   int yemekSurumu = 0;
   final List<VincBilgisi> vincler;
   final List<YevmiyeBilgisi> yevmiyeler;
@@ -113,40 +121,82 @@ class SesliKayitTaslagi {
     return pay;
   }
 
-  /// Bir öğün yalnızca toplam olarak söylendiyse paylaştırılabilir; ekip ekip
-  /// söylenmişse dokunulmaz (daha önce biz paylaştırdıysak yenilenebilir).
-  bool _paylasilabilir(int toplam, int k, int d, int g) => toplam > 0 && (yemekDagitildi || k + d + g == 0);
+  /// [o] öğünü için ekip ekip yazılmış sayılar: kalıpçı, demirci, diğer.
+  List<int> _ekipler(YemekOgunu o) => switch (o) {
+        YemekOgunu.kahvalti => [kahvaltiKalipci, kahvaltiDemirci, kahvaltiDiger],
+        YemekOgunu.ogle => [yemekKalipci, yemekDemirci, yemekDiger],
+        YemekOgunu.aksam => [aksamKalipci, aksamDemirci, aksamDiger],
+      };
 
-  /// Yemek (öğle, kahvaltı, akşam) yalnızca toplam olarak söylendiyse, çalışan
-  /// sayılarına göre ekiplere dağıtır. Çalışan sayısı yoksa tamamı kalıpçıya
-  /// yazılır. Ekip ekip söylenmişse dokunmaz.
-  void yemegiDagit({required int kalipci, required int demirci, required int diger}) {
-    final sayilar = [kalipci, demirci, diger];
-    var dagitildi = false;
-    if (_paylasilabilir(yemekToplam, yemekKalipci, yemekDemirci, yemekDiger)) {
-      final p = _pay(yemekToplam, sayilar);
-      yemekKalipci = p[0];
-      yemekDemirci = p[1];
-      yemekDiger = p[2];
-      dagitildi = true;
+  void _ekipleriYaz(YemekOgunu o, List<int> p) {
+    switch (o) {
+      case YemekOgunu.kahvalti:
+        kahvaltiKalipci = p[0];
+        kahvaltiDemirci = p[1];
+        kahvaltiDiger = p[2];
+      case YemekOgunu.ogle:
+        yemekKalipci = p[0];
+        yemekDemirci = p[1];
+        yemekDiger = p[2];
+      case YemekOgunu.aksam:
+        aksamKalipci = p[0];
+        aksamDemirci = p[1];
+        aksamDiger = p[2];
     }
-    if (_paylasilabilir(kahvaltiToplam, kahvaltiKalipci, kahvaltiDemirci, kahvaltiDiger)) {
-      final p = _pay(kahvaltiToplam, sayilar);
-      kahvaltiKalipci = p[0];
-      kahvaltiDemirci = p[1];
-      kahvaltiDiger = p[2];
-      dagitildi = true;
-    }
-    if (_paylasilabilir(aksamToplam, aksamKalipci, aksamDemirci, aksamDiger)) {
-      final p = _pay(aksamToplam, sayilar);
-      aksamKalipci = p[0];
-      aksamDemirci = p[1];
-      aksamDiger = p[2];
-      dagitildi = true;
-    }
-    if (dagitildi) {
-      yemekDagitildi = true;
-      yemekSurumu++;
+    yemekSurumu++;
+  }
+
+  /// [o] öğünü için ekip söylenmeden tek sayı olarak söylenen değer (yoksa 0).
+  int ogunToplami(YemekOgunu o) => switch (o) {
+        YemekOgunu.kahvalti => kahvaltiToplam,
+        YemekOgunu.ogle => yemekToplam,
+        YemekOgunu.aksam => aksamToplam,
+      };
+
+  /// Tek sayı olarak söylenmiş ama hangi ekibe ait olduğu henüz seçilmemiş
+  /// öğünler. Ekip kendiliğinden tahmin edilmez: onay ekranında kullanıcıya
+  /// sorulur ve seçilmeden kayıt yapılmaz.
+  List<YemekOgunu> get ekipBekleyenOgunler => [
+        for (final o in YemekOgunu.values)
+          if (ogunToplami(o) > 0 && _ekipler(o).every((s) => s == 0) && !_yoksayilan.contains(o)) o,
+      ];
+
+  /// Tek sayı olarak söylenen öğünün tamamını [ekip]'e yazar.
+  void ogunuEkibeYaz(YemekOgunu o, YemekEkibi ekip) {
+    final p = [0, 0, 0];
+    p[ekip.index] = ogunToplami(o);
+    _dagitilan.remove(o);
+    _ekipleriYaz(o, p);
+  }
+
+  /// Tek sayı olarak söylenen öğünü çalışan sayılarına göre ekiplere
+  /// paylaştırır; toplam korunur. Çalışan sayısı yoksa tamamı kalıpçıya yazılır.
+  void ogunuDagit(YemekOgunu o, {required int kalipci, required int demirci, required int diger}) {
+    _dagitilan.add(o);
+    _ekipleriYaz(o, _pay(ogunToplami(o), [kalipci, demirci, diger]));
+  }
+
+  /// Ekibi seçilmemiş sayıyı kaydetmekten vazgeçer.
+  void ogunuYoksay(YemekOgunu o) {
+    _yoksayilan.add(o);
+    yemekSurumu++;
+  }
+
+  /// Çalışan sayısına göre paylaştırılmış öğünler.
+  List<YemekOgunu> get dagitilanOgunler => [
+        for (final o in YemekOgunu.values)
+          if (_dagitilan.contains(o)) o,
+      ];
+
+  /// Kullanıcı bir öğünün sayılarını elle değiştirdi: o öğün için "dağıtıldı"
+  /// uyarısı kalkar.
+  void ogunuElleDegistirdi(YemekOgunu o) => _dagitilan.remove(o);
+
+  /// Şantiye ya da gün değişince çalışan sayıları da değişir; paylaştırılmış
+  /// öğünler yeni sayılara göre yeniden paylaştırılır.
+  void dagitilanlariYenile({required int kalipci, required int demirci, required int diger}) {
+    for (final o in dagitilanOgunler) {
+      ogunuDagit(o, kalipci: kalipci, demirci: demirci, diger: diger);
     }
   }
 
@@ -176,6 +226,10 @@ class SesliKayitTaslagi {
       aksamKalipci: aksamKalipci > 0 ? aksamKalipci : temel.aksamKalipci,
       aksamDemirci: aksamDemirci > 0 ? aksamDemirci : temel.aksamDemirci,
       aksamDiger: aksamDiger > 0 ? aksamDiger : temel.aksamDiger,
+      hava: temel.hava,
+      havaMin: temel.havaMin,
+      havaMax: temel.havaMax,
+      havaDurdu: temel.havaDurdu,
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),
@@ -441,7 +495,7 @@ class AiKayitService {
 
   /// Yapay zekâya verilen yönerge. Yalnızca söylenen metin, bugünün tarihi ve
   /// şantiye adları gönderilir.
-  static String yonerge(String metin, List<Proje> projeler, DateTime bugun) {
+  static String yonerge(String metin, List<Proje> projeler, DateTime bugun, {bool gorusme = false}) {
     const gunler = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
     final liste = [
       for (final p in projeler)
@@ -454,7 +508,9 @@ Bugün: ${_gun(bugun)} (${gunler[bugun.weekday - 1]})
 
 Şantiyeler:
 $liste
-
+${gorusme ? '''
+Not, soru-cevap biçiminde bir görüşmenin dökümüdür: her satır "konu: cevap" biçimindedir. "yok" cevabı o konuda bir şey olmadığı anlamına gelir. Aksi söylenmedikçe hepsi aynı şantiye ve aynı gün içindir.
+''' : ''}
 Kurallar:
 - Her şantiye ve gün için ayrı bir kayıt üret. Tarih söylenmediyse bugünü kullan; "dün", "evvelsi gün", "pazartesi" gibi ifadeleri bugüne göre tarihe çevir (gelecek tarih üretme).
 - Söylenen şantiye adını listedeki en yakın şantiyeyle eşleştir ve "projeId" alanına o şantiyenin id değerini yaz. Emin değilsen "projeId" boş kalsın. "soylenenAd" alanına şantiyenin konuşmada geçen adını yaz.
@@ -559,13 +615,14 @@ $metin
 
   /// Konuşma metnini taslak kayıtlara çevirir. İkinci değer, yapay zekânın
   /// hiçbir kayda yerleştiremediği kısımdır (yoksa boş).
-  Future<(List<SesliKayitTaslagi>, String)> cozumle(String metin, List<Proje> projeler, DateTime bugun) async {
+  Future<(List<SesliKayitTaslagi>, String)> cozumle(String metin, List<Proje> projeler, DateTime bugun,
+      {bool gorusme = false}) async {
     final a = await anahtar();
     if (a.isEmpty) {
       throw const AiKayitHatasi('Yapay zekâ anahtarı girilmemiş. Ayarlar > Sesle kayıt bölümünden ekle.');
     }
     try {
-      final (_, cevap) = await _uret(a, yonerge(metin, projeler, bugun));
+      final (_, cevap) = await _uret(a, yonerge(metin, projeler, bugun, gorusme: gorusme));
       return taslaklariCoz(cevap, projeler, bugun);
     } catch (e) {
       throw _istisna(e);

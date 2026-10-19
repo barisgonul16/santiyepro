@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import 'app_log.dart';
+import 'hava_servisi.dart';
 
 /// Günlük şantiye raporunu A4 PDF olarak üretir.
 ///
@@ -193,6 +194,8 @@ class GunlukRaporPdf {
   static List<pw.Widget> _santiyeBolumu(
       Proje proje, GunlukKayit kayit, List<pw.ImageProvider> fotolar, int alinamayan) {
     final satirlar = <List<String>>[];
+    final hava = HavaGosterim.ozet(kayit);
+    if (hava.isNotEmpty) satirlar.add(['Hava', hava]);
     final ekip = [
       if (kayit.kalipci > 0) '${kayit.kalipci} kalıpçı',
       if (kayit.demirci > 0) '${kayit.demirci} demirci',

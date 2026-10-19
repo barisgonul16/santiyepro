@@ -7,6 +7,7 @@ import '../services/settings_service.dart';
 import '../services/storage_service.dart';
 import '../services/update_service.dart';
 import '../services/ai_kayit_service.dart';
+import 'sesli_gorusme_sayfa.dart';
 
 class AyarlarSayfaPage extends StatefulWidget {
   final AppSettings currentSettings;
@@ -44,10 +45,15 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
     {'index': 13, 'title': 'Günlük Rapor', 'icon': Icons.description, 'color': Colors.indigo},
   ];
 
+  bool _gorusmeAcilista = false;
+
   @override
   void initState() {
     super.initState();
     _aiAnahtariYukle();
+    SesliGorusmeSayfa.acilistaBaslasinMi().then((v) {
+      if (mounted) setState(() => _gorusmeAcilista = v);
+    });
     _settings = widget.currentSettings;
   }
 
@@ -406,7 +412,23 @@ class _AyarlarSayfaPageState extends State<AyarlarSayfaPage> {
               label: Text(_aiDeneniyor ? 'Deneniyor…' : 'Kaydet ve dene'),
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: _gorusmeAcilista,
+            onChanged: (v) {
+              setState(() => _gorusmeAcilista = v);
+              SesliGorusmeSayfa.acilistaBaslat(v);
+            },
+            title: Text('Uygulama açılınca sesli görüşmeyi başlat',
+                style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color)),
+            subtitle: Text(
+              '"Hey Google, ŞantiyePro’yu aç" dediğinde görüşme kendiliğinden başlar; '
+              'telefona dokunmadan kayıt girebilirsin.',
+              style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color, fontSize: 12),
+            ),
+          ),
+          const SizedBox(height: 24),
 
           // Yedekleme
           _buildSectionTitle('Veri Yedekleme'),

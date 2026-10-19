@@ -98,6 +98,14 @@ class GunlukKayit {
   int aksamDemirci;
   int aksamDiger;
 
+  // Hava durumu (isteğe bağlı): durum anahtarı ('' = girilmemiş), gün içi en
+  // düşük/en yüksek sıcaklık (°C) ve havadan dolayı işin durup durmadığı.
+  // Yalnızca doluysa dosyaya yazılır; kayıtlar şişmez.
+  String hava;
+  int? havaMin;
+  int? havaMax;
+  bool havaDurdu;
+
   // Vinç bilgileri (Legacy)
   String vincFirmaAdi;
   String vincBaslangic; // "HH:mm" formatında
@@ -127,6 +135,10 @@ class GunlukKayit {
     this.aksamKalipci = 0,
     this.aksamDemirci = 0,
     this.aksamDiger = 0,
+    this.hava = '',
+    this.havaMin,
+    this.havaMax,
+    this.havaDurdu = false,
     this.kalipciYapilanIs = '',
     this.demirciYapilanIs = '',
     this.notlar = '',
@@ -196,6 +208,10 @@ class GunlukKayit {
         'aksamKalipci': aksamKalipci,
         'aksamDemirci': aksamDemirci,
         'aksamDiger': aksamDiger,
+        if (hava.isNotEmpty) 'hava': hava,
+        if (havaMin != null) 'havaMin': havaMin,
+        if (havaMax != null) 'havaMax': havaMax,
+        if (havaDurdu) 'havaDurdu': true,
         'kalipciYapilanIs': kalipciYapilanIs,
         'demirciYapilanIs': demirciYapilanIs,
         'notlar': notlar,
@@ -254,6 +270,10 @@ class GunlukKayit {
       aksamKalipci: jsonTamsayi(json['aksamKalipci']),
       aksamDemirci: jsonTamsayi(json['aksamDemirci']),
       aksamDiger: jsonTamsayi(json['aksamDiger']),
+      hava: jsonMetin(json['hava']),
+      havaMin: jsonTamsayiOpsiyonel(json['havaMin']),
+      havaMax: jsonTamsayiOpsiyonel(json['havaMax']),
+      havaDurdu: jsonMantik(json['havaDurdu']),
       kalipciYapilanIs: jsonMetin(json['kalipciYapilanIs']),
       demirciYapilanIs: jsonMetin(json['demirciYapilanIs']),
       notlar: jsonMetin(json['notlar']),

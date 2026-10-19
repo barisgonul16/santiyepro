@@ -43,7 +43,13 @@ class EkipCubugu extends StatelessWidget {
                   style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 6),
-            Text(ad, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+            // Büyük yazı boyutunda ad taşmasın diye kalan yere sığdırılır.
+            Flexible(
+              child: Text(ad,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+            ),
           ],
         );
       },

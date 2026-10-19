@@ -72,7 +72,7 @@ void main() {
       expect((x.kahvaltiToplam, x.aksamKalipci, x.aksamDemirci, x.yemekToplam), (7, 3, 1, 6));
     });
 
-    test('toplam olarak söylenen öğünler çalışan sayısına göre paylaştırılır; ekip ekip söylenene dokunulmaz', () {
+    test('ekip söylenmeyen öğünler seçim bekler; kendiliğinden dağıtılmaz', () {
       final t = SesliKayitTaslagi(
         projeId: 'g',
         soylenenAd: '',
@@ -82,13 +82,34 @@ void main() {
         aksamKalipci: 4,
         aksamDemirci: 2,
         aksamToplam: 99, // ekip ekip söylendiği için yok sayılır
-      )..yemegiDagit(kalipci: 5, demirci: 2, diger: 0);
+      );
 
-      expect(t.kahvaltiKalipci + t.kahvaltiDemirci + t.kahvaltiDiger, 7);
-      expect(t.yemekKalipci + t.yemekDemirci + t.yemekDiger, 10);
-      expect((t.yemekKalipci, t.yemekDemirci), (7, 3));
+      expect(t.ekipBekleyenOgunler, [YemekOgunu.kahvalti, YemekOgunu.ogle]);
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (0, 0, 0));
+
+      // Kullanıcı kahvaltıyı demirciye yazar, öğleyi çalışan sayısına göre dağıtır.
+      t.ogunuEkibeYaz(YemekOgunu.kahvalti, YemekEkibi.demirci);
+      t.ogunuDagit(YemekOgunu.ogle, kalipci: 5, demirci: 2, diger: 0);
+
+      expect((t.kahvaltiKalipci, t.kahvaltiDemirci, t.kahvaltiDiger), (0, 7, 0));
+      expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (7, 3, 0));
       expect((t.aksamKalipci, t.aksamDemirci, t.aksamDiger), (4, 2, 0));
-      expect(t.yemekDagitildi, isTrue);
+      expect(t.ekipBekleyenOgunler, isEmpty);
+      expect(t.dagitilanOgunler, [YemekOgunu.ogle]);
+    });
+
+    test('"yok say" denen sayı seçim beklemez ve kayda yazılmaz', () {
+      final t = SesliKayitTaslagi(
+        projeId: 'g',
+        soylenenAd: '',
+        tarih: DateTime(2026, 10, 9),
+        kalipci: 3,
+        yemekToplam: 12,
+      );
+      expect(t.ekipBekleyenOgunler, [YemekOgunu.ogle]);
+      t.ogunuYoksay(YemekOgunu.ogle);
+      expect(t.ekipBekleyenOgunler, isEmpty);
+      expect(t.kayda(null).toplamYemek, 0);
     });
 
     test('mevcut kaydın kahvaltı ve akşam sayıları taslakta yoksa KORUNUR (veri kaybı olmaz)', () {
