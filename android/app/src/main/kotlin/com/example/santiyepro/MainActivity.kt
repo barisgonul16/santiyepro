@@ -54,7 +54,7 @@ class MainActivity : FlutterActivity() {
             if (durum == TextToSpeech.SUCCESS) {
                 val dil = tts?.setLanguage(Locale("tr", "TR")) ?: TextToSpeech.LANG_NOT_SUPPORTED
                 turkce = dil != TextToSpeech.LANG_MISSING_DATA && dil != TextToSpeech.LANG_NOT_SUPPORTED
-                tts?.setSpeechRate(1.0f)
+                tts?.setSpeechRate(1.15f)
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
                     override fun onDone(utteranceId: String?) = bitir(utteranceId)

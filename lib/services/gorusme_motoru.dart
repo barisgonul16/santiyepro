@@ -223,13 +223,12 @@ class GorusmeMotoru {
   String? hata;
 
   bool _iptal = false;
-  bool _selamlandi = false;
 
   // Yarıda kalan turun durumu (durdurulunca kalınan yerden devam etmek için).
   Map<String, String> _cevaplar = {};
   int _adim = 0;
 
-  static const String _notAldim = 'Tamam, not aldım. ';
+  static const String _notAldim = 'Tamam. ';
 
   void iptalEt() {
     _iptal = true;
@@ -263,14 +262,11 @@ class GorusmeMotoru {
     _Adim(
       'sayilar',
       _tekProje == null ? 'Şantiye ve çalışan sayıları' : 'Şantiye (${_tekProje!.ad}) ve çalışan sayıları',
-      (_) => _tekProje == null
-          ? 'Hangi şantiye? Kaç kalıpçı, kaç demirci vardı?'
-          : '${_tekProje!.ad} için kaç kalıpçı, kaç demirci vardı?',
+      (_) => _tekProje == null ? 'Hangi şantiye? Kaç kalıpçı, kaç demirci?' : '${_tekProje!.ad}: kaç kalıpçı, kaç demirci?',
     ),
-    _Adim('isler', 'Yapılan işler', (_) => 'Kalıpçılar ve demirciler ne iş yaptı?'),
-    _Adim('diger', 'Diğer çalışanlar', (_) => 'Başka çalışan var mı? Varsa kaç kişi, ne iş yaptı?', varYok: true),
-    _Adim('ozel', 'Beton, vinç, yevmiye ve notlar',
-        (_) => 'Beton, vinç, yevmiye ya da eklemek istediğin bir not var mı?',
+    _Adim('isler', 'Yapılan işler', (_) => 'Ne iş yaptılar?'),
+    _Adim('ek', 'Diğer çalışanlar, beton, vinç, yevmiye ve notlar',
+        (_) => 'Başka çalışan, beton, vinç, yevmiye ya da not var mı?',
         varYok: true),
     _Adim('yemek', 'Yemek sayıları', _yemekSorusu, varYok: true),
   ];
@@ -279,10 +275,10 @@ class GorusmeMotoru {
     final p = _tekProje ?? GorusmeDili.santiyeBul(cevaplar['sayilar'] ?? '', projeler);
     final kahvalti = p?.kahvaltiVar ?? false;
     final aksam = p?.aksamVar ?? false;
-    if (!kahvalti && !aksam) return 'Yemek kaç kişi? Ekip ekip söyle.';
+    if (!kahvalti && !aksam) return 'Yemek kaç kişi, ekip ekip?';
     final ogunler = [if (kahvalti) 'Kahvaltı', 'öğle', if (aksam) 'akşam'];
     final liste = ogunler.length == 2 ? '${ogunler[0]} ve ${ogunler[1]}' : '${ogunler[0]}, ${ogunler[1]} ve ${ogunler[2]}';
-    return '$liste yemeği kaç kişi? Ekip ekip söyle.';
+    return '$liste yemeği kaç kişi, ekip ekip?';
   }
 
   /// Soruyu okur ve cevabı dinler. "Tekrarla" denince soruyu yeniden okur;
@@ -332,10 +328,7 @@ class GorusmeMotoru {
   Future<GorusmeSonucu> calistir() async {
     _iptal = false;
     hata = null;
-    if (!_selamlandi) {
-      _selamlandi = true;
-      await _soyle('Günlük kayıt görüşmesi. İstediğin an tekrarla, geri ya da iptal diyebilirsin.');
-    }
+    // Açılışta konuşma yok, doğrudan ilk soru (komutlar ekranda yazılı).
     String? ilkCevap;
     while (true) {
       final sonuc = await _tur(ilkCevap: ilkCevap);
@@ -377,7 +370,7 @@ class GorusmeMotoru {
       onSoz = '';
       // "Var" dendiyse ayrıntısı sorulur.
       if (c is _Metin && adim.varYok && GorusmeDili.sadeceOlumlu(c.metin)) {
-        c = await _sor('Anlat, dinliyorum.');
+        c = await _sor('Anlat.');
       }
       switch (c) {
         case _Sessiz():
@@ -396,8 +389,7 @@ class GorusmeMotoru {
     }
 
     // Yapay zekâ cevapları sütunlara dağıtır.
-    _yaz(GorusmeAsamasi.isleniyor, soru: 'Kayıtlar hazırlanıyor…');
-    await _soyle('${onSoz}Kayıtları hazırlıyorum.');
+    // Yapay zekâ ~1 sn sürüyor; beklerken konuşmaya gerek yok.
     if (_iptal) return _iptalSonucu();
     _yaz(GorusmeAsamasi.isleniyor, soru: 'Kayıtlar hazırlanıyor…');
     final dokum = [
@@ -553,7 +545,7 @@ class GorusmeMotoru {
     );
   }
 
-  static String _kisalt(String s, [int sinir = 120]) {
+  static String _kisalt(String s, [int sinir = 70]) {
     final t = s.trim();
     return t.length <= sinir ? t : '${t.substring(0, sinir)}…';
   }

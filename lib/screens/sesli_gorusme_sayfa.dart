@@ -245,6 +245,9 @@ class _SesliGorusmeSayfaState extends State<SesliGorusmeSayfa> {
                       ),
                     ),
                   ),
+                  Text('İstediğin an: "tekrarla", "geri", "iptal"',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
                   const SizedBox(height: 8),
                   if (_sonuc == GorusmeSonucu.durduruldu) ...[
                     FilledButton.icon(

@@ -412,8 +412,11 @@ class AiKayitService {
     final lite = uygun.where((m) => m.contains('lite')).toList()..sort(sirala);
     final buyuk = uygun.where((m) => !m.contains('lite')).toList()..sort(sirala);
 
+    // Yalnızca hızlı (lite) model hatırlanır: büyük model ücretsiz katmanda aynı
+    // işi 1 sn yerine 25-45 sn'de yapıyor. Eskiden yedek olarak bir kez çalışan
+    // büyük model hatırlanıp her istekte ilk deneniyordu.
     final adaylar = <String>[
-      if (onceki.isNotEmpty && (bulunan.isEmpty || bulunan.contains(onceki))) onceki,
+      if (onceki.contains('lite') && (bulunan.isEmpty || bulunan.contains(onceki))) onceki,
       ...(lite.isEmpty && buyuk.isEmpty ? _yedekModeller : [...lite.take(3), ...buyuk.take(1)]),
     ];
     return adaylar.toSet().toList();
@@ -456,7 +459,11 @@ class AiKayitService {
             sonHata = const AiKayitHatasi('Yapay zekâ boş yanıt verdi. Yeniden dene.');
             continue;
           }
-          await prefs.setString(_modelAyari, model);
+          if (model.contains('lite')) {
+            await prefs.setString(_modelAyari, model);
+          } else {
+            await prefs.remove(_modelAyari);
+          }
           return (model, metin);
         }
 

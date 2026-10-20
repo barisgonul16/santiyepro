@@ -509,6 +509,31 @@ void main() {
       expect(denenen, ['gemini-3.5-flash-lite']);
     });
 
+    test('yavaş büyük model hatırlanmaz: kayıtlıysa bile önce hızlı model denenir', () async {
+      // Eski sürüm, yedek olarak bir kez çalışan büyük modeli kaydediyordu; her
+      // istek 25-45 sn sürüyordu.
+      SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k', 'gemini_model': 'gemini-flash-latest'});
+      final denenen = <String>[];
+      var liteYogun = true;
+      final servis = AiKayitService(
+        istemci: MockClient((r) async {
+          if (r.method == 'GET') return liste(['gemini-flash-lite-latest', 'gemini-flash-latest']);
+          denenen.add(modelAdi(r));
+          if (modelAdi(r).contains('lite') && liteYogun) return hata(503, 'UNAVAILABLE', 'high demand');
+          return gemini(geciciJson);
+        }),
+      );
+      await servis.cozumle('x', projeler, bugun);
+      expect(denenen, ['gemini-flash-lite-latest', 'gemini-flash-latest']);
+      // Büyük model çalıştı ama hatırlanmadı.
+      expect((await SharedPreferences.getInstance()).getString('gemini_model'), isNull);
+
+      liteYogun = false;
+      denenen.clear();
+      await servis.cozumle('x', projeler, bugun);
+      expect(denenen, ['gemini-flash-lite-latest']);
+    });
+
     test('hepsi yoğunsa "çok yoğun" der, ağ hatası gibi göstermez', () async {
       SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'k'});
       var istek = 0;

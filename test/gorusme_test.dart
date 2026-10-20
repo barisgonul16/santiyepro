@@ -161,7 +161,6 @@ void main() {
         'bugün gerada 4 kalıpçı 5 demirci vardı',
         'kalıpçı döşeme kalıbını çaktı demirci temel bağladı',
         'yok',
-        'yok',
         '10 kalıpçı 10 demirci 1 diğer öğle yemeği',
         'evet',
         'hayır',
@@ -171,11 +170,10 @@ void main() {
 
       expect(sonuc, GorusmeSonucu.tamamlandi);
       final soylenen = k.ses.soylenenler.join('\n');
-      expect(soylenen, contains('Hangi şantiye? Kaç kalıpçı, kaç demirci vardı?'));
-      expect(soylenen, contains('Tamam, not aldım. Kalıpçılar ve demirciler ne iş yaptı?'));
-      expect(soylenen, contains('Başka çalışan var mı?'));
-      expect(soylenen, contains('Beton, vinç, yevmiye ya da eklemek istediğin bir not var mı?'));
-      expect(soylenen, contains('Yemek kaç kişi? Ekip ekip söyle.'));
+      expect(k.ses.soylenenler.first, 'Hangi şantiye? Kaç kalıpçı, kaç demirci?'); // açılış konuşması yok
+      expect(soylenen, contains('Tamam. Ne iş yaptılar?'));
+      expect(soylenen, contains('Tamam. Başka çalışan, beton, vinç, yevmiye ya da not var mı?'));
+      expect(soylenen, contains('Tamam. Yemek kaç kişi, ekip ekip?'));
       expect(soylenen, contains('Gera makina: 4 kalıpçı, 5 demirci.'));
       expect(soylenen, contains('Yemek 21 kişi (kalıpçı 10, demirci 10, diğer 1).'));
       expect(soylenen, contains('Kaydedeyim mi?'));
@@ -184,24 +182,23 @@ void main() {
       final dokum = k.dokumler.single;
       expect(dokum, contains('Şantiye ve çalışan sayıları: bugün gerada 4 kalıpçı 5 demirci vardı'));
       expect(dokum, contains('Yapılan işler: kalıpçı döşeme kalıbını çaktı demirci temel bağladı'));
-      expect(dokum, contains('Diğer çalışanlar: yok'));
-      expect(dokum, contains('Beton, vinç, yevmiye ve notlar: yok'));
+      expect(dokum, contains('Diğer çalışanlar, beton, vinç, yevmiye ve notlar: yok'));
       expect(dokum, contains('Yemek sayıları: 10 kalıpçı 10 demirci 1 diğer öğle yemeği'));
       expect(k.kaydedilen.single.single.projeId, 'g');
       expect(k.motor.kaydedilenler, ['1 yeni kayıt']);
     });
 
     test('"var" denince ayrıntısı sorulur', () async {
-      final k = _kur(['gerada 4 kalıpçı', 'kalıp çaktılar', 'var', '2 düz işçi malzeme taşıdı', 'yok', 'yok', 'evet', 'yok']);
+      final k = _kur(['gerada 4 kalıpçı', 'kalıp çaktılar', 'var', '2 düz işçi malzeme taşıdı', 'yok', 'evet', 'yok']);
       await k.motor.calistir();
-      expect(k.ses.soylenenler, contains('Anlat, dinliyorum.'));
-      expect(k.dokumler.single, contains('Diğer çalışanlar: 2 düz işçi malzeme taşıdı'));
+      expect(k.ses.soylenenler, contains('Anlat.'));
+      expect(k.dokumler.single, contains('Diğer çalışanlar, beton, vinç, yevmiye ve notlar: 2 düz işçi malzeme taşıdı'));
     });
 
     test('"tekrarla" soruyu yeniden okur, "geri" önceki soruya döner', () async {
-      final k = _kur(['gerada 4 kalıpçı', 'tekrarla', 'kalıp çaktılar', 'geri', 'kalıp ve demir', 'yok', 'yok', 'yok', 'evet', 'yok']);
+      final k = _kur(['gerada 4 kalıpçı', 'tekrarla', 'kalıp çaktılar', 'geri', 'kalıp ve demir', 'yok', 'yok', 'evet', 'yok']);
       await k.motor.calistir();
-      final isSorusu = k.ses.soylenenler.where((s) => s.endsWith('Kalıpçılar ve demirciler ne iş yaptı?')).length;
+      final isSorusu = k.ses.soylenenler.where((s) => s.endsWith('Ne iş yaptılar?')).length;
       expect(isSorusu, 3); // ilk soru, "tekrarla", "geri" sonrası
       expect(k.dokumler.single, contains('Yapılan işler: kalıp ve demir'));
     });
@@ -219,16 +216,16 @@ void main() {
       expect(await k.motor.calistir(), GorusmeSonucu.durduruldu);
       expect(k.ses.soylenenler.where((s) => s.startsWith('Duyamadım.')).length, 2);
 
-      k.ses.cevaplar.addAll(['kalıp çaktılar', 'yok', 'yok', 'yok', 'evet', 'yok']);
+      k.ses.cevaplar.addAll(['kalıp çaktılar', 'yok', 'yok', 'evet', 'yok']);
       final soylenenOnce = k.ses.soylenenler.length;
       expect(await k.motor.calistir(), GorusmeSonucu.tamamlandi);
-      expect(k.ses.soylenenler[soylenenOnce], 'Kalıpçılar ve demirciler ne iş yaptı?');
+      expect(k.ses.soylenenler[soylenenOnce], 'Ne iş yaptılar?');
       expect(k.dokumler.single, contains('Şantiye ve çalışan sayıları: gerada 4 kalıpçı'));
     });
 
     test('şantiye bulunamadıysa sorulur', () async {
       final k = _kur(
-        ['gerrada 4 kalıpçı', 'iş yok', 'yok', 'yok', 'yok', 'gera makina', 'evet', 'yok'],
+        ['gerrada 4 kalıpçı', 'iş yok', 'yok', 'yok', 'gera makina', 'evet', 'yok'],
         yapayZekaCevaplari: [
           [_taslak(projeId: '', soylenenAd: 'gerra')]
         ],
@@ -240,7 +237,7 @@ void main() {
 
     test('ekip söylenmeyen yemek sorulur: ekip seçilir ya da dağıtılır', () async {
       final k = _kur(
-        ['gerada 4 kalıpçı 5 demirci', 'iş', 'yok', 'yok', 'yemek 20', 'kalıpçı', 'evet', 'yok'],
+        ['gerada 4 kalıpçı 5 demirci', 'iş', 'yok', 'yemek 20', 'kalıpçı', 'evet', 'yok'],
         yapayZekaCevaplari: [
           [_taslak(yemekToplam: 20, yemekKalipci: 0, yemekDemirci: 0, yemekDiger: 0)]
         ],
@@ -251,7 +248,7 @@ void main() {
       expect((t.yemekKalipci, t.yemekDemirci, t.yemekDiger), (20, 0, 0));
 
       final d = _kur(
-        ['gerada 4 kalıpçı 5 demirci', 'iş', 'yok', 'yok', 'yemek 20', 'dağıt', 'evet', 'yok'],
+        ['gerada 4 kalıpçı 5 demirci', 'iş', 'yok', 'yemek 20', 'dağıt', 'evet', 'yok'],
         yapayZekaCevaplari: [
           [_taslak(yemekToplam: 20, yemekKalipci: 0, yemekDemirci: 0, yemekDiger: 0)]
         ],
@@ -262,7 +259,7 @@ void main() {
     });
 
     test('"hayır" denince tabloya geçilir, kaydedilmez', () async {
-      final k = _kur(['gerada 4 kalıpçı', 'iş', 'yok', 'yok', 'yok', 'hayır düzelt']);
+      final k = _kur(['gerada 4 kalıpçı', 'iş', 'yok', 'yok', 'hayır düzelt']);
       expect(await k.motor.calistir(), GorusmeSonucu.tabloyaGecildi);
       expect(k.kaydedilen, isEmpty);
       expect(k.motor.tabloTaslaklari.single.projeId, 'g');
@@ -270,7 +267,7 @@ void main() {
 
     test('"Başka şantiye var mı?" sorusuna doğrudan anlatılırsa yeni tur o cevapla başlar', () async {
       final k = _kur(
-        ['gerada 4 kalıpçı', 'iş', 'yok', 'yok', 'yok', 'evet', 'KA otomotivde 3 kalıpçı vardı', 'söküm', 'yok', 'yok', 'yok', 'evet', 'yok'],
+        ['gerada 4 kalıpçı', 'iş', 'yok', 'yok', 'evet', 'KA otomotivde 3 kalıpçı vardı', 'söküm', 'yok', 'yok', 'evet', 'yok'],
         yapayZekaCevaplari: [
           [_taslak()],
           [_taslak(projeId: 'k', soylenenAd: 'KA', kalipci: 3, demirci: 0)],
@@ -284,19 +281,19 @@ void main() {
     });
 
     test('yapay zekâya ulaşılamazsa durur ve nedeni söylenir', () async {
-      final k = _kur(['gerada 4 kalıpçı', 'iş', 'yok', 'yok', 'yok'], hata: const AiKayitHatasi('Yapay zekâya ulaşılamadı.'));
+      final k = _kur(['gerada 4 kalıpçı', 'iş', 'yok', 'yok'], hata: const AiKayitHatasi('Yapay zekâya ulaşılamadı.'));
       expect(await k.motor.calistir(), GorusmeSonucu.durduruldu);
       expect(k.motor.hata, 'Yapay zekâya ulaşılamadı.');
       expect(k.ses.soylenenler.last, contains('Yapay zekâya ulaşılamadı.'));
     });
 
     test('tek şantiye varsa adı sorulmaz; kahvaltısı açık projede kahvaltı da sorulur', () async {
-      final k = _kur(['4 kalıpçı', 'iş', 'yok', 'yok', 'kahvaltı 5 öğle 10', 'evet', 'yok'],
+      final k = _kur(['4 kalıpçı', 'iş', 'yok', 'kahvaltı 5 öğle 10', 'evet', 'yok'],
           projeler: [_proje('g', 'Gera makina', kahvalti: true)]);
       await k.motor.calistir();
       final soylenen = k.ses.soylenenler.join('\n');
-      expect(soylenen, contains('Gera makina için kaç kalıpçı, kaç demirci vardı?'));
-      expect(soylenen, contains('Kahvaltı ve öğle yemeği kaç kişi? Ekip ekip söyle.'));
+      expect(soylenen, contains('Gera makina: kaç kalıpçı, kaç demirci?'));
+      expect(soylenen, contains('Kahvaltı ve öğle yemeği kaç kişi, ekip ekip?'));
       expect(k.dokumler.single, contains('Şantiye (Gera makina) ve çalışan sayıları: 4 kalıpçı'));
     });
   });
@@ -341,7 +338,7 @@ void main() {
             })),
             200);
       });
-      final ses = _SahteSes(['gerada 4 kalıpçı 5 demirci', 'döşeme kalıbı ve temel', 'yok', 'yok', 'kalıpçı 10', 'evet', 'yok']);
+      final ses = _SahteSes(['gerada 4 kalıpçı 5 demirci', 'döşeme kalıbı ve temel', 'yok', 'kalıpçı 10', 'evet', 'yok']);
       final eklenen = <(String, GunlukKayit)>[];
       String? sonuc;
 

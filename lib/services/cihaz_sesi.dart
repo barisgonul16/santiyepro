@@ -90,7 +90,7 @@ class CihazSesi implements SesArayuzu {
       appLog('Okunamadı: $e');
     }
     // Kendi sesini duymasın diye kısa bir ara.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
   }
 
   @override
@@ -115,7 +115,8 @@ class CihazSesi implements SesArayuzu {
             // Listede Türkçe görünmese de Türkçe istenir (yoksa İngilizceye düşüyor).
             localeId: _turkce ?? 'tr_TR',
             listenFor: const Duration(seconds: 60),
-            pauseFor: const Duration(seconds: 4),
+            // Konuşma bitince fazla beklemeden sıradaki soruya geçilir.
+            pauseFor: const Duration(seconds: 2),
             partialResults: true,
             cancelOnError: true,
           ),
