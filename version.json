@@ -1,4 +1,4 @@
 {
-  "version": "2.8.0+15",
-  "notes": "v2.8.0 Güncellemesi:\n- Sesli görüşme (eller serbest): Ana sayfa > Sesli görüşme. Sorular sesli sorulur, sesle cevaplarsın; sonda \"evet\" deyince kaydedilir.\n- Hava durumu kayda işleniyor (tarih satırında; \"çalışılamadı\" işareti).\n- Sesle kayıtta ekip söylenmeyen yemek için ekip sorulur.\n- Tüm cihazları aynı sürüme güncelleyin."
+  "version": "2.8.1+16",
+  "notes": "v2.8.1 Güncellemesi:\n- Sesle kayıt ve sesli görüşme hızlandı (yapay zekâ artık hep hızlı modeli kullanıyor).\n- Sesli görüşme kısaldı: 4 kısa soru, sustuğunda hemen sıradaki soruya geçer."
 }
