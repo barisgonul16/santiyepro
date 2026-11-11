@@ -172,7 +172,7 @@ void main() {
       final soylenen = k.ses.soylenenler.join('\n');
       expect(k.ses.soylenenler.first, 'Hangi şantiye? Kaç kalıpçı, kaç demirci?'); // açılış konuşması yok
       expect(soylenen, contains('Tamam. Ne iş yaptılar?'));
-      expect(soylenen, contains('Tamam. Başka çalışan, beton, vinç, yevmiye ya da not var mı?'));
+      expect(soylenen, contains('Tamam. Başka çalışan, beton, vinç, yevmiye, hakediş notu ya da not var mı?'));
       expect(soylenen, contains('Tamam. Yemek kaç kişi, ekip ekip?'));
       expect(soylenen, contains('Gera makina: 4 kalıpçı, 5 demirci.'));
       expect(soylenen, contains('Yemek 21 kişi (kalıpçı 10, demirci 10, diğer 1).'));
@@ -182,7 +182,7 @@ void main() {
       final dokum = k.dokumler.single;
       expect(dokum, contains('Şantiye ve çalışan sayıları: bugün gerada 4 kalıpçı 5 demirci vardı'));
       expect(dokum, contains('Yapılan işler: kalıpçı döşeme kalıbını çaktı demirci temel bağladı'));
-      expect(dokum, contains('Diğer çalışanlar, beton, vinç, yevmiye ve notlar: yok'));
+      expect(dokum, contains('Diğer çalışanlar, beton, vinç, yevmiye, hakediş hatırlatması ve notlar: yok'));
       expect(dokum, contains('Yemek sayıları: 10 kalıpçı 10 demirci 1 diğer öğle yemeği'));
       expect(k.kaydedilen.single.single.projeId, 'g');
       expect(k.motor.kaydedilenler, ['1 yeni kayıt']);
@@ -192,7 +192,7 @@ void main() {
       final k = _kur(['gerada 4 kalıpçı', 'kalıp çaktılar', 'var', '2 düz işçi malzeme taşıdı', 'yok', 'evet', 'yok']);
       await k.motor.calistir();
       expect(k.ses.soylenenler, contains('Anlat.'));
-      expect(k.dokumler.single, contains('Diğer çalışanlar, beton, vinç, yevmiye ve notlar: 2 düz işçi malzeme taşıdı'));
+      expect(k.dokumler.single, contains('Diğer çalışanlar, beton, vinç, yevmiye, hakediş hatırlatması ve notlar: 2 düz işçi malzeme taşıdı'));
     });
 
     test('"tekrarla" soruyu yeniden okur, "geri" önceki soruya döner', () async {

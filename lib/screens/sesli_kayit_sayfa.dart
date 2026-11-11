@@ -609,6 +609,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                 yazi('Demirci işi', t.demirciIs, (v) => t.demirciIs = v),
                 yazi('Beton', t.beton, (v) => t.beton = v),
                 yazi('Not', t.notlar, (v) => t.notlar = v),
+                yazi('Hakediş hatırlatma', t.hakedisNotu, (v) => t.hakedisNotu = v),
                 for (final v in List<VincBilgisi>.from(t.vincler))
                   _buildEkSatir(
                     'Vinç: ${[

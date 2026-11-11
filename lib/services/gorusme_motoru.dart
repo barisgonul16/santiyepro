@@ -265,8 +265,8 @@ class GorusmeMotoru {
       (_) => _tekProje == null ? 'Hangi şantiye? Kaç kalıpçı, kaç demirci?' : '${_tekProje!.ad}: kaç kalıpçı, kaç demirci?',
     ),
     _Adim('isler', 'Yapılan işler', (_) => 'Ne iş yaptılar?'),
-    _Adim('ek', 'Diğer çalışanlar, beton, vinç, yevmiye ve notlar',
-        (_) => 'Başka çalışan, beton, vinç, yevmiye ya da not var mı?',
+    _Adim('ek', 'Diğer çalışanlar, beton, vinç, yevmiye, hakediş hatırlatması ve notlar',
+        (_) => 'Başka çalışan, beton, vinç, yevmiye, hakediş notu ya da not var mı?',
         varYok: true),
     _Adim('yemek', 'Yemek sayıları', _yemekSorusu, varYok: true),
   ];
@@ -582,6 +582,7 @@ class GorusmeMotoru {
       ogun('Kahvaltı', t.kahvaltiKalipci, t.kahvaltiDemirci, t.kahvaltiDiger),
       ogun(ekstraOgun ? 'Öğle yemeği' : 'Yemek', t.yemekKalipci, t.yemekDemirci, t.yemekDiger),
       ogun('Akşam yemeği', t.aksamKalipci, t.aksamDemirci, t.aksamDiger),
+      if (t.hakedisNotu.trim().isNotEmpty) 'Hakediş: ${_kisalt(t.hakedisNotu)}.',
       if (t.notlar.trim().isNotEmpty) 'Not: ${_kisalt(t.notlar)}.',
     ].where((p) => p.isNotEmpty).join(' ');
   }

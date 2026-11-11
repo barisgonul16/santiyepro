@@ -241,6 +241,36 @@ void main() {
     });
   });
 
+  group('Hakediş hatırlatması', () {
+    test('yapay zekâya alan ve kural gönderilir; cevaptaki "hakedis" taslağa okunur', () {
+      final y = AiKayitService.yonerge('x', projeler, bugun);
+      expect(y, contains('"hakedis":""'));
+      expect(y, contains('hakediş için not al'));
+      final (t, _) = AiKayitService.taslaklariCoz(
+        jsonEncode({
+          'kayitlar': [
+            {'projeId': 'g', 'tarih': '2026-10-09', 'hakedis': 'Bodrum perde ek kalıp 12 m²'},
+          ],
+        }),
+        projeler,
+        bugun,
+      );
+      // Yalnızca hakediş notu söylenen kayıt da boş sayılmaz.
+      expect(t.single.hakedisNotu, 'Bodrum perde ek kalıp 12 m²');
+    });
+
+    test('o güne kayıt varsa hakediş notu mevcut notun sonuna eklenir', () {
+      final mevcut = GunlukKayit(tarih: DateTime(2026, 10, 9), kalipci: 3, hakedisNotu: 'Merdiven kalıbı');
+      final t = SesliKayitTaslagi(
+          projeId: 'g', soylenenAd: '', tarih: DateTime(2026, 10, 9), hakedisNotu: 'Vinç 2 saat bekleme');
+      final k = t.kayda(mevcut);
+      expect(k.hakedisNotu, 'Merdiven kalıbı, Vinç 2 saat bekleme');
+      expect(k.kalipci, 3);
+      expect(SesliKayitTaslagi(projeId: 'g', soylenenAd: '', tarih: DateTime(2026, 10, 9)).kayda(mevcut).hakedisNotu,
+          'Merdiven kalıbı');
+    });
+  });
+
   group('Yemek', () {
     test('yapay zekâya yemek kuralı ve alanları gönderilir', () {
       final yonerge = AiKayitService.yonerge('x', projeler, bugun);

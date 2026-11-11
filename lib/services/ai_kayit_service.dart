@@ -28,6 +28,8 @@ class SesliKayitTaslagi {
   String demirciIs;
   String beton;
   String notlar;
+  /// Hakedişte hatırlanacaklar ("hakediş için not al").
+  String hakedisNotu;
   /// Yemek yiyen kişi sayısı, ekip ekip.
   int yemekKalipci;
   int yemekDemirci;
@@ -64,6 +66,7 @@ class SesliKayitTaslagi {
     this.demirciIs = '',
     this.beton = '',
     this.notlar = '',
+    this.hakedisNotu = '',
     this.yemekKalipci = 0,
     this.yemekDemirci = 0,
     this.yemekDiger = 0,
@@ -89,6 +92,7 @@ class SesliKayitTaslagi {
       demirciIs.trim().isEmpty &&
       beton.trim().isEmpty &&
       notlar.trim().isEmpty &&
+      hakedisNotu.trim().isEmpty &&
       yemekKalipci == 0 &&
       yemekDemirci == 0 &&
       yemekDiger == 0 &&
@@ -230,7 +234,7 @@ class SesliKayitTaslagi {
       havaMin: temel.havaMin,
       havaMax: temel.havaMax,
       havaDurdu: temel.havaDurdu,
-      hakedisNotu: temel.hakedisNotu,
+      hakedisNotu: ekle(temel.hakedisNotu, hakedisNotu),
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),
@@ -529,11 +533,12 @@ Kurallar:
 - "vincler": vinç çalıştıysa her biri için firma, başlangıç ve bitiş saati ("HH:MM", 24 saat), mola (dakika) ve açıklama. Saat söylenmediyse boş bırak.
 - "yevmiyeler": yevmiyeli iş varsa ekip adı, miktar (yevmiye sayısı, yarım gün 0.5) ve açıklama.
 - Yemek: öğünlere göre ayır. "yemek" ve "öğle yemeği" öğle yemeğidir; "kahvaltı" kahvaltıdır; "akşam yemeği" ya da "akşam" akşam yemeğidir. Her öğün için yemek yiyen / yemek verilen kişi sayısını yaz. Yemek bilgisini ASLA "notlar" alanına yazma. Ekip ayrı ayrı söylendiyse (kalıpçı, demirci, diğer) öğle için "yemekKalipci", "yemekDemirci", "yemekDiger"; kahvaltı için "kahvaltiKalipci", "kahvaltiDemirci", "kahvaltiDiger"; akşam için "aksamKalipci", "aksamDemirci", "aksamDiger" alanlarına yaz. Ekip ayrımı yapmadan tek sayı söylendiyse ("yemek 12", "kahvaltı 8", "akşam yemeği 10", "12 kişilik yemek") yalnızca "yemek", "kahvalti" ya da "aksam" alanına yaz. Söylenmeyen her şey 0.
+- "hakedis": hakedişte hatırlanması gerekenler: "hakediş için not al", "hakedişe yaz", "hakedişte unutma" denen şeyler; sözleşme dışı ek iş, işverenden kaynaklı bekleme ya da yeniden yapılan iş gibi hakedişe yansıtılacak bilgiler. Kısa ve söylendiği gibi yaz. Bunları "notlar" alanına yazma.
 - "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, hava, ziyaret). Yemek sayısı notlara yazılmaz.
 - "anlasilmayan": hiçbir kayda yerleştiremediğin kısım varsa kısaca yaz, yoksa boş bırak.
 
 Yalnızca şu biçimde JSON döndür:
-{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"kahvalti":0,"kahvaltiKalipci":0,"kahvaltiDemirci":0,"kahvaltiDiger":0,"aksam":0,"aksamKalipci":0,"aksamDemirci":0,"aksamDiger":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
+{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","hakedis":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"kahvalti":0,"kahvaltiKalipci":0,"kahvaltiDemirci":0,"kahvaltiDiger":0,"aksam":0,"aksamKalipci":0,"aksamDemirci":0,"aksamDiger":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
 
 Söylenen not:
 """
@@ -587,6 +592,7 @@ $metin
         demirciIs: yazi(k['demirciIs']),
         beton: yazi(k['beton']),
         notlar: yazi(k['notlar']),
+        hakedisNotu: yazi(k['hakedis']),
         yemekKalipci: tam(k['yemekKalipci']),
         yemekDemirci: tam(k['yemekDemirci']),
         yemekDiger: tam(k['yemekDiger']),
