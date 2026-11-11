@@ -230,6 +230,7 @@ class SesliKayitTaslagi {
       havaMin: temel.havaMin,
       havaMax: temel.havaMax,
       havaDurdu: temel.havaDurdu,
+      hakedisNotu: temel.hakedisNotu,
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
       beton: ekle(temel.beton, beton),

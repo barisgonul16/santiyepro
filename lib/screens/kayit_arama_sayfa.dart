@@ -61,6 +61,7 @@ class _KayitAramaSayfaState extends State<KayitAramaSayfa> {
         ('Demirci işi', k.demirciYapilanIs),
         ('Beton', k.beton),
         ('Not', k.notlar),
+        ('Hakediş', k.hakedisNotu),
         for (final v in k.vincler) ('Vinç', '${v.firmaAdi} ${v.aciklama}'.trim()),
         for (final y in k.yevmiyeler) ('Yevmiye', '${y.ekipAdi} ${y.aciklama}'.trim()),
       ];

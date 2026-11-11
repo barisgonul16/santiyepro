@@ -17,6 +17,7 @@ import 'models/pratik_bilgi.dart';
 import 'screens/ana_sayfa.dart';
 import 'screens/projeler_sayfa.dart';
 import 'screens/yevmiyeler_sayfa.dart';
+import 'screens/hakedis_hatirlatma_sayfa.dart';
 import 'screens/yemek_sayfa.dart';
 import 'screens/gorevler_sayfa.dart';
 import 'screens/notlar_sayfa.dart';
@@ -1085,6 +1086,7 @@ class _MainScreenState extends State<MainScreen> {
     {'icon': Icons.map, 'title': 'Haritalar', 'color': Colors.teal},
     {'icon': Icons.description, 'title': 'Günlük Rapor', 'color': Colors.indigo},
     {'icon': Icons.settings, 'title': 'Ayarlar', 'color': Colors.grey},
+    {'icon': Icons.request_quote, 'title': 'Hakediş Hatırlatma', 'color': Colors.deepOrange},
   ];
 
   // Yan menüdeki görünüm sırası. _menuItems'taki sıra DEĞİŞTİRİLMEMELİ:
@@ -1095,7 +1097,7 @@ class _MainScreenState extends State<MainScreen> {
   static const List<Object?> _menuSirasi = [
     0, // Ana Sayfa
     'Şantiye',
-    1, 2, 8, 13, 12, // Projeler, Yevmiyeler, Yemek, Günlük Rapor, Haritalar
+    1, 2, 15, 8, 13, 12, // Projeler, Yevmiyeler, Hakediş Hatırlatma, Yemek, Günlük Rapor, Haritalar
     7, // Faturalar
     9, // Malzemeler
     _MenuGrubu('Planlama', [3, 6, 4]), // Görevler, Takvim, Notlar
@@ -1227,6 +1229,12 @@ class _MainScreenState extends State<MainScreen> {
         return GunlukRaporSayfaPage(
           projeler: projeler,
           projeGunlukKayitlari: projeGunlukKayitlari,
+        );
+      case 15:
+        return HakedisHatirlatmaSayfa(
+          projeler: projeler,
+          projeGunlukKayitlari: projeGunlukKayitlari,
+          onGunlukKayitGuncelle: _gunlukKayitGuncelle,
         );
       case 14: // Ayarlar
         return AyarlarSayfaPage(

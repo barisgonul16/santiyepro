@@ -121,6 +121,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
   final demirciIsController = TextEditingController();
   final notlarController = TextEditingController();
   final betonController = TextEditingController();
+  final hakedisNotuController = TextEditingController();
   List<String> fotograflar = [];
 
   // --- Hava durumu (seçili günün kaydıyla birlikte saklanır) ---
@@ -189,6 +190,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     demirciIsController.dispose();
     notlarController.dispose();
     betonController.dispose();
+    hakedisNotuController.dispose();
     yemekKalipciController.dispose();
     yemekDemirciController.dispose();
     yemekDigerController.dispose();
@@ -233,6 +235,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     demirciIsController.text = kayit.demirciYapilanIs;
     notlarController.text = kayit.notlar;
     betonController.text = kayit.beton;
+    hakedisNotuController.text = kayit.hakedisNotu;
     fotograflar = List.from(kayit.fotografYollari);
     _hava = kayit.hava;
     _havaMin = kayit.havaMin;
@@ -456,7 +459,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         aksamDemirciController.text,
         aksamDigerController.text,
         kalipciIsController.text, demirciIsController.text,
-        notlarController.text, betonController.text,
+        notlarController.text, betonController.text, hakedisNotuController.text,
         fotograflar,
         [_hava, _havaMin, _havaMax, _havaDurdu],
         _vincFormList
@@ -706,6 +709,7 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
         demirciYapilanIs: demirciIsController.text,
         notlar: notlarController.text,
         beton: betonController.text,
+        hakedisNotu: hakedisNotuController.text.trim(),
         hava: _hava,
         havaMin: _havaMin,
         havaMax: _havaMax,
@@ -1622,6 +1626,8 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                   _buildMobileInputItem("Notlar", notlarController, maxLines: 2, sesli: true),
                   const SizedBox(height: 8),
                   _buildMobileInputItem("Beton", betonController, sesli: true),
+                  const SizedBox(height: 8),
+                  _buildMobileInputItem("Hakediş hatırlatma", hakedisNotuController, maxLines: 2, sesli: true),
                   const SizedBox(height: 15),
                   // Vinç Bilgileri
                   Container(

@@ -84,6 +84,9 @@ class GunlukKayit {
   String demirciYapilanIs;
   String notlar;
   String beton;
+  /// Hakedişte hatırlanacaklar (ek iş, eksik ölçü vb.). Hakediş Hatırlatma
+  /// sayfasında tüm şantiyelerden toplanır. Doluysa dosyaya yazılır.
+  String hakedisNotu;
   List<String> fotografYollari; // Fotoğrafların yolları
 
   // Yemek bilgileri. yemek* alanları öğle yemeğidir (eski kayıtlar böyle
@@ -143,6 +146,7 @@ class GunlukKayit {
     this.demirciYapilanIs = '',
     this.notlar = '',
     this.beton = '',
+    this.hakedisNotu = '',
     this.fotografYollari = const [],
     this.vincFirmaAdi = '',
     this.vincBaslangic = '',
@@ -212,6 +216,7 @@ class GunlukKayit {
         if (havaMin != null) 'havaMin': havaMin,
         if (havaMax != null) 'havaMax': havaMax,
         if (havaDurdu) 'havaDurdu': true,
+        if (hakedisNotu.isNotEmpty) 'hakedisNotu': hakedisNotu,
         'kalipciYapilanIs': kalipciYapilanIs,
         'demirciYapilanIs': demirciYapilanIs,
         'notlar': notlar,
@@ -278,6 +283,7 @@ class GunlukKayit {
       demirciYapilanIs: jsonMetin(json['demirciYapilanIs']),
       notlar: jsonMetin(json['notlar']),
       beton: jsonMetin(json['beton']),
+      hakedisNotu: jsonMetin(json['hakedisNotu']),
       fotografYollari: jsonMetinListesi(json['fotografYollari']),
       vincFirmaAdi: jsonMetin(json['vincFirmaAdi']),
       vincBaslangic: jsonMetin(json['vincBaslangic']),
