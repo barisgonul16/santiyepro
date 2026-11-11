@@ -1,4 +1,4 @@
 {
-  "version": "2.8.1+16",
-  "notes": "v2.8.1 Güncellemesi:\n- Sesle kayıt ve sesli görüşme hızlandı (yapay zekâ artık hep hızlı modeli kullanıyor).\n- Sesli görüşme kısaldı: 4 kısa soru, sustuğunda hemen sıradaki soruya geçer."
+  "version": "2.8.2+17",
+  "notes": "v2.8.2 Güncellemesi:\n- Hakediş hatırlatma: Giriş sekmesindeki yeni kutuya yazılanlar, yan menüdeki Hakediş Hatırlatma sayfasında toplanır ve Excel'e aktarılır.\n- Sesle kayıt/görüşmede \"hakediş için not al ...\" dersen bu kutuya yazılır."
 }
