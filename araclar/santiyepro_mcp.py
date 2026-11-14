@@ -1,16 +1,23 @@
 """ŞantiyePro MCP sunucusu (yalnızca okur).
 
-Bilgisayardaki ŞantiyePro uygulamasının veri dosyalarını (Belgeler klasöründeki
-JSON'lar) okuyup Claude'a araç olarak sunar: şantiyeler, günlük kayıtlar,
-özetler, arama, hakediş hatırlatmaları ve hakedişler.
+ŞantiyePro verilerini okuyup Claude'a araç olarak sunar: şantiyeler, günlük
+kayıtlar, özetler, arama, hakediş hatırlatmaları ve hakedişler.
 
-- Dosyalara HİÇBİR ŞEY yazmaz; uygulamanın bulut eşitlemesine karışmaz.
-- Yalnızca Python standart kütüphanesi kullanılır; internete bağlanmaz.
-- Veriler, bilgisayardaki uygulamanın en son eşitlendiği andaki kadar günceldir
-  (her yanıtta "veri_tarihi" olarak bildirilir).
+Kaynak: buluttaki (Firestore) veri, telefondan girilenler dahil. Bulut
+okunamazsa ya da giriş yapılmamışsa bilgisayardaki uygulamanın veri dosyaları
+(Belgeler klasöründeki JSON'lar) kullanılır. İkisi de varsa hangisi daha yeniyse
+o seçilir; her yanıtta "kaynak" ve "veri_tarihi" bildirilir.
+
+- Ne buluta ne dosyalara HİÇBİR ŞEY yazmaz; uygulamanın eşitlemesine karışmaz.
+- Yalnızca Python standart kütüphanesi kullanılır.
 
 Veri klasörü: SANTIYEPRO_VERI ortam değişkeni, yoksa ~/Documents.
-Çalıştırma: python santiyepro_mcp.py   (MCP stdio, satır başına bir JSON-RPC iletisi)
+Bulut oturumu: SANTIYEPRO_OTURUM, yoksa ~/.santiyepro/mcp_oturum.json.
+Komutlar:
+  python santiyepro_mcp.py          MCP sunucusu (stdio, satır başına bir JSON-RPC iletisi)
+  python santiyepro_mcp.py giris    tarayıcıda Google ile bir kez giriş (secrets.json gerekir)
+  python santiyepro_mcp.py durum    verinin nereden ve hangi tarihten okunduğu
+  python santiyepro_mcp.py cikis    bulut oturumunu siler
 """
 import datetime as dt
 import io
@@ -28,21 +35,252 @@ def veri_klasoru():
     return os.environ.get('SANTIYEPRO_VERI') or os.path.join(os.path.expanduser('~'), 'Documents')
 
 
-def _oku(ad, varsayilan):
+def _yerel_oku(ad):
+    """(veri, değişme zamanı ms) ya da dosya yoksa (None, 0)."""
     yol = os.path.join(veri_klasoru(), ad + '.json')
     try:
+        zaman = int(os.path.getmtime(yol) * 1000)
         with io.open(yol, encoding='utf-8') as f:
-            return json.load(f)
+            return json.load(f), zaman
     except FileNotFoundError:
-        return varsayilan
+        return None, 0
+
+
+# ---------------------------------------------------------------- bulut (Firestore, yalnızca okur)
+#
+# Uygulama her koleksiyonu users/{uid}/data/{koleksiyon} belgesinde, "json"
+# alanında metin olarak tutar ("updatedAt" alanı son yazma zamanıdır).
+# Giriş bir kez yapılır (python santiyepro_mcp.py giris); Firebase yenileme
+# anahtarı kullanıcının ev klasöründe saklanır, depoya girmez.
+
+FIREBASE_PROJE = 'santiyepro-49515'
+FIREBASE_ANAHTAR = 'AIzaSyCnWJIUcsiBrsZSdHndBeVHSIPCj4HlduE'  # uygulamanın Windows/web anahtarı (gizli değil)
+_ZAMAN_ASIMI = 20
+_ONBELLEK_SN = 60
+
+
+class BulutHatasi(Exception):
+    pass
+
+
+def oturum_dosyasi():
+    return os.environ.get('SANTIYEPRO_OTURUM') or os.path.join(os.path.expanduser('~'), '.santiyepro', 'mcp_oturum.json')
+
+
+def oturum():
+    try:
+        with io.open(oturum_dosyasi(), encoding='utf-8') as f:
+            d = json.load(f)
+        return d if d.get('refresh_token') and d.get('uid') else None
+    except (OSError, ValueError):
+        return None
+
+
+def _http(url, veri=None, basliklar=None, form=False):
+    """JSON yanıtlı HTTP isteği. Hata durumunda BulutHatasi (sunucu mesajıyla)."""
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+    govde = None
+    basliklar = dict(basliklar or {})
+    if veri is not None:
+        if form:
+            govde = urllib.parse.urlencode(veri).encode()
+            basliklar['Content-Type'] = 'application/x-www-form-urlencoded'
+        else:
+            govde = json.dumps(veri).encode()
+            basliklar['Content-Type'] = 'application/json'
+    istek = urllib.request.Request(url, data=govde, headers=basliklar)
+    try:
+        with urllib.request.urlopen(istek, timeout=_ZAMAN_ASIMI) as y:
+            return json.loads(y.read().decode('utf-8'))
+    except urllib.error.HTTPError as e:
+        try:
+            ayrinti = json.loads(e.read().decode('utf-8'))
+            ayrinti = ayrinti.get('error', ayrinti)
+            if isinstance(ayrinti, dict):
+                ayrinti = ayrinti.get('message') or ayrinti
+        except ValueError:
+            ayrinti = ''
+        raise BulutHatasi('HTTP %s %s' % (e.code, ayrinti))
+    except (urllib.error.URLError, OSError) as e:
+        raise BulutHatasi('bağlantı kurulamadı (%s)' % getattr(e, 'reason', e))
+
+
+_jeton = {'deger': None, 'bitis': 0.0}
+
+
+def _kimlik_jetonu(o):
+    """Firebase kimlik jetonu (1 saat geçerli); süresi dolunca yenileme anahtarıyla alınır."""
+    import time
+    if _jeton['deger'] and time.time() < _jeton['bitis']:
+        return _jeton['deger']
+    try:
+        y = _http('https://securetoken.googleapis.com/v1/token?key=' + FIREBASE_ANAHTAR,
+                  {'grant_type': 'refresh_token', 'refresh_token': o['refresh_token']}, form=True)
+    except BulutHatasi as e:
+        if 'TOKEN_EXPIRED' in str(e) or 'INVALID_REFRESH_TOKEN' in str(e) or 'USER_' in str(e):
+            raise BulutHatasi('bulut oturumu geçersiz, yeniden giriş gerekli (python araclar/santiyepro_mcp.py giris)')
+        raise
+    _jeton['deger'] = y['id_token']
+    _jeton['bitis'] = time.time() + int(y.get('expires_in', 3600)) - 120
+    return _jeton['deger']
+
+
+def _zaman_ms(rfc3339):
+    """Firestore zaman damgası ("2026-11-14T08:05:01.123456Z") → ms."""
+    if not rfc3339:
+        return 0
+    metin = rfc3339.rstrip('Z')
+    ana, _, kesir = metin.partition('.')
+    t = dt.datetime.strptime(ana, '%Y-%m-%dT%H:%M:%S').replace(tzinfo=dt.timezone.utc)
+    return int(t.timestamp() * 1000) + int((kesir + '000')[:3])
+
+
+def _bulut_oku(ad, o):
+    """(veri, updatedAt ms) ya da belge yoksa (None, 0)."""
+    url = ('https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents/users/%s/data/%s'
+           % (FIREBASE_PROJE, o['uid'], ad))
+    try:
+        belge = _http(url, basliklar={'Authorization': 'Bearer ' + _kimlik_jetonu(o)})
+    except BulutHatasi as e:
+        if str(e).startswith('HTTP 404'):
+            return None, 0
+        raise
+    alanlar = belge.get('fields') or {}
+    metin = (alanlar.get('json') or {}).get('stringValue') or ''
+    if not metin.strip():
+        return None, 0
+    zaman = _zaman_ms((alanlar.get('updatedAt') or {}).get('timestampValue')) or _zaman_ms(belge.get('updateTime'))
+    return json.loads(metin), zaman
+
+
+_onbellek = {}   # ad -> (okunma zamanı, veri, kaynak, ms)
+_durum = {'bulut': None}  # son bulut hatası (yoksa None)
+
+
+def onbellegi_temizle():
+    _onbellek.clear()
+    _jeton.update(deger=None, bitis=0.0)
+    _durum['bulut'] = None
+
+
+def _kaynak(ad):
+    """Koleksiyonun en yeni hali: bulut ile bilgisayardaki dosyadan hangisi
+    daha yeniyse o. Bulut okunamazsa bilgisayardaki dosya kullanılır."""
+    import time
+    simdi = time.time()
+    k = _onbellek.get(ad)
+    if k and simdi - k[0] < _ONBELLEK_SN:
+        return k[1:]
+    yerel, yerel_ms = _yerel_oku(ad)
+    secim = (yerel, 'bilgisayar', yerel_ms)
+    o = oturum()
+    if o is None:
+        _durum['bulut'] = 'buluta giriş yapılmamış (python araclar/santiyepro_mcp.py giris)'
+    else:
+        try:
+            bulut, bulut_ms = _bulut_oku(ad, o)
+            _durum['bulut'] = None
+            if bulut is not None and (yerel is None or bulut_ms >= yerel_ms):
+                secim = (bulut, 'bulut', bulut_ms)
+        except (BulutHatasi, ValueError, KeyError) as e:
+            _durum['bulut'] = 'bulut okunamadı, bilgisayardaki veri kullanıldı: %s' % e
+    _onbellek[ad] = (simdi,) + secim
+    return secim
+
+
+def _oku(ad, varsayilan):
+    veri = _kaynak(ad)[0]
+    return varsayilan if veri is None else veri
+
+
+def veri_bilgisi():
+    """Yanıtlara eklenen kaynak bilgisi: günlük kayıtların nereden ve hangi
+    andaki haliyle okunduğu."""
+    _, kaynak, ms = _kaynak('project_logs')
+    bilgi = {'veri_tarihi': dt.datetime.fromtimestamp(ms / 1000).strftime('%Y-%m-%d %H:%M') if ms else None,
+             'kaynak': kaynak}
+    if _durum['bulut']:
+        bilgi['bulut_durumu'] = _durum['bulut']
+    return bilgi
 
 
 def veri_tarihi():
-    yol = os.path.join(veri_klasoru(), 'project_logs.json')
+    return veri_bilgisi()['veri_tarihi']
+
+
+# ---------------------------------------------------------------- bulut girişi (bir kez, tarayıcıyla)
+
+def _gizli_bilgiler():
+    yol = os.environ.get('SANTIYEPRO_SECRETS') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'secrets.json')
     try:
-        return dt.datetime.fromtimestamp(os.path.getmtime(yol)).strftime('%Y-%m-%d %H:%M')
-    except OSError:
-        return None
+        with io.open(yol, encoding='utf-8') as f:
+            d = json.load(f)
+        return d['GOOGLE_CLIENT_ID'], d['GOOGLE_CLIENT_SECRET']
+    except (OSError, ValueError, KeyError):
+        raise SystemExit('Google istemci bilgileri okunamadı: %s (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)' % yol)
+
+
+def giris():
+    """Tarayıcıda Google ile giriş yapıp Firebase yenileme anahtarını saklar."""
+    import base64
+    import hashlib
+    import http.server
+    import secrets
+    import urllib.parse
+    import webbrowser
+
+    istemci, gizli = _gizli_bilgiler()
+    dogrulayici = secrets.token_urlsafe(64)
+    meydan = base64.urlsafe_b64encode(hashlib.sha256(dogrulayici.encode()).digest()).rstrip(b'=').decode()
+    durum = secrets.token_urlsafe(16)
+    gelen = {}
+
+    class Isleyici(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            if 'code' not in q and 'error' not in q:
+                self.send_response(404)
+                self.end_headers()
+                return
+            gelen.update({a: v[0] for a, v in q.items()})
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            mesaj = 'Giriş alındı, bu sekmeyi kapatabilirsiniz.' if 'code' in q else 'Giriş iptal edildi.'
+            self.wfile.write(('<h2 style="font-family:sans-serif">ŞantiyePro: %s</h2>' % mesaj).encode('utf-8'))
+
+        def log_message(self, *a):
+            pass
+
+    sunucu = http.server.HTTPServer(('127.0.0.1', 0), Isleyici)
+    sunucu.timeout = 300
+    donus = 'http://127.0.0.1:%d' % sunucu.server_address[1]
+    adres = 'https://accounts.google.com/o/oauth2/v2/auth?' + urllib.parse.urlencode({
+        'client_id': istemci, 'redirect_uri': donus, 'response_type': 'code', 'scope': 'openid email',
+        'code_challenge': meydan, 'code_challenge_method': 'S256', 'state': durum, 'prompt': 'select_account'})
+    print('Tarayıcıda Google girişi açılıyor. Açılmazsa bu adresi açın:\n' + adres, flush=True)
+    webbrowser.open(adres)
+    while not gelen:
+        sunucu.handle_request()
+        if not gelen:
+            raise SystemExit('5 dakika içinde giriş yapılmadı.')
+    sunucu.server_close()
+    if gelen.get('state') != durum or 'code' not in gelen:
+        raise SystemExit('Giriş tamamlanmadı: %s' % gelen.get('error', 'durum uyuşmadı'))
+
+    g = _http('https://oauth2.googleapis.com/token', {
+        'code': gelen['code'], 'client_id': istemci, 'client_secret': gizli, 'redirect_uri': donus,
+        'grant_type': 'authorization_code', 'code_verifier': dogrulayici}, form=True)
+    f = _http('https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=' + FIREBASE_ANAHTAR, {
+        'postBody': urllib.parse.urlencode({'id_token': g['id_token'], 'providerId': 'google.com'}),
+        'requestUri': 'http://localhost', 'returnSecureToken': True})
+    yol = oturum_dosyasi()
+    os.makedirs(os.path.dirname(yol), exist_ok=True)
+    with io.open(yol, 'w', encoding='utf-8') as d:
+        json.dump({'uid': f['localId'], 'email': f.get('email', ''), 'refresh_token': f['refreshToken']}, d)
+    print('Giriş yapıldı: %s\nOturum dosyası: %s' % (f.get('email', ''), yol))
 
 
 _HARF = str.maketrans({'ç': 'c', 'ğ': 'g', 'ı': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'â': 'a', 'î': 'i', 'û': 'u'})
@@ -387,16 +625,17 @@ ARACLAR = [
     },
 ]
 
-TALIMAT = ('ŞantiyePro: bir kalıp-demir taşeronunun şantiye kayıtları (Türkçe). Veriler bilgisayardaki uygulamanın en son '
-           'eşitlendiği ana kadardır (yanıttaki veri_tarihi); daha yeni kayıtlar için kullanıcının bilgisayardaki uygulamayı '
-           'açması gerekir. Araçlar yalnızca okur; kayıt eklenemez ya da değiştirilemez.')
+TALIMAT = ('ŞantiyePro: bir kalıp-demir taşeronunun şantiye kayıtları (Türkçe). Veriler buluttan (telefon ve bilgisayardan '
+           'girilen her şey) okunur; bulut okunamazsa bilgisayardaki uygulamanın son eşitlendiği hali kullanılır. Yanıttaki '
+           'kaynak ("bulut"/"bilgisayar") ve veri_tarihi bunu gösterir; bulut_durumu varsa kullanıcıya söyle. Araçlar '
+           'yalnızca okur; kayıt eklenemez ya da değiştirilemez.')
 
 
 def arac_cagir(ad, args):
     for a in ARACLAR:
         if a['name'] == ad:
             sonuc = a['fonksiyon'](args or {})
-            sonuc['veri_tarihi'] = veri_tarihi()
+            sonuc.update(veri_bilgisi())
             return sonuc
     raise KeyError(ad)
 
@@ -457,4 +696,14 @@ def calistir(giris=None, cikis=None):
 
 
 if __name__ == '__main__':
-    calistir()
+    komut = sys.argv[1] if len(sys.argv) > 1 else ''
+    if komut == 'giris':
+        giris()
+    elif komut == 'cikis':
+        if os.path.exists(oturum_dosyasi()):
+            os.remove(oturum_dosyasi())
+        print('Bulut oturumu silindi.')
+    elif komut == 'durum':
+        print(json.dumps(veri_bilgisi(), ensure_ascii=False))
+    else:
+        calistir()

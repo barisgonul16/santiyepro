@@ -14,6 +14,13 @@ class Testler(unittest.TestCase):
     def setUp(self):
         self.klasor = tempfile.mkdtemp()
         os.environ['SANTIYEPRO_VERI'] = self.klasor
+        # Testler internete çıkmaz: oturum yok, HTTP sahte.
+        os.environ['SANTIYEPRO_OTURUM'] = os.path.join(tempfile.mkdtemp(), 'oturum.json')
+        m.onbellegi_temizle()
+        self.istekler = []
+        self.bulut = {}
+        self.addCleanup(setattr, m, '_http', m._http)
+        m._http = self.sahte_http
         self.yaz('projects', [
             {'id': 'g', 'ad': 'Gera makina', 'aciklama': 'Yapı donanım', 'durum': 'Devam Ediyor',
              'baslangicTarihi': '2026-01-05T00:00:00.000', 'toplamGun': 300, 'kahvaltiVar': True},
@@ -59,6 +66,69 @@ class Testler(unittest.TestCase):
 
     def cagir(self, ad, args=None):
         return m.arac_cagir(ad, args or {})
+
+    def sahte_http(self, url, veri=None, basliklar=None, form=False):
+        self.istekler.append(url)
+        if 'securetoken' in url:
+            if veri['refresh_token'] == 'iptal':
+                raise m.BulutHatasi('HTTP 400 INVALID_REFRESH_TOKEN')
+            return {'id_token': 'jeton', 'expires_in': '3600'}
+        if self.bulut is None:
+            raise m.BulutHatasi('bağlantı kurulamadı (zaman aşımı)')
+        self.assertEqual(basliklar['Authorization'], 'Bearer jeton')
+        ad = url.rsplit('/', 1)[1]
+        if ad not in self.bulut:
+            raise m.BulutHatasi('HTTP 404 bulunamadı')
+        veri, zaman = self.bulut[ad]
+        return {'fields': {'json': {'stringValue': json.dumps(veri)}, 'updatedAt': {'timestampValue': zaman}}}
+
+    def oturum_ac(self, anahtar='yenile'):
+        with open(os.environ['SANTIYEPRO_OTURUM'], 'w') as f:
+            json.dump({'uid': 'u1', 'refresh_token': anahtar}, f)
+
+    def test_bulut_yeniyse_buluttan_okur(self):
+        self.oturum_ac()
+        self.bulut['projects'] = ([{'id': 'g', 'ad': 'Gera makina'}], '2099-01-01T08:00:00.5Z')
+        self.bulut['project_logs'] = ({'g': [{'tarih': '2026-11-12T00:00:00.000', 'kalipci': 9}]}, '2099-01-01T08:00:00Z')
+        s = self.cagir('ozet', {'ay': '2026-11'})
+        self.assertEqual(s['kaynak'], 'bulut')
+        self.assertNotIn('bulut_durumu', s)
+        self.assertEqual(s['genel_toplam']['kalipci_adam_gun'], 9)
+        self.assertTrue(any('/users/u1/data/project_logs' in u for u in self.istekler))
+        # Önbellek: ikinci çağrı yeniden istek atmaz; jeton bir kez alınır.
+        sayi = len(self.istekler)
+        self.cagir('ozet', {'ay': '2026-11'})
+        self.assertEqual(len(self.istekler), sayi)
+        self.assertEqual(sum('securetoken' in u for u in self.istekler), 1)
+        # Bulutta olmayan koleksiyon bilgisayardan okunur.
+        self.assertEqual(self.cagir('santiyeler')['ekipler'], ['Ali usta'])
+
+    def test_bilgisayar_daha_yeniyse_bilgisayardan_okur(self):
+        self.oturum_ac()
+        self.bulut['project_logs'] = ({'g': []}, '2000-01-01T00:00:00Z')
+        s = self.cagir('ozet', {'ay': '2026-11'})
+        self.assertEqual(s['kaynak'], 'bilgisayar')
+        self.assertEqual(s['genel_toplam']['kalipci_adam_gun'], 7)
+
+    def test_bulut_hatasinda_bilgisayara_duser(self):
+        s = self.cagir('ozet', {'ay': '2026-11'})
+        self.assertEqual(s['kaynak'], 'bilgisayar')
+        self.assertIn('giriş yapılmamış', s['bulut_durumu'])
+        self.assertEqual(self.istekler, [])
+        m.onbellegi_temizle()
+        self.oturum_ac()
+        self.bulut = None
+        s = self.cagir('ozet', {'ay': '2026-11'})
+        self.assertEqual((s['kaynak'], s['genel_toplam']['kalipci_adam_gun']), ('bilgisayar', 7))
+        self.assertIn('bağlantı', s['bulut_durumu'])
+        m.onbellegi_temizle()
+        self.oturum_ac('iptal')
+        self.assertIn('yeniden giriş', self.cagir('ozet')['bulut_durumu'])
+
+    def test_zaman_damgasi(self):
+        self.assertEqual(m._zaman_ms('1970-01-01T00:00:01.250Z'), 1250)
+        self.assertEqual(m._zaman_ms('1970-01-01T00:00:02Z'), 2000)
+        self.assertEqual(m._zaman_ms(''), 0)
 
     def test_santiye_bulma(self):
         self.assertEqual(m.santiye_bul('gera makina')['id'], 'g')
