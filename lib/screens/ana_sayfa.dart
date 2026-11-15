@@ -5,6 +5,7 @@ import '../models/gorev.dart';
 import '../models/not.dart';
 import '../services/notification_service.dart';
 import '../services/storage_service.dart';
+import '../services/claude_gelen_kutusu.dart';
 import '../models/gunluk_kayit.dart';
 import 'proje_detay_sayfa.dart';
 import 'kayit_arama_sayfa.dart';
@@ -54,8 +55,18 @@ class AnaSayfaPage extends StatefulWidget {
   State<AnaSayfaPage> createState() => _AnaSayfaPageState();
 }
 
-class _AnaSayfaPageState extends State<AnaSayfaPage> {
+class _AnaSayfaPageState extends State<AnaSayfaPage> with WidgetsBindingObserver {
   bool _showCompleted = false;
+
+  /// Claude'un önerdiği, onay bekleyen kayıtlar (claude.ai bağlayıcısı).
+  final _gelenKutusu = ClaudeGelenKutusu();
+  /// Ham belgeler; şantiyelerle eşleştirme her kullanımda güncel şantiye
+  /// listesiyle yapılır (açılışta liste henüz yüklenmemiş olabilir).
+  Map<String, Map<String, dynamic>> _hamOneriler = const {};
+  (List<ClaudeOnerisi>, List<String>) _ayrilmis() =>
+      ClaudeGelenKutusu.ayir(_hamOneriler, widget.projeler, DateTime.now());
+  List<ClaudeOnerisi> get _claudeOnerileri => _ayrilmis().$1;
+  bool _gelenKutusuIsleniyor = false;
 
   /// "Uygulama açılınca sesli görüşmeyi başlat" ayarı: uygulama her açılışta
   /// bir kez, şantiyeler yüklenince görüşmeyi açar ("Hey Google, ŞantiyePro'yu
@@ -66,12 +77,166 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Her eşitlemeden sonra (açılış, yenileme) gelen kutusuna bakılır.
+    StorageService.sonEsitleme.addListener(_gelenKutusunuDenetle);
+    _gelenKutusunuDenetle();
     if (!_acilisGorusmesiDenendi && Platform.isAndroid) {
       _acilisGorusmesiDenendi = true;
       SesliGorusmeSayfa.acilistaBaslasinMi().then((acik) {
         if (acik && mounted) setState(() => _acilisGorusmesiBekliyor = true);
       });
     }
+  }
+
+  @override
+  void dispose() {
+    StorageService.sonEsitleme.removeListener(_gelenKutusunuDenetle);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Uygulama açık dururken Claude'a kayıt söylenmiş olabilir.
+    if (state == AppLifecycleState.resumed) _gelenKutusunuDenetle();
+  }
+
+  Future<void> _gelenKutusunuDenetle() async {
+    if (_gelenKutusuIsleniyor) return;
+    final ham = await _gelenKutusu.bekleyenler();
+    if (!mounted || _gelenKutusuIsleniyor) return;
+    setState(() => _hamOneriler = ham);
+  }
+
+  /// Claude'un önerilerini sesle kaydın onay ekranında açar. Kaydedilince
+  /// öneriler gelen kutusundan silinir; vazgeçilirse bekler.
+  Future<void> _claudeOnerileriniAc() async {
+    final (oneriler, okunamayan) = _ayrilmis();
+    if (oneriler.isEmpty) return;
+    setState(() => _gelenKutusuIsleniyor = true);
+    try {
+      // Taslaklar onay ekranında değiştirilebilir; vazgeçilirse buluttaki hali
+      // yeniden okunur.
+      final taslaklar = [for (final o in oneriler) ...o.taslaklar];
+      final ilgili = {for (final t in taslaklar) t.projeId};
+      final projeler = widget.projeler.where((p) => p.durum != 'Tamamlandı' || ilgili.contains(p.id)).toList();
+      final aciklamalar = [for (final o in oneriler) if (o.aciklama.isNotEmpty) '"${o.aciklama}"'];
+      final ozet = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SesliKayitSayfa(
+            projeler: projeler,
+            projeGunlukKayitlari: widget.projeGunlukKayitlari,
+            onKayitEkle: (id, kayit) => widget.onGunlukKayitEkle(id, kayit),
+            onKayitGuncelle: (id, i, kayit) => widget.onGunlukKayitGuncelle(id, i, kayit),
+            baslangicTaslaklari: taslaklar,
+            onayBasligi: "Claude'dan gelen kayıtlar",
+            onayAciklamasi: "Claude'a söylediklerinden hazırlandı${aciklamalar.isEmpty ? '' : ': ${aciklamalar.join(', ')}'}. "
+                'Kontrol et, gerekirse düzelt. Kaydetmezsen eklenmez.',
+            geriKapatir: true,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (ozet != null) {
+        await _gelenKutusu.sil([for (final o in oneriler) o.id, ...okunamayan], uygulandi: true);
+        if (!mounted) return;
+        setState(() {
+          _ozetSurumu++;
+          _hamOneriler = const {};
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Kaydedildi: $ozet'), backgroundColor: Colors.green.shade700),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _gelenKutusuIsleniyor = false);
+    }
+    await _gelenKutusunuDenetle();
+  }
+
+  Future<void> _claudeOnerileriniSil() async {
+    final sayi = _claudeOnerileri.fold<int>(0, (t, o) => t + o.taslaklar.length);
+    final evet = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Claude'un kayıtları silinsin mi?"),
+        content: Text('$sayi kayıt eklenmeden silinecek.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Vazgeç')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sil', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (evet != true || !mounted) return;
+    setState(() => _gelenKutusuIsleniyor = true);
+    await _gelenKutusu.sil(_hamOneriler.keys);
+    if (!mounted) return;
+    setState(() {
+      _gelenKutusuIsleniyor = false;
+      _hamOneriler = const {};
+    });
+    await _gelenKutusunuDenetle();
+  }
+
+  Widget _buildClaudeKarti() {
+    final taslaklar = [for (final o in _claudeOnerileri) ...o.taslaklar];
+    final adlar = <String, String>{for (final p in widget.projeler) p.id: p.ad};
+    final satirlar = [
+      for (final t in taslaklar)
+        '${adlar[t.projeId] ?? (t.soylenenAd.isEmpty ? 'Şantiye seçilmedi' : t.soylenenAd)} · '
+            '${t.tarih.day.toString().padLeft(2, '0')}.${t.tarih.month.toString().padLeft(2, '0')}',
+    ];
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.45)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.deepPurple),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  "Claude'dan ${taslaklar.length} kayıt onay bekliyor",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: ThemeColors.textPrimary(context)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(satirlar.join('\n'), style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13, height: 1.4)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _gelenKutusuIsleniyor ? null : _claudeOnerileriniAc,
+                  icon: const Icon(Icons.fact_check_outlined),
+                  label: const Text('İncele ve kaydet'),
+                  style: FilledButton.styleFrom(backgroundColor: Colors.deepPurple, foregroundColor: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: _gelenKutusuIsleniyor ? null : _claudeOnerileriniSil,
+                child: const Text('Sil'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   /// Aylık özet kartının anahtarı. Artırılınca kart yeniden kurulur ve
@@ -226,6 +391,12 @@ class _AnaSayfaPageState extends State<AnaSayfaPage> {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // Claude'un önerdiği, onay bekleyen kayıtlar
+              if (_claudeOnerileri.isNotEmpty) ...[
+                _buildClaudeKarti(),
+                const SizedBox(height: 12),
+              ],
 
               // Kayıt girilmeyen şantiyeler uyarısı
               if (kayitsizlar.isNotEmpty) ...[

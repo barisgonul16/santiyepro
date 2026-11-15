@@ -1,0 +1,22 @@
+{
+  "name": "santiyepro-mcp",
+  "private": true,
+  "type": "module",
+  "description": "ŞantiyePro MCP sunucusu (yalnızca okur), Cloudflare Workers üzerinde",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "node --test test/birim.test.mjs",
+    "uctan-uca": "node test/uctan_uca.mjs"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.2.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4.162.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261113.1": true
+  }
+}

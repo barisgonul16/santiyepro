@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "santiyepro-mcp",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "kv_namespaces": [
+    { "binding": "OAUTH_KV", "id": "4e8d79db433343a5b5ed9641bbe511cb" }
+  ],
+  "vars": {
+    "KAYNAK_URL": "https://santiyepro-mcp.baris-gonul16.workers.dev/mcp"
+  },
+  "observability": { "enabled": true }
+}

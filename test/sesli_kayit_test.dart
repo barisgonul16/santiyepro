@@ -637,4 +637,99 @@ void main() {
       expect(await servis.anahtariDene(), 'gemini-flash-lite-latest');
     });
   });
+
+  testWidgets('onay ekranında vinç düzeltilir; boş eklenen vinç satırı kaydedilmez', (tester) async {
+    tester.view.physicalSize = const Size(1080, 4000);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(tester.view.reset);
+    final eklenen = <(String, GunlukKayit)>[];
+    var kapandi = false;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SesliKayitSayfa(
+                  projeler: [_proje('g', 'Gera makina')],
+                  projeGunlukKayitlari: const {},
+                  onKayitEkle: (id, k) => eklenen.add((id, k)),
+                  onKayitGuncelle: (a, b, c) {},
+                  havaServisi: _SahteHava(null),
+                  geriKapatir: true,
+                  onayBasligi: "Claude'dan gelen kayıtlar",
+                  baslangicTaslaklari: [
+                    SesliKayitTaslagi(
+                      projeId: 'g',
+                      soylenenAd: 'Gera makina',
+                      tarih: DateTime(2026, 11, 14),
+                      kalipci: 4,
+                      vincler: [VincBilgisi(firmaAdi: 'teknik vinç', baslangic: '08:00', bitis: '12:00')],
+                    ),
+                  ],
+                ),
+              ),
+            );
+            kapandi = true;
+          },
+          child: const Text('aç'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('aç'));
+    await tester.pumpAndSettle();
+    expect(find.text("Claude'dan gelen kayıtlar"), findsOneWidget);
+    expect(find.text('Net 4 saat'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextFormField, 'teknik vinç'), 'Bursa teknik vinç');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Mola (dk)'), '30');
+    await tester.pump();
+    expect(find.text('Net 3,5 saat'), findsOneWidget);
+    await tester.tap(find.text('Vinç ekle'));
+    await tester.pump();
+    expect(find.text('Net süre için başlangıç ve bitiş saatini seç'), findsOneWidget);
+
+    await tester.tap(find.text('1 kaydı kaydet'));
+    await tester.pumpAndSettle();
+    expect(kapandi, isTrue);
+    final k = eklenen.single.$2;
+    expect(k.vincler.length, 1);
+    expect((k.vincler.single.firmaAdi, k.vincler.single.mola, k.vincler.single.netSaat), ('Bursa teknik vinç', 30, 3.5));
+  });
+
+  testWidgets('geriKapatir: Geri dön konuşma adımına değil önceki sayfaya döner', (tester) async {
+    var kapandi = false;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () async {
+            final sonuc = await Navigator.push<String>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SesliKayitSayfa(
+                  projeler: [_proje('g', 'Gera makina')],
+                  projeGunlukKayitlari: const {},
+                  onKayitEkle: (a, b) => fail('kaydedilmemeli'),
+                  onKayitGuncelle: (a, b, c) => fail('kaydedilmemeli'),
+                  geriKapatir: true,
+                  baslangicTaslaklari: [
+                    SesliKayitTaslagi(projeId: 'g', soylenenAd: '', tarih: DateTime(2026, 11, 14), kalipci: 2),
+                  ],
+                ),
+              ),
+            );
+            kapandi = sonuc == null;
+          },
+          child: const Text('aç'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('aç'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Geri dön'));
+    await tester.pumpAndSettle();
+    expect(kapandi, isTrue);
+    expect(find.text('Sesle kayıt'), findsNothing);
+  });
 }

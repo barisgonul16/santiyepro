@@ -25,6 +25,13 @@ class SesliKayitSayfa extends StatefulWidget {
   /// görüşmede "hayır, düzelt" denince).
   final List<SesliKayitTaslagi>? baslangicTaslaklari;
   final String baslangicAnlasilmayan;
+  /// Onay ekranının başlığı ve üstündeki açıklama (Claude'dan gelen kayıtlar
+  /// için farklı metin). Boşsa sesle kaydın metinleri.
+  final String onayBasligi;
+  final String onayAciklamasi;
+  /// true ise "Geri dön" konuşma adımına değil önceki sayfaya döner (sayfa
+  /// yalnızca hazır taslakları onaylamak için açıldıysa).
+  final bool geriKapatir;
 
   const SesliKayitSayfa({
     super.key,
@@ -36,6 +43,9 @@ class SesliKayitSayfa extends StatefulWidget {
     this.havaServisi,
     this.baslangicTaslaklari,
     this.baslangicAnlasilmayan = '',
+    this.onayBasligi = '',
+    this.onayAciklamasi = '',
+    this.geriKapatir = false,
   });
 
   @override
@@ -209,6 +219,11 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
 
   Future<void> _kaydet() async {
     final taslaklar = _taslaklar!;
+    // "Vinç ekle" ile açılıp boş bırakılan satırlar kaydedilmez.
+    for (final t in taslaklar) {
+      t.vincler.removeWhere(
+          (v) => v.firmaAdi.isEmpty && v.baslangic.isEmpty && v.bitis.isEmpty && v.aciklama.isEmpty);
+    }
     if (taslaklar.any((t) => t.projeId.isEmpty)) {
       setState(() => _hata = 'Şantiyesi seçilmemiş kayıt var. Şantiyeyi seç ya da o kaydı kaldır.');
       return;
@@ -240,7 +255,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
       appBar: AppBar(
         backgroundColor: ThemeColors.headerBackground(context),
         iconTheme: IconThemeData(color: ThemeColors.icon(context)),
-        title: Text(onayAdimi ? 'Kayıtları onayla' : 'Sesle kayıt',
+        title: Text(onayAdimi ? (widget.onayBasligi.isEmpty ? 'Kayıtları onayla' : widget.onayBasligi) : 'Sesle kayıt',
             style: TextStyle(color: ThemeColors.textPrimary(context))),
       ),
       body: SafeArea(child: onayAdimi ? _buildOnay() : _buildKonusma()),
@@ -331,7 +346,11 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           child: ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              Text('Yapay zekâ yanlış anlamış olabilir. Kontrol et, gerekirse düzelt.', style: ikincil),
+              Text(
+                  widget.onayAciklamasi.isEmpty
+                      ? 'Yapay zekâ yanlış anlamış olabilir. Kontrol et, gerekirse düzelt.'
+                      : widget.onayAciklamasi,
+                  style: ikincil),
               const SizedBox(height: 10),
               for (final t in taslaklar) _buildTaslak(t),
               if (_anlasilmayan.isNotEmpty)
@@ -350,10 +369,12 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () => setState(() {
-                    _taslaklar = null;
-                    _hata = null;
-                  }),
+                  onPressed: widget.geriKapatir
+                      ? () => Navigator.pop(context)
+                      : () => setState(() {
+                            _taslaklar = null;
+                            _hata = null;
+                          }),
                   child: const Text('Geri dön'),
                 ),
               ),
@@ -610,16 +631,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                 yazi('Beton', t.beton, (v) => t.beton = v),
                 yazi('Not', t.notlar, (v) => t.notlar = v),
                 yazi('Hakediş hatırlatma', t.hakedisNotu, (v) => t.hakedisNotu = v),
-                for (final v in List<VincBilgisi>.from(t.vincler))
-                  _buildEkSatir(
-                    'Vinç: ${[
-                      if (v.firmaAdi.isNotEmpty) v.firmaAdi,
-                      if (v.baslangic.isNotEmpty || v.bitis.isNotEmpty) '${v.baslangic}–${v.bitis}',
-                      if (v.mola > 0) 'mola ${v.mola} dk',
-                      if (v.aciklama.isNotEmpty) v.aciklama,
-                    ].join(' · ')}',
-                    () => setState(() => t.vincler.remove(v)),
-                  ),
+                _buildVincler(t, kutu, metin, ikincil),
                 for (final y in List<YevmiyeBilgisi>.from(t.yevmiyeler))
                   _buildEkSatir(
                     'Yevmiye: ${[
@@ -634,6 +646,150 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Vinç satırları: firma, saatler, mola ve açıklama düzeltilebilir; satır
+  /// eklenip kaldırılabilir. Net süre her değişiklikte yeniden hesaplanır.
+  Widget _buildVincler(
+    SesliKayitTaslagi t,
+    InputDecoration Function(String) kutu,
+    TextStyle metin,
+    TextStyle ikincil,
+  ) {
+    Future<void> saatSec(VincBilgisi v, bool baslangic) async {
+      final eski = baslangic ? v.baslangic : v.bitis;
+      final p = eski.split(':');
+      final ilk = p.length == 2 && int.tryParse(p[0]) != null && int.tryParse(p[1]) != null
+          ? TimeOfDay(hour: int.parse(p[0]), minute: int.parse(p[1]))
+          : TimeOfDay(hour: baslangic ? 8 : 17, minute: 0);
+      final secilen = await showTimePicker(
+        context: context,
+        initialTime: ilk,
+        helpText: baslangic ? 'Vinç başlangıç saati' : 'Vinç bitiş saati',
+        cancelText: 'Vazgeç',
+        confirmText: 'Tamam',
+        hourLabelText: 'Saat',
+        minuteLabelText: 'Dakika',
+        builder: (context, child) =>
+            MediaQuery(data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), child: child!),
+      );
+      if (secilen == null || !mounted) return;
+      final s = '${secilen.hour.toString().padLeft(2, '0')}:${secilen.minute.toString().padLeft(2, '0')}';
+      setState(() => baslangic ? v.baslangic = s : v.bitis = s);
+    }
+
+    Widget saatKutusu(VincBilgisi v, String etiket, bool baslangic) {
+      final deger = baslangic ? v.baslangic : v.bitis;
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => saatSec(v, baslangic),
+          child: InputDecorator(
+            decoration: kutu(etiket),
+            isEmpty: deger.isEmpty,
+            child: Text(deger, style: metin),
+          ),
+        ),
+      );
+    }
+
+    String netYazi(VincBilgisi v) {
+      if (v.baslangic.isEmpty || v.bitis.isEmpty) return 'Net süre için başlangıç ve bitiş saatini seç';
+      final n = v.netSaat;
+      return 'Net ${NumberFormat('0.##', 'tr_TR').format(n)} saat';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 2),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text('Vinç', style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+              TextButton.icon(
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                onPressed: () => setState(() => t.vincler.add(VincBilgisi())),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Vinç ekle'),
+              ),
+            ],
+          ),
+        ),
+        for (final v in List<VincBilgisi>.from(t.vincler))
+          Container(
+            key: ValueKey('vinc-${identityHashCode(v)}'),
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: ThemeColors.divider(context)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: v.firmaAdi,
+                        style: metin,
+                        decoration: kutu('Firma'),
+                        onChanged: (s) => v.firmaAdi = s.trim(),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Bu vinci kaldır',
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(Icons.close, size: 18, color: ThemeColors.icon(context)),
+                      onPressed: () => setState(() => t.vincler.remove(v)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Row(
+                    children: [
+                      saatKutusu(v, 'Başlangıç', true),
+                      const SizedBox(width: 8),
+                      saatKutusu(v, 'Bitiş', false),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: v.mola == 0 ? '' : '${v.mola}',
+                          style: metin,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: kutu('Mola (dk)').copyWith(hintText: '0'),
+                          onChanged: (s) => setState(() => v.mola = int.tryParse(s) ?? 0),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 4),
+                  child: TextFormField(
+                    initialValue: v.aciklama,
+                    style: metin,
+                    minLines: 1,
+                    maxLines: 3,
+                    decoration: kutu('Açıklama'),
+                    onChanged: (s) => v.aciklama = s.trim(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(netYazi(v), style: ikincil),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
