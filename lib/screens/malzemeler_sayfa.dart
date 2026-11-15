@@ -25,6 +25,8 @@ class MalzemelerSayfaPage extends StatefulWidget {
   final void Function(List<MalzemeHareketi>) onHareketleriEkle;
   final void Function(MalzemeHareketi) onHareketGuncelle;
   final void Function(String id) onHareketSil;
+  /// Şantiye seçicilerdeki "Yeni şantiye ekle" ile eklenen şantiye.
+  final void Function(Proje) onProjeEkle;
 
   final List<Malzeme> malzemeler;
   final Function(Malzeme) onMalzemeEkle;
@@ -38,6 +40,7 @@ class MalzemelerSayfaPage extends StatefulWidget {
     required this.onHareketleriEkle,
     required this.onHareketGuncelle,
     required this.onHareketSil,
+    required this.onProjeEkle,
     required this.malzemeler,
     required this.onMalzemeEkle,
     required this.onMalzemeGuncelle,
@@ -49,6 +52,104 @@ class MalzemelerSayfaPage extends StatefulWidget {
 }
 
 const List<String> _birimler = ['adet', 'm²', 'm³', 'm', 'kg', 'ton', 'takım', 'paket', 'top'];
+
+/// Şantiye seçicilerinde "Yeni şantiye ekle" seçeneğinin değeri.
+const String _yeniSantiye = '__yeni_santiye__';
+
+DropdownMenuItem<T> _yeniSantiyeOgesi<T>(T deger) => DropdownMenuItem<T>(
+      value: deger,
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.add_circle_outline, size: 20, color: Colors.orange),
+        SizedBox(width: 8),
+        Flexible(
+          child: Text('Yeni şantiye ekle',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+        ),
+      ]),
+    );
+
+/// Kısa şantiye ekleme penceresi (ad, firma, başlangıç, planlanan gün).
+/// Ayrıntılar sonra Projeler sayfasından düzenlenebilir.
+Future<Proje?> _yeniSantiyeSor(BuildContext context) async {
+  final ad = TextEditingController();
+  final firma = TextEditingController();
+  final gun = TextEditingController();
+  final bugun = DateTime.now();
+  DateTime baslangic = DateTime(bugun.year, bugun.month, bugun.day);
+  String? hata;
+  return showDialog<Proje>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setDialog) => AlertDialog(
+        backgroundColor: ThemeColors.cardBackground(context),
+        title: Text('Yeni şantiye', style: TextStyle(color: ThemeColors.textPrimary(context))),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ad,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: 'Şantiye adı', errorText: hata),
+              ),
+              TextField(controller: firma, decoration: const InputDecoration(labelText: 'Firma / açıklama (isteğe bağlı)')),
+              TextField(
+                controller: gun,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Planlanan gün (isteğe bağlı)'),
+              ),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () async {
+                  final secilen = await showDatePicker(
+                    context: context,
+                    initialDate: baslangic,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2035),
+                  );
+                  if (secilen != null) setDialog(() => baslangic = secilen);
+                },
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Başlangıç',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                    suffixIcon: Icon(Icons.calendar_today),
+                  ),
+                  child: Text(_tarihMetni(baslangic)),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('İptal')),
+          ElevatedButton(
+            onPressed: () {
+              if (ad.text.trim().isEmpty) {
+                setDialog(() => hata = 'Şantiye adını yaz');
+                return;
+              }
+              Navigator.pop(
+                context,
+                Proje(
+                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                  ad: ad.text.trim(),
+                  aciklama: firma.text.trim(),
+                  baslangicTarihi: baslangic,
+                  toplamGun: int.tryParse(gun.text.trim()) ?? 0,
+                ),
+              );
+            },
+            child: const Text('Ekle'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 String _tarihMetni(DateTime t) =>
     '${t.day.toString().padLeft(2, '0')}.${t.month.toString().padLeft(2, '0')}.${t.year}';
@@ -75,6 +176,17 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
   late final TabController _sekme = TabController(length: 3, vsync: this);
 
   String? _seciliSantiye;
+  /// Seçicilerin anahtarı: "Yeni şantiye ekle"den vazgeçilince seçici eski
+  /// değerine dönsün diye artırılır.
+  int _secimSurumu = 0;
+
+  /// Yeni şantiye ekler, kimliğini döndürür (vazgeçilirse null).
+  Future<String?> _santiyeEkle() async {
+    final p = await _yeniSantiyeSor(context);
+    if (p == null) return null;
+    widget.onProjeEkle(p);
+    return p.id;
+  }
 
   // Hareketler sekmesi süzgeçleri.
   HareketTuru? _turSuzgeci;
@@ -360,7 +472,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
       children: [
         DropdownButtonFormField<String>(
-          key: ValueKey('santiye_$id'),
+          key: ValueKey('santiye_${id}_$_secimSurumu'),
           initialValue: id,
           isExpanded: true,
           decoration: const InputDecoration(
@@ -375,8 +487,20 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                 value: p.id,
                 child: Text(p.durum == 'Tamamlandı' ? '${p.ad} (bitti)' : p.ad, overflow: TextOverflow.ellipsis),
               ),
+            _yeniSantiyeOgesi(_yeniSantiye),
           ],
-          onChanged: (v) => setState(() => _seciliSantiye = v),
+          onChanged: (v) async {
+            if (v == _yeniSantiye) {
+              final yeni = await _santiyeEkle();
+              if (!mounted) return;
+              setState(() {
+                if (yeni != null) _seciliSantiye = yeni;
+                _secimSurumu++;
+              });
+            } else {
+              setState(() => _seciliSantiye = v);
+            }
+          },
         ),
         _baslik('Şu an şantiyede'),
         if (mevcut.isEmpty)
@@ -518,33 +642,51 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
             ),
           ),
         ),
-        SizedBox(
-          height: 48,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            children: [
-              DropdownButton<String?>(
-                value: santiyeVarMi ? _santiyeSuzgeci : null,
-                underline: const SizedBox.shrink(),
-                hint: const Text('Tüm şantiyeler'),
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('Tüm şantiyeler')),
-                  for (final p in widget.projeler) DropdownMenuItem<String?>(value: p.id, child: Text(p.ad)),
-                ],
-                onChanged: (v) => setState(() => _santiyeSuzgeci = v),
-              ),
-              const SizedBox(width: 8),
-              for (final t in [null, ...HareketTuru.values])
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text(t == null ? 'Tümü' : _turAdi(t)),
-                    selected: _turSuzgeci == t,
-                    onSelected: (_) => setState(() => _turSuzgeci = t),
-                  ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+          child: DropdownButtonFormField<String?>(
+            key: ValueKey('hareket_santiye_${santiyeVarMi ? _santiyeSuzgeci : null}'),
+            initialValue: santiyeVarMi ? _santiyeSuzgeci : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Şantiye',
+              border: OutlineInputBorder(),
+              isDense: true,
+              prefixIcon: Icon(Icons.apartment),
+            ),
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('Tüm şantiyeler')),
+              for (final p in widget.projeler)
+                DropdownMenuItem<String?>(
+                  value: p.id,
+                  child: Text(p.durum == 'Tamamlandı' ? '${p.ad} (bitti)' : p.ad, overflow: TextOverflow.ellipsis),
                 ),
             ],
+            onChanged: (v) => setState(() => _santiyeSuzgeci = v),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              segments: [
+                const ButtonSegment(value: -1, label: Text('Tümü')),
+                for (final t in HareketTuru.values)
+                  ButtonSegment(
+                    value: t.index,
+                    label: FittedBox(fit: BoxFit.scaleDown, child: Text(_turAdi(t))),
+                  ),
+              ],
+              selected: {_turSuzgeci?.index ?? -1},
+              onSelectionChanged: (s) =>
+                  setState(() => _turSuzgeci = s.first < 0 ? null : HareketTuru.values[s.first]),
+            ),
           ),
         ),
         Expanded(
@@ -633,6 +775,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
           hareketler: widget.hareketler,
           duzenlenen: duzenlenen,
           varsayilanSantiye: varsayilanSantiye,
+          onProjeEkle: widget.onProjeEkle,
         ),
       ),
     );
@@ -668,7 +811,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
           child: DropdownButtonFormField<String?>(
-            key: ValueKey('alet_suzgec_$suzgec'),
+            key: ValueKey('alet_suzgec_${suzgec}_$_secimSurumu'),
             initialValue: suzgec,
             isExpanded: true,
             decoration: const InputDecoration(
@@ -681,8 +824,20 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
               const DropdownMenuItem<String?>(value: null, child: Text('Tüm aletler')),
               const DropdownMenuItem<String?>(value: '', child: Text('Depoda / şantiyede değil')),
               for (final p in aktifler) DropdownMenuItem<String?>(value: p.id, child: Text(p.ad)),
+              _yeniSantiyeOgesi<String?>(_yeniSantiye),
             ],
-            onChanged: (v) => setState(() => _aletSuzgeci = v),
+            onChanged: (v) async {
+              if (v == _yeniSantiye) {
+                final yeni = await _santiyeEkle();
+                if (!mounted) return;
+                setState(() {
+                  if (yeni != null) _aletSuzgeci = yeni;
+                  _secimSurumu++;
+                });
+              } else {
+                setState(() => _aletSuzgeci = v);
+              }
+            },
           ),
         ),
         Expanded(
@@ -819,8 +974,10 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
     String projeId = malzeme == null ? (_aletSuzgeci ?? '') : eskiProje;
     final bugun = DateTime.now();
     DateTime tarih = DateTime(bugun.year, bugun.month, bugun.day);
-    final secenekler = widget.projeler.where((p) => p.durum != 'Tamamlandı' || p.id == eskiProje).toList();
-    if (!secenekler.any((p) => p.id == projeId)) projeId = '';
+    List<Proje> secenekler() =>
+        widget.projeler.where((p) => p.durum != 'Tamamlandı' || p.id == eskiProje).toList();
+    if (!secenekler().any((p) => p.id == projeId)) projeId = '';
+    var seciciSurumu = 0;
 
     await showDialog(
       context: context,
@@ -838,15 +995,27 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                 TextField(controller: ad, decoration: const InputDecoration(labelText: 'Alet adı (ör. Hilti)')),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
+                  key: ValueKey('alet_santiye_${projeId}_$seciciSurumu'),
                   initialValue: projeId,
                   isExpanded: true,
                   decoration:
                       const InputDecoration(labelText: 'Hangi şantiyede', border: OutlineInputBorder(), isDense: true),
                   items: [
                     const DropdownMenuItem(value: '', child: Text('Depoda / şantiyede değil')),
-                    for (final p in secenekler) DropdownMenuItem(value: p.id, child: Text(p.ad)),
+                    for (final p in secenekler()) DropdownMenuItem(value: p.id, child: Text(p.ad)),
+                    _yeniSantiyeOgesi(_yeniSantiye),
                   ],
-                  onChanged: (v) => setDialog(() => projeId = v ?? ''),
+                  onChanged: (v) async {
+                    if (v == _yeniSantiye) {
+                      final yeni = await _santiyeEkle();
+                      setDialog(() {
+                        if (yeni != null) projeId = yeni;
+                        seciciSurumu++;
+                      });
+                    } else {
+                      setDialog(() => projeId = v ?? '');
+                    }
+                  },
                 ),
                 if (projeId != eskiProje) ...[
                   const SizedBox(height: 8),
@@ -1015,12 +1184,14 @@ class _HareketFormu extends StatefulWidget {
   final List<MalzemeHareketi> hareketler;
   final MalzemeHareketi? duzenlenen;
   final String? varsayilanSantiye;
+  final void Function(Proje) onProjeEkle;
 
   const _HareketFormu({
     required this.projeler,
     required this.hareketler,
     this.duzenlenen,
     this.varsayilanSantiye,
+    required this.onProjeEkle,
   });
 
   @override
@@ -1038,6 +1209,10 @@ class _HareketFormuState extends State<_HareketFormu> {
   String? _foto;
   final List<_Kalem> _kalemler = [];
   String? _hata;
+  /// Bu formda "Yeni şantiye ekle" ile eklenenler (liste dışarıda da
+  /// güncellenir; burada hemen görünsün diye ayrıca tutulur).
+  final List<Proje> _eklenenler = [];
+  int _seciciSurumu = 0;
 
   @override
   void initState() {
@@ -1068,9 +1243,10 @@ class _HareketFormuState extends State<_HareketFormu> {
   /// Seçilebilir şantiyeler: devam edenler + düzenlenen kaydın şantiyeleri.
   List<Proje> get _projeler {
     final d = widget.duzenlenen;
-    return widget.projeler
-        .where((p) => p.durum != 'Tamamlandı' || (d != null && d.ilgili(p.id)))
-        .toList();
+    return [
+      ...widget.projeler.where((p) => p.durum != 'Tamamlandı' || (d != null && d.ilgili(p.id))),
+      ..._eklenenler.where((e) => !widget.projeler.any((p) => p.id == e.id)),
+    ];
   }
 
   /// Daha önce girilmiş malzeme adları (öneri için), en sık kullanılan önce.
@@ -1134,11 +1310,25 @@ class _HareketFormuState extends State<_HareketFormu> {
   Widget _santiyeSecici(String etiket, String? deger, void Function(String?) degisti) {
     final projeler = _projeler;
     return DropdownButtonFormField<String>(
+      key: ValueKey('${etiket}_${deger}_$_seciciSurumu'),
       initialValue: projeler.any((p) => p.id == deger) ? deger : null,
       isExpanded: true,
       decoration: InputDecoration(labelText: etiket, border: const OutlineInputBorder(), isDense: true),
-      items: [for (final p in projeler) DropdownMenuItem(value: p.id, child: Text(p.ad))],
-      onChanged: degisti,
+      items: [
+        for (final p in projeler) DropdownMenuItem(value: p.id, child: Text(p.ad)),
+        _yeniSantiyeOgesi(_yeniSantiye),
+      ],
+      onChanged: (v) async {
+        if (v != _yeniSantiye) return degisti(v);
+        final yeni = await _yeniSantiyeSor(context);
+        if (!mounted) return;
+        if (yeni != null) {
+          widget.onProjeEkle(yeni);
+          _eklenenler.add(yeni);
+          degisti(yeni.id);
+        }
+        setState(() => _seciciSurumu++);
+      },
     );
   }
 

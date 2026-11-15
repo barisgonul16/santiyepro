@@ -1244,6 +1244,7 @@ class _MainScreenState extends State<MainScreen> {
           onHareketleriEkle: _hareketleriEkle,
           onHareketGuncelle: _hareketGuncelle,
           onHareketSil: _hareketSil,
+          onProjeEkle: _projeEkle,
           malzemeler: malzemeler,
           onMalzemeEkle: _malzemeEkle,
           onMalzemeGuncelle: _malzemeGuncelle,
