@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:santiyepro/models/malzeme.dart';
 import 'package:santiyepro/models/malzeme_hareketi.dart';
 
 MalzemeHareketi h(String id, String malzeme, double miktar,
@@ -60,5 +61,19 @@ void main() {
     expect(miktarMetni(6.5), '6,5');
     expect(miktarMetni(40), '40');
     expect(miktarMetni(0.1 + 0.2), '0,3');
+  });
+
+  test('alet hareketleri malzeme miktarına karışmaz; alet şantiyesi saklanır', () {
+    final liste = [
+      h('1', 'Trio pano', 10, hedef: 'p1'),
+      MalzemeHareketi(
+          id: '2', tarih: DateTime(2026, 11, 2), malzeme: 'Hilti', miktar: 1, birim: 'adet', hedefProjeId: 'p1', aletId: 'a1'),
+    ];
+    expect(santiyeStoku(liste, 'p1').map((s) => s.malzeme), ['Trio pano']);
+    expect(MalzemeHareketi.fromJson(liste[1].toJson()).aletId, 'a1');
+    expect(liste[0].toJson().containsKey('aletId'), isFalse);
+    final a = Malzeme(id: 'a1', ad: 'Hilti', konum: '', durum: '', projeId: 'p1');
+    expect(Malzeme.fromJson(a.toJson()).projeId, 'p1');
+    expect(Malzeme.fromJson({'id': 'x', 'ad': 'Eski'}).projeId, '');
   });
 }

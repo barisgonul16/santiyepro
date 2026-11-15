@@ -29,6 +29,9 @@ class MalzemeHareketi {
   final String fotoYolu;
   /// "uygulama" ya da "claude" (claude.ai'den onayla eklendi).
   final String kaynak;
+  /// Aletler sekmesinde aletin şantiyesi değiştirilince oluşan harekette
+  /// aletin kimliği (aletin geçmişi bununla bulunur); diğerlerinde boş.
+  final String aletId;
 
   const MalzemeHareketi({
     required this.id,
@@ -43,6 +46,7 @@ class MalzemeHareketi {
     this.not = '',
     this.fotoYolu = '',
     this.kaynak = 'uygulama',
+    this.aletId = '',
   });
 
   HareketTuru get tur {
@@ -67,6 +71,7 @@ class MalzemeHareketi {
         'not': not,
         'fotoYolu': fotoYolu,
         'kaynak': kaynak,
+        if (aletId.isNotEmpty) 'aletId': aletId,
       };
 
   factory MalzemeHareketi.fromJson(Map<String, dynamic> json) => MalzemeHareketi(
@@ -82,6 +87,7 @@ class MalzemeHareketi {
         not: jsonMetin(json['not']),
         fotoYolu: jsonMetin(json['fotoYolu']),
         kaynak: jsonMetin(json['kaynak'], 'uygulama'),
+        aletId: jsonMetin(json['aletId']),
       );
 
   MalzemeHareketi kopya({String? fotoYolu}) => MalzemeHareketi(
@@ -97,6 +103,7 @@ class MalzemeHareketi {
         not: not,
         fotoYolu: fotoYolu ?? this.fotoYolu,
         kaynak: kaynak,
+        aletId: aletId,
       );
 }
 
@@ -133,10 +140,12 @@ String malzemeAnahtari(String metin) {
 
 /// Şantiyedeki malzemeler (gelen − giden), malzeme + birim bazında; adına göre
 /// sıralı. Tümü gitmiş (kalan 0) malzemeler de döner, ekran ayırır.
+/// Alet hareketleri ([MalzemeHareketi.aletId]) sayılmaz: aletin yeri
+/// Aletler listesindeki şantiyesidir (silinen alet şantiyede kalmış görünmesin).
 List<MalzemeStoku> santiyeStoku(Iterable<MalzemeHareketi> hareketler, String projeId) {
   final gruplar = <String, (String, String, double, double, DateTime)>{};
   for (final h in hareketler) {
-    if (!h.ilgili(projeId)) continue;
+    if (!h.ilgili(projeId) || h.aletId.isNotEmpty) continue;
     final anahtar = '${malzemeAnahtari(h.malzeme)}|${malzemeAnahtari(h.birim)}';
     final eski = gruplar[anahtar];
     final gelen = (eski?.$3 ?? 0) + (h.hedefProjeId == projeId ? h.miktar : 0);

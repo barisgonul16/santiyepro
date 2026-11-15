@@ -17,7 +17,8 @@ import '../theme/theme_colors.dart';
 ///
 /// - Şantiyeler: seçilen şantiyede şu an ne var (gelen − giden).
 /// - Hareketler: tüm gelen, giden ve aktarma kayıtları, süzgeçlerle.
-/// - Aletler: eski demirbaş/alet listesi (Hilti, kırıcı...), olduğu gibi.
+/// - Aletler: demirbaş/alet listesi (Hilti, kırıcı...); şantiyesi değişince
+///   hareket olarak da kaydedilir.
 class MalzemelerSayfaPage extends StatefulWidget {
   final List<Proje> projeler;
   final List<MalzemeHareketi> hareketler;
@@ -74,7 +75,6 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
   late final TabController _sekme = TabController(length: 3, vsync: this);
 
   String? _seciliSantiye;
-  bool _bitenleriGoster = false;
 
   // Hareketler sekmesi süzgeçleri.
   HareketTuru? _turSuzgeci;
@@ -107,13 +107,14 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
 
   String _projeAdi(String id) => _projeAdlari[id] ?? 'Silinmiş şantiye';
 
-  /// Şantiye seçicide görünenler: devam edenler, ayrıca içinde hareket olan
-  /// biten şantiyeler (isteğe bağlı).
+  /// Şantiye seçicide görünenler: önce devam edenler, sonra içinde hareket
+  /// olan biten şantiyeler.
   List<Proje> get _secilebilirSantiyeler {
     final hareketli = {for (final h in widget.hareketler) ...[h.kaynakProjeId, h.hedefProjeId]};
-    return widget.projeler
-        .where((p) => p.durum != 'Tamamlandı' || (_bitenleriGoster && hareketli.contains(p.id)))
-        .toList();
+    return [
+      ...widget.projeler.where((p) => p.durum != 'Tamamlandı'),
+      ...widget.projeler.where((p) => p.durum == 'Tamamlandı' && hareketli.contains(p.id)),
+    ];
   }
 
   // ------------------------------------------------------------- Claude
@@ -354,28 +355,28 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
     final biten = stok.where((s) => s.kalan.abs() <= 0.0005).toList();
     final sonHareketler = widget.hareketler.where((h) => h.ilgili(id)).toList()
       ..sort((a, b) => b.tarih.compareTo(a.tarih));
-    final bitenVar = widget.projeler.any((p) => p.durum == 'Tamamlandı');
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
       children: [
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
+        DropdownButtonFormField<String>(
+          key: ValueKey('santiye_$id'),
+          initialValue: id,
+          isExpanded: true,
+          decoration: const InputDecoration(
+            labelText: 'Şantiye',
+            border: OutlineInputBorder(),
+            isDense: true,
+            prefixIcon: Icon(Icons.apartment),
+          ),
+          items: [
             for (final p in santiyeler)
-              ChoiceChip(
-                label: Text(p.ad),
-                selected: p.id == id,
-                onSelected: (_) => setState(() => _seciliSantiye = p.id),
-              ),
-            if (bitenVar)
-              ActionChip(
-                avatar: Icon(_bitenleriGoster ? Icons.visibility_off : Icons.history, size: 16),
-                label: Text(_bitenleriGoster ? 'Bitenleri gizle' : 'Biten şantiyeler'),
-                onPressed: () => setState(() => _bitenleriGoster = !_bitenleriGoster),
+              DropdownMenuItem(
+                value: p.id,
+                child: Text(p.durum == 'Tamamlandı' ? '${p.ad} (bitti)' : p.ad, overflow: TextOverflow.ellipsis),
               ),
           ],
+          onChanged: (v) => setState(() => _seciliSantiye = v),
         ),
         _baslik('Şu an şantiyede'),
         if (mevcut.isEmpty)
@@ -389,6 +390,24 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
             ),
           ),
         for (final s in mevcut) _stokSatiri(s),
+        if (widget.malzemeler.any((a) => a.projeId == id)) ...[
+          _baslik('Aletler'),
+          for (final a in widget.malzemeler.where((a) => a.projeId == id))
+            Card(
+              color: ThemeColors.cardBackground(context),
+              margin: const EdgeInsets.only(bottom: 6),
+              child: ListTile(
+                dense: true,
+                onTap: () => _aletGecmisi(a),
+                leading: Icon(Icons.build, color: ThemeColors.textTertiary(context)),
+                title: Text(a.ad,
+                    style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
+                subtitle: a.durum.isEmpty
+                    ? null
+                    : Text(a.durum, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+              ),
+            ),
+        ],
         if (biten.isNotEmpty) ...[
           _baslik('Tamamı gitmiş'),
           for (final s in biten) _stokSatiri(s, soluk: true),
@@ -626,73 +645,183 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
     }
   }
 
-  // ------------------------------------------------------------- Aletler (eski liste)
+  // ------------------------------------------------------------- Aletler
+
+  /// Aletler sekmesindeki süzgeç: null = tümü, '' = depoda, diğerleri şantiye.
+  String? _aletSuzgeci;
+
+  String _aletYeri(Malzeme a) {
+    if (a.projeId.isNotEmpty) return _projeAdi(a.projeId);
+    return a.konum.isNotEmpty ? a.konum : 'Depoda';
+  }
 
   Widget _aletlerSekmesi() {
-    if (widget.malzemeler.isEmpty) {
-      return _bosMesaj('Alet ve demirbaşlar (Hilti, kırıcı, vinç kancası…) için.\nHenüz alet eklenmedi.');
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
-      itemCount: widget.malzemeler.length,
-      itemBuilder: (context, index) {
-        final malzeme = widget.malzemeler[index];
-        Color durumRengi = Colors.green;
-        if (malzeme.durum.toLowerCase().contains('tamir')) durumRengi = Colors.red;
-        if (malzeme.durum.toLowerCase().contains('depo')) durumRengi = Colors.blue;
-        return Card(
-          color: ThemeColors.cardBackground(context),
-          margin: const EdgeInsets.only(bottom: 10),
-          child: ListTile(
-            leading: malzeme.fotoYolu.isNotEmpty && File(malzeme.fotoYolu).existsSync()
-                ? SizedBox(width: 56, height: 56, child: Image.file(File(malzeme.fotoYolu), fit: BoxFit.cover))
-                : Container(
-                    width: 56,
-                    height: 56,
-                    color: ThemeColors.border(context),
-                    child: Icon(Icons.build, color: ThemeColors.textTertiary(context)),
-                  ),
-            title: Text(malzeme.ad,
-                style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
-            subtitle: Text(
-              [if (malzeme.konum.isNotEmpty) malzeme.konum, if (malzeme.durum.isNotEmpty) malzeme.durum].join(' · '),
-              style: TextStyle(color: durumRengi),
+    final aktifler = widget.projeler.where((p) => p.durum != 'Tamamlandı').toList();
+    final suzgecVar = _aletSuzgeci == null || _aletSuzgeci!.isEmpty || aktifler.any((p) => p.id == _aletSuzgeci);
+    final suzgec = suzgecVar ? _aletSuzgeci : null;
+    final liste = [
+      for (final (i, a) in widget.malzemeler.indexed)
+        if (suzgec == null || a.projeId == suzgec) (i, a),
+    ];
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 4),
+          child: DropdownButtonFormField<String?>(
+            key: ValueKey('alet_suzgec_$suzgec'),
+            initialValue: suzgec,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Şantiye',
+              border: OutlineInputBorder(),
+              isDense: true,
+              prefixIcon: Icon(Icons.apartment),
             ),
-            trailing: IconButton(
-              icon: const Icon(Icons.edit, color: Colors.orange),
-              onPressed: () => _aletDuzenle(malzeme: malzeme, index: index),
-            ),
-            onLongPress: () async {
-              final evet = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  backgroundColor: ThemeColors.cardBackground(context),
-                  title: Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
-                  content: Text('${malzeme.ad} silinsin mi?',
-                      style: TextStyle(color: ThemeColors.textSecondary(context))),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Sil'),
-                    ),
-                  ],
-                ),
-              );
-              if (evet == true) widget.onMalzemeSil(index);
-            },
+            items: [
+              const DropdownMenuItem<String?>(value: null, child: Text('Tüm aletler')),
+              const DropdownMenuItem<String?>(value: '', child: Text('Depoda / şantiyede değil')),
+              for (final p in aktifler) DropdownMenuItem<String?>(value: p.id, child: Text(p.ad)),
+            ],
+            onChanged: (v) => setState(() => _aletSuzgeci = v),
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: liste.isEmpty
+              ? _bosMesaj(widget.malzemeler.isEmpty
+                  ? 'Alet ve demirbaşlar (Hilti, kırıcı, vinç kancası…) için.\nHenüz alet eklenmedi.'
+                  : 'Burada alet yok.')
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 90),
+                  itemCount: liste.length,
+                  itemBuilder: (context, sira) {
+                    final (index, alet) = liste[sira];
+                    Color durumRengi = Colors.green;
+                    if (alet.durum.toLowerCase().contains('tamir')) durumRengi = Colors.red;
+                    if (alet.durum.toLowerCase().contains('depo')) durumRengi = Colors.blue;
+                    return Card(
+                      color: ThemeColors.cardBackground(context),
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        onTap: () => _aletGecmisi(alet),
+                        leading: alet.fotoYolu.isNotEmpty && File(alet.fotoYolu).existsSync()
+                            ? SizedBox(
+                                width: 56, height: 56, child: Image.file(File(alet.fotoYolu), fit: BoxFit.cover))
+                            : Container(
+                                width: 56,
+                                height: 56,
+                                color: ThemeColors.border(context),
+                                child: Icon(Icons.build, color: ThemeColors.textTertiary(context)),
+                              ),
+                        title: Text(alet.ad,
+                            style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              Icon(Icons.location_on, size: 14, color: ThemeColors.textTertiary(context)),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(_aletYeri(alet),
+                                    style: TextStyle(color: ThemeColors.textSecondary(context))),
+                              ),
+                            ]),
+                            if (alet.durum.isNotEmpty) Text(alet.durum, style: TextStyle(color: durumRengi)),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.orange),
+                          onPressed: () => _aletDuzenle(malzeme: alet, index: index),
+                        ),
+                        onLongPress: () async {
+                          final evet = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              backgroundColor: ThemeColors.cardBackground(context),
+                              title: Text('Sil', style: TextStyle(color: ThemeColors.textPrimary(context))),
+                              content: Text(
+                                  '${alet.ad} silinsin mi? Geçmiş gidiş gelişleri Hareketler sekmesinde kalır.',
+                                  style: TextStyle(color: ThemeColors.textSecondary(context))),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('İptal')),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Sil'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (evet == true) widget.onMalzemeSil(index);
+                        },
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// Aletin hangi şantiyede ne zaman bulunduğu.
+  void _aletGecmisi(Malzeme alet) {
+    final liste = widget.hareketler.where((h) => h.aletId == alet.id).toList()
+      ..sort((a, b) => b.tarih.compareTo(a.tarih));
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: ThemeColors.cardBackground(context),
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (context, kaydirma) => ListView(
+          controller: kaydirma,
+          padding: const EdgeInsets.all(14),
+          children: [
+            Text(alet.ad,
+                style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Şu an: ${_aletYeri(alet)}', style: TextStyle(color: ThemeColors.textSecondary(context))),
+            const SizedBox(height: 10),
+            if (liste.isEmpty)
+              Text('Henüz şantiye değişikliği yok. Düzenle ile şantiyesini seçince burada görünür.',
+                  style: TextStyle(color: ThemeColors.textTertiary(context))),
+            for (final h in liste) _hareketSatiri(h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Aletin şantiyesi değişince hareket kaydı: depodan şantiyeye "geldi",
+  /// şantiyeden şantiyeye "aktarma", şantiyeden depoya "gitti".
+  MalzemeHareketi? _aletHareketi(Malzeme alet, String eskiProje, DateTime tarih) {
+    if (eskiProje == alet.projeId) return null;
+    return MalzemeHareketi(
+      id: '${DateTime.now().microsecondsSinceEpoch}_alet',
+      tarih: tarih,
+      malzeme: alet.ad,
+      miktar: 1,
+      birim: 'adet',
+      kaynakProjeId: eskiProje,
+      hedefProjeId: alet.projeId,
+      disYer: eskiProje.isEmpty || alet.projeId.isEmpty ? 'Depo' : '',
+      aletId: alet.id,
     );
   }
 
   Future<void> _aletDuzenle({Malzeme? malzeme, int? index}) async {
     String? fotoYolu = malzeme?.fotoYolu;
     final ad = TextEditingController(text: malzeme?.ad ?? '');
-    final konum = TextEditingController(text: malzeme?.konum ?? '');
     final durum = TextEditingController(text: malzeme?.durum ?? '');
+    final eskiProje = malzeme?.projeId ?? '';
+    // Yeni alet, süzgeçte seçili şantiyeyle başlar.
+    String projeId = malzeme == null ? (_aletSuzgeci ?? '') : eskiProje;
+    final bugun = DateTime.now();
+    DateTime tarih = DateTime(bugun.year, bugun.month, bugun.day);
+    final secenekler = widget.projeler.where((p) => p.durum != 'Tamamlandı' || p.id == eskiProje).toList();
+    if (!secenekler.any((p) => p.id == projeId)) projeId = '';
+
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -703,11 +832,50 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _FotoKutusu(yol: fotoYolu, onSecildi: (y) => setDialog(() => fotoYolu = y)),
                 TextField(controller: ad, decoration: const InputDecoration(labelText: 'Alet adı (ör. Hilti)')),
-                TextField(controller: konum, decoration: const InputDecoration(labelText: 'Nerede (ör. Gera makina)')),
-                TextField(controller: durum, decoration: const InputDecoration(labelText: 'Durum (ör. Çalışıyor, Tamirde)')),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: projeId,
+                  isExpanded: true,
+                  decoration:
+                      const InputDecoration(labelText: 'Hangi şantiyede', border: OutlineInputBorder(), isDense: true),
+                  items: [
+                    const DropdownMenuItem(value: '', child: Text('Depoda / şantiyede değil')),
+                    for (final p in secenekler) DropdownMenuItem(value: p.id, child: Text(p.ad)),
+                  ],
+                  onChanged: (v) => setDialog(() => projeId = v ?? ''),
+                ),
+                if (projeId != eskiProje) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final secilen = await showDatePicker(
+                        context: context,
+                        initialDate: tarih,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(const Duration(days: 1)),
+                      );
+                      if (secilen != null) setDialog(() => tarih = secilen);
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Ne zaman götürüldü',
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      child: Text(_tarihMetni(tarih)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('Bu değişiklik Hareketler sekmesine kaydedilir.',
+                      style: TextStyle(color: ThemeColors.textTertiary(context), fontSize: 12)),
+                ],
+                TextField(
+                    controller: durum, decoration: const InputDecoration(labelText: 'Durum (ör. Çalışıyor, Tamirde)')),
               ],
             ),
           ),
@@ -719,15 +887,19 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                 final yeni = Malzeme(
                   id: malzeme?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
                   ad: ad.text.trim(),
-                  konum: konum.text.trim(),
+                  // Eski serbest yazı konum, şantiye seçilince gereksiz kalır.
+                  konum: projeId.isEmpty ? (malzeme?.konum ?? '') : '',
                   durum: durum.text.trim(),
                   fotoYolu: fotoYolu ?? '',
+                  projeId: projeId,
                 );
                 if (malzeme == null) {
                   widget.onMalzemeEkle(yeni);
                 } else {
                   widget.onMalzemeGuncelle(index!, yeni);
                 }
+                final hareket = _aletHareketi(yeni, eskiProje, tarih);
+                if (hareket != null) widget.onHareketleriEkle([hareket]);
                 Navigator.pop(context);
               },
               child: const Text('Kaydet'),

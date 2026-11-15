@@ -6,6 +6,9 @@ class Malzeme {
   final String konum;
   final String durum; // e.g., "Şantiyede", "Tamirde", "Depoda"
   final String fotoYolu;
+  /// Aletin şu an bulunduğu şantiye (boş: depoda / şantiyede değil). Her
+  /// değişiklik malzeme hareketi olarak da kaydedilir (aletId ile).
+  final String projeId;
 
   Malzeme({
     required this.id,
@@ -13,6 +16,7 @@ class Malzeme {
     required this.konum,
     required this.durum,
     this.fotoYolu = '',
+    this.projeId = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -21,6 +25,7 @@ class Malzeme {
         'konum': konum,
         'durum': durum,
         'fotoYolu': fotoYolu,
+        'projeId': projeId,
       };
 
   factory Malzeme.fromJson(Map<String, dynamic> json) => Malzeme(
@@ -29,5 +34,6 @@ class Malzeme {
         konum: jsonMetin(json['konum']),
         durum: jsonMetin(json['durum'], 'Depoda'),
         fotoYolu: jsonMetin(json['fotoYolu']),
+        projeId: jsonMetin(json['projeId']),
       );
 }

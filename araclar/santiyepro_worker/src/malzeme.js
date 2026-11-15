@@ -41,11 +41,12 @@ async function hareketler(veri) {
   );
 }
 
-/** Bir şantiyenin stoku: malzeme+birim bazında gelen, giden, kalan. */
+/** Bir şantiyenin stoku: malzeme+birim bazında gelen, giden, kalan. Alet
+ * hareketleri (aletId) sayılmaz: aletin yeri `malzemeler` listesindeki projeId. */
 function stok(liste, projeId) {
   const gruplar = new Map();
   for (const h of liste) {
-    if (h.kaynakProjeId !== projeId && h.hedefProjeId !== projeId) continue;
+    if (h.aletId || (h.kaynakProjeId !== projeId && h.hedefProjeId !== projeId)) continue;
     const a = `${anahtar(h.malzeme)}|${anahtar(h.birim)}`;
     const g = gruplar.get(a) || { malzeme: String(h.malzeme || '').trim(), birim: String(h.birim || '').trim(), gelen: 0, giden: 0, son_hareket: '' };
     if (h.hedefProjeId === projeId) g.gelen += sayi(h.miktar);
@@ -74,6 +75,7 @@ function bicim(h, adlar) {
   if (h.irsaliyeNo) s.irsaliye_no = h.irsaliyeNo;
   if (h.not) s.not = h.not;
   if (h.fotoYolu) s.fotografli = true;
+  if (h.aletId) s.alet = true;
   return s;
 }
 
@@ -82,11 +84,16 @@ async function aracMalzemeDurumu(veri, args) {
   const liste = await hareketler(veri);
   const santiyeler = p ? [p] : (await veri.projeler()).filter((x) => x.durum !== 'Tamamlandı' || liste.some((h) => h.kaynakProjeId === x.id || h.hedefProjeId === x.id));
   const tumu = Boolean(args.bitenler_dahil);
+  const aletListesi = await veri.al('malzemeler', []);
+  const aletler = (Array.isArray(aletListesi) ? aletListesi : []).filter((a) => a && typeof a === 'object');
   const sonuc = [];
   for (const s of santiyeler) {
     const kalemler = stok(liste, s.id).filter((k) => tumu || Math.abs(k.kalan) > 0.0005);
-    if (!p && !kalemler.length) continue;
-    sonuc.push({ santiye: s.ad ?? '', durum: s.durum ?? '', malzemeler: kalemler });
+    const buradakiAletler = aletler.filter((a) => a.projeId === s.id).map((a) => ({ alet: a.ad ?? '', durum: a.durum ?? '' }));
+    if (!p && !kalemler.length && !buradakiAletler.length) continue;
+    const o = { santiye: s.ad ?? '', durum: s.durum ?? '', malzemeler: kalemler };
+    if (buradakiAletler.length) o.aletler = buradakiAletler;
+    sonuc.push(o);
   }
   return {
     bilgi: 'kalan = o şantiyeye gelen − oradan giden (kayıtlara göre). Eksi kalan, gelişi girilmemiş malzemedir.',
@@ -210,7 +217,7 @@ export const MALZEME_ARACLARI = [
   {
     name: 'malzeme_durumu',
     description: 'Şantiyelerde şu an hangi malzemeden ne kadar var (pano, dikme, kontrplak, demir...): gelen, giden, kalan '
-      + 've son hareket tarihi. Şantiye verilmezse devam eden tüm şantiyeler.',
+      + 've son hareket tarihi; ayrıca o şantiyedeki aletler (Hilti, kırıcı...). Şantiye verilmezse devam eden tüm şantiyeler.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -109,7 +109,9 @@ const malzemeVerisi = () => new Veri(async (ad) => ({
     { id: '2', tarih: '2026-11-05T00:00:00.000', malzeme: 'trio  PANO', miktar: 30, birim: 'adet', kaynakProjeId: 'p1', hedefProjeId: 'p2' },
     { id: '3', tarih: '2026-11-06T00:00:00.000', malzeme: 'Ø12 demir', miktar: 6.5, birim: 'ton', hedefProjeId: 'p1' },
     { id: '4', tarih: '2026-11-07T00:00:00.000', malzeme: 'Ø12 demir', miktar: 6.5, birim: 'ton', kaynakProjeId: 'p1' },
+    { id: '5', tarih: '2026-11-08T00:00:00.000', malzeme: 'Hilti', miktar: 1, birim: 'adet', hedefProjeId: 'p1', disYer: 'Depo', aletId: 'a1' },
   ],
+  malzemeler: [{ id: 'a1', ad: 'Hilti', projeId: 'p2', durum: 'Çalışıyor' }],
 })[ad] ?? null);
 const malzemeAraci = (ad) => MALZEME_ARACLARI.find((a) => a.name === ad).fonksiyon;
 
@@ -119,6 +121,8 @@ test('malzeme_durumu: gelen − giden, aktarma iki şantiyeyi de etkiler', async
   deepStrictEqual(gera.malzemeler.map((m) => [m.malzeme, m.kalan]), [['Trio pano', 70]]);
   const ka = s.santiyeler.find((x) => x.santiye === 'KA Otomotiv');
   deepStrictEqual(ka.malzemeler.map((m) => [m.kalan, m.birim]), [[30, 'adet']]);
+  deepStrictEqual(ka.aletler, [{ alet: 'Hilti', durum: 'Çalışıyor' }]);
+  strictEqual(gera.aletler, undefined);
   const hepsi = await malzemeAraci('malzeme_durumu')(malzemeVerisi(), { santiye: 'gera', bitenler_dahil: true });
   strictEqual(hepsi.santiyeler[0].malzemeler.length, 2);
 });
