@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
@@ -20,7 +19,7 @@ void main() {
           'anlasilmayan': '',
         }),
         'aciklama': aciklama,
-        'olusturma': Timestamp.fromDate(DateTime(2026, 11, 15, 9)),
+        'olusturma': DateTime(2026, 11, 15, 9),
         'kaynak': 'claude',
       };
 
@@ -85,5 +84,34 @@ void main() {
     expect(okunamayan, ['b']);
     final (dolu, _) = ClaudeGelenKutusu.ayir(ham, projeler, bugun);
     expect(dolu.single.taslaklar.single.projeId, 'p1');
+  });
+
+  test('Firestore REST liste yanıtı ham veriye çevrilir', () {
+    final yanit = {
+      'documents': [
+        {
+          'name': 'projects/p/databases/(default)/documents/users/u/data/claude_gelen/oneriler/abc123',
+          'fields': {
+            'json': {'stringValue': jsonEncode({'kayitlar': [tamKayit]})},
+            'aciklama': {'stringValue': 'gera dün'},
+            'olusturma': {'timestampValue': '2026-11-15T06:00:00.123Z'},
+            'kaynak': {'stringValue': 'claude'},
+          },
+          'createTime': '2026-11-15T06:00:01Z',
+        },
+        {'name': '.../oneriler/bos', 'fields': {}, 'createTime': '2026-11-15T07:00:00Z'},
+        {'bozuk': true},
+      ],
+    };
+    final ham = ClaudeGelenKutusu.listeyiCoz(yanit);
+    expect(ham.keys, ['abc123', 'bos']);
+    expect(ham['abc123']!['aciklama'], 'gera dün');
+    expect((ham['abc123']!['olusturma'] as DateTime).toUtc(), DateTime.utc(2026, 11, 15, 6, 0, 0, 123));
+    expect((ham['bos']!['olusturma'] as DateTime).toUtc(), DateTime.utc(2026, 11, 15, 7));
+    final (oneriler, okunamayan) = ClaudeGelenKutusu.ayir(ham, projeler, bugun);
+    expect(oneriler.single.taslaklar.single.projeId, 'p1');
+    expect(oneriler.single.aciklama, 'gera dün');
+    expect(okunamayan, ['bos']);
+    expect(ClaudeGelenKutusu.listeyiCoz({}), isEmpty);
   });
 }

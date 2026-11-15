@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/proje.dart';
@@ -26,22 +28,63 @@ class ClaudeOnerisi {
   const ClaudeOnerisi({required this.id, required this.aciklama, required this.olusturma, required this.taslaklar});
 }
 
+/// Gelen kutusu Firestore'un REST adresinden okunur ve silinir (kullanıcının
+/// kimlik jetonuyla, aynı güvenlik kurallarıyla). Firestore eklentisi
+/// kullanılmaz: Windows eklentisi bu alt koleksiyon sorgusunu yapamıyor
+/// (yayın derlemesinde boş dönüyor, debug derlemesinde uygulamayı
+/// çökertiyordu). REST her platformda aynı çalışır; sunucu da aynı adresleri
+/// kullanır (araclar/santiyepro_worker/src/firestore.js).
 class ClaudeGelenKutusu {
+  ClaudeGelenKutusu({http.Client? istemci}) : _istemci = istemci ?? http.Client();
+
+  final http.Client _istemci;
+  static const Duration _zamanAsimi = Duration(seconds: 15);
+
   /// Kaydedilmiş ama buluttan silinememiş (ör. internet yokken) önerilerin
   /// kimlikleri. Silme başarılı olana kadar yeniden gösterilmezler; aynı
   /// öneri iki kez kaydedilip vinç/yevmiye satırları çiftlenmesin diye.
   static const String _uygulananlarAyari = 'claude_uygulanan_oneriler';
 
-  CollectionReference<Map<String, dynamic>>? _koleksiyon() {
+  /// Gelen kutusu adresi ve yetki başlığı; bulut kapalıysa ya da giriş
+  /// yapılmamışsa null.
+  Future<(Uri, Map<String, String>)?> _adres([String? id]) async {
     if (StorageService.bulutKapali) return null;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('data')
-        .doc('claude_gelen')
-        .collection('oneriler');
+    final jeton = await user.getIdToken();
+    if (jeton == null || jeton.isEmpty) return null;
+    final proje = Firebase.app().options.projectId;
+    final yol = 'https://firestore.googleapis.com/v1/projects/$proje/databases/(default)/documents'
+        '/users/${Uri.encodeComponent(user.uid)}/data/claude_gelen/oneriler${id == null ? '' : '/${Uri.encodeComponent(id)}'}';
+    return (Uri.parse(yol), {'Authorization': 'Bearer $jeton'});
+  }
+
+  /// Firestore REST liste yanıtındaki belgeleri ham veriye çevirir
+  /// (kimlik → {json, aciklama, olusturma}).
+  static Map<String, Map<String, dynamic>> listeyiCoz(Map<String, dynamic> yanit) {
+    final sonuc = <String, Map<String, dynamic>>{};
+    final belgeler = yanit['documents'];
+    if (belgeler is! List) return sonuc;
+    for (final b in belgeler) {
+      if (b is! Map || b['name'] is! String) continue;
+      final id = (b['name'] as String).split('/').last;
+      final alanlar = b['fields'] is Map ? b['fields'] as Map : const {};
+      String metin(String ad) {
+        final a = alanlar[ad];
+        return a is Map && a['stringValue'] is String ? a['stringValue'] as String : '';
+      }
+
+      final zamanAlani = alanlar['olusturma'];
+      final zamanMetni = zamanAlani is Map && zamanAlani['timestampValue'] is String
+          ? zamanAlani['timestampValue'] as String
+          : (b['createTime'] is String ? b['createTime'] as String : '');
+      sonuc[id] = {
+        'json': metin('json'),
+        'aciklama': metin('aciklama'),
+        'olusturma': DateTime.tryParse(zamanMetni)?.toLocal(),
+      };
+    }
+    return sonuc;
   }
 
   /// Belge verisini öneriye çevirir; okunamıyorsa ya da kayıt çıkmıyorsa null.
@@ -55,7 +98,7 @@ class ClaudeGelenKutusu {
       return ClaudeOnerisi(
         id: id,
         aciklama: veri['aciklama'] is String ? (veri['aciklama'] as String).trim() : '',
-        olusturma: zaman is Timestamp ? zaman.toDate() : null,
+        olusturma: zaman is DateTime ? zaman : null,
         taslaklar: taslaklar,
       );
     } on AiKayitHatasi {
@@ -78,20 +121,32 @@ class ClaudeGelenKutusu {
   /// [ayir] her kullanımda güncel listeyle çağrılır. Bulut yoksa ya da sorgu
   /// başarısızsa boş döner.
   Future<Map<String, Map<String, dynamic>>> bekleyenler() async {
-    final koleksiyon = _koleksiyon();
-    if (koleksiyon == null) return const {};
     try {
-      final sonuc = await koleksiyon.get(const GetOptions(source: Source.server)).timeout(const Duration(seconds: 10));
+      final adres = await _adres();
+      if (adres == null) return const {};
+      final (url, basliklar) = adres;
+      final hepsi = <String, Map<String, dynamic>>{};
+      var sayfa = '';
+      do {
+        final istek = url.replace(queryParameters: {'pageSize': '100', if (sayfa.isNotEmpty) 'pageToken': sayfa});
+        final y = await _istemci.get(istek, headers: basliklar).timeout(_zamanAsimi);
+        if (y.statusCode == 404) break;
+        if (y.statusCode != 200) throw 'HTTP ${y.statusCode} ${y.body}';
+        final govde = jsonDecode(utf8.decode(y.bodyBytes));
+        if (govde is! Map<String, dynamic>) break;
+        hepsi.addAll(listeyiCoz(govde));
+        sayfa = govde['nextPageToken'] is String ? govde['nextPageToken'] as String : '';
+      } while (sayfa.isNotEmpty);
+
       final uygulanan = await _uygulananlar();
-      final ham = <String, Map<String, dynamic>>{
-        for (final belge in sonuc.docs)
-          if (!uygulanan.contains(belge.id)) belge.id: belge.data(),
-      };
       // Önceden kaydedilip silinemeyenler bu kez silinmeyi dener.
-      final kalan = uygulanan.intersection({for (final b in sonuc.docs) b.id});
+      final kalan = uygulanan.intersection(hepsi.keys.toSet());
       if (kalan.isNotEmpty) unawaited(sil(kalan));
       if (kalan.length != uygulanan.length) await _uygulananlariYaz(kalan);
-      return ham;
+      return {
+        for (final e in hepsi.entries)
+          if (!uygulanan.contains(e.key)) e.key: e.value,
+      };
     } catch (e) {
       appLog('Claude önerileri okunamadı: $e');
       return const {};
@@ -123,13 +178,19 @@ class ClaudeGelenKutusu {
     final liste = idler.toSet();
     if (liste.isEmpty) return;
     if (uygulandi) await _uygulananlariYaz({...await _uygulananlar(), ...liste});
-    final koleksiyon = _koleksiyon();
-    if (koleksiyon == null) return;
     final silinen = <String>{};
     Future<void> birini(String id) async {
       try {
-        await koleksiyon.doc(id).delete().timeout(const Duration(seconds: 10));
-        silinen.add(id);
+        final adres = await _adres(id);
+        if (adres == null) return;
+        final (url, basliklar) = adres;
+        final y = await _istemci.delete(url, headers: basliklar).timeout(_zamanAsimi);
+        // 404: zaten silinmiş.
+        if (y.statusCode == 200 || y.statusCode == 404) {
+          silinen.add(id);
+        } else {
+          appLog('Claude önerisi silinemedi ($id): HTTP ${y.statusCode}');
+        }
       } catch (e) {
         appLog('Claude önerisi silinemedi ($id): $e');
       }
