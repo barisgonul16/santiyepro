@@ -98,8 +98,13 @@ export async function bulutOku(env, ad) {
 // belgeyi siler. Böylece açık bir uygulamanın eski listesi Claude'un yazdığını
 // ezemez.
 
-function gelenKutusuUrl(env, id = '') {
-  return `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJE}/databases/(default)/documents/users/${encodeURIComponent(env.FIREBASE_UID)}/data/claude_gelen/oneriler${id ? '/' + encodeURIComponent(id) : ''}`;
+// Malzeme hareketleri ayrı klasörde (malzeme_onerileri): onları bilmeyen eski
+// uygulama sürümleri günlük kayıt önerisi sanıp "okunamadı" diye silmesin.
+export const GUNLUK = 'oneriler';
+export const MALZEME = 'malzeme_onerileri';
+
+function gelenKutusuUrl(env, id = '', klasor = GUNLUK) {
+  return `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJE}/databases/(default)/documents/users/${encodeURIComponent(env.FIREBASE_UID)}/data/claude_gelen/${klasor}${id ? '/' + encodeURIComponent(id) : ''}`;
 }
 
 async function yetki(env) {
@@ -126,8 +131,8 @@ function belgedenOneri(belge) {
 }
 
 /** Öneriyi gelen kutusuna yazar; belge kimliğini döndürür. */
-export async function oneriYaz(env, icerik, aciklama) {
-  const belge = await istek(gelenKutusuUrl(env), {
+export async function oneriYaz(env, icerik, aciklama, klasor = GUNLUK) {
+  const belge = await istek(gelenKutusuUrl(env, '', klasor), {
     method: 'POST',
     headers: { ...(await yetki(env)), 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -143,11 +148,11 @@ export async function oneriYaz(env, icerik, aciklama) {
 }
 
 /** Uygulamada henüz onaylanmamış öneriler, eskiden yeniye. */
-export async function oneriler(env) {
+export async function oneriler(env, klasor = GUNLUK) {
   const hepsi = [];
   let sayfa = '';
   do {
-    const url = gelenKutusuUrl(env) + '?pageSize=100' + (sayfa ? '&pageToken=' + encodeURIComponent(sayfa) : '');
+    const url = gelenKutusuUrl(env, '', klasor) + '?pageSize=100' + (sayfa ? '&pageToken=' + encodeURIComponent(sayfa) : '');
     let y;
     try {
       y = await istek(url, { headers: await yetki(env) });
@@ -162,9 +167,9 @@ export async function oneriler(env) {
 }
 
 /** Öneriyi siler; yoksa false. */
-export async function oneriSil(env, id) {
+export async function oneriSil(env, id, klasor = GUNLUK) {
   try {
-    await istek(gelenKutusuUrl(env, id) + '?currentDocument.exists=true', { method: 'DELETE', headers: await yetki(env) });
+    await istek(gelenKutusuUrl(env, id, klasor) + '?currentDocument.exists=true', { method: 'DELETE', headers: await yetki(env) });
     return true;
   } catch (e) {
     if (e.durum === 404 || /NOT_FOUND|FAILED_PRECONDITION/.test(e.message)) return false;

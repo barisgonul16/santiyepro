@@ -11,13 +11,15 @@
 import { OAuthProvider, AuthorizationError, CimdFetchError } from '@cloudflare/workers-oauth-provider';
 import { ARACLAR as OKUMA_ARACLARI, TALIMAT, Veri, KullaniciHatasi } from './araclar.js';
 import { YAZMA_ARACLARI } from './yazma.js';
+import { MALZEME_ARACLARI } from './malzeme.js';
 import { bulutOku, turkiyeSaati } from './firestore.js';
 
-const SURUM = '1.2.0';
+const SURUM = '1.3.0';
 
 const ARACLAR = [
   ...OKUMA_ARACLARI.map((a) => ({ ...a, annotations: { readOnlyHint: true } })),
   ...YAZMA_ARACLARI,
+  ...MALZEME_ARACLARI,
 ];
 const PROTOKOL = '2025-06-18';
 
@@ -28,7 +30,8 @@ async function aracCagir(env, ad, args) {
   if (!arac) return null;
   const veri = new Veri(async (koleksiyon) => (await bulutOku(env, koleksiyon)).veri);
   const sonuc = await arac.fonksiyon(veri, args && typeof args === 'object' ? args : {}, env);
-  const kayitlar = await bulutOku(env, 'project_logs');
+  // Malzeme araçlarında verinin tarihi malzeme defterinden.
+  const kayitlar = await bulutOku(env, ad.startsWith('malzeme') ? 'malzeme_hareketleri' : 'project_logs');
   sonuc.veri_tarihi = turkiyeSaati(kayitlar.ms);
   sonuc.kaynak = 'bulut';
   return sonuc;

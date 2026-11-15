@@ -35,15 +35,21 @@ class ClaudeOnerisi {
 /// çökertiyordu). REST her platformda aynı çalışır; sunucu da aynı adresleri
 /// kullanır (araclar/santiyepro_worker/src/firestore.js).
 class ClaudeGelenKutusu {
-  ClaudeGelenKutusu({http.Client? istemci}) : _istemci = istemci ?? http.Client();
+  /// [klasor]: claude_gelen altındaki alt koleksiyon. Günlük kayıtlar
+  /// "oneriler"de, malzeme hareketleri "malzeme_onerileri"nde durur; ayrı
+  /// tutulur ki malzeme önerilerini bilmeyen eski sürümler onları "okunamadı"
+  /// sayıp silmesin.
+  ClaudeGelenKutusu({http.Client? istemci, this.klasor = 'oneriler'}) : _istemci = istemci ?? http.Client();
 
   final http.Client _istemci;
+  final String klasor;
   static const Duration _zamanAsimi = Duration(seconds: 15);
 
   /// Kaydedilmiş ama buluttan silinememiş (ör. internet yokken) önerilerin
   /// kimlikleri. Silme başarılı olana kadar yeniden gösterilmezler; aynı
   /// öneri iki kez kaydedilip vinç/yevmiye satırları çiftlenmesin diye.
-  static const String _uygulananlarAyari = 'claude_uygulanan_oneriler';
+  String get _uygulananlarAyari =>
+      klasor == 'oneriler' ? 'claude_uygulanan_oneriler' : 'claude_uygulanan_$klasor';
 
   /// Gelen kutusu adresi ve yetki başlığı; bulut kapalıysa ya da giriş
   /// yapılmamışsa null.
@@ -55,7 +61,7 @@ class ClaudeGelenKutusu {
     if (jeton == null || jeton.isEmpty) return null;
     final proje = Firebase.app().options.projectId;
     final yol = 'https://firestore.googleapis.com/v1/projects/$proje/databases/(default)/documents'
-        '/users/${Uri.encodeComponent(user.uid)}/data/claude_gelen/oneriler${id == null ? '' : '/${Uri.encodeComponent(id)}'}';
+        '/users/${Uri.encodeComponent(user.uid)}/data/claude_gelen/$klasor${id == null ? '' : '/${Uri.encodeComponent(id)}'}';
     return (Uri.parse(yol), {'Authorization': 'Bearer $jeton'});
   }
 

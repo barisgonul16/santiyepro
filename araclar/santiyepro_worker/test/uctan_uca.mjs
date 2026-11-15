@@ -84,7 +84,7 @@ async function rpc(method, params) {
 const bas = await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'deneme', version: '1' } });
 kontrol(bas.serverInfo.name === 'santiyepro', 'initialize');
 const araclar = (await rpc('tools/list')).tools.map((a) => a.name);
-kontrol(araclar.length === 9, 'tools/list: ' + araclar.join(', '));
+kontrol(araclar.length === 14, 'tools/list: ' + araclar.join(', '));
 const sahte = await fetch(`${ADRES}/mcp`, { method: 'POST', headers: { Authorization: 'Bearer sahte' }, body: '{}' });
 kontrol(sahte.status === 401, 'sahte jeton reddedildi');
 

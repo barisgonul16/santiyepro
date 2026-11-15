@@ -13,6 +13,7 @@ import 'models/not.dart';
 import 'models/fatura.dart';
 import 'models/harcama.dart';
 import 'models/malzeme.dart';
+import 'models/malzeme_hareketi.dart';
 import 'models/pratik_bilgi.dart';
 import 'screens/ana_sayfa.dart';
 import 'screens/projeler_sayfa.dart';
@@ -393,6 +394,7 @@ class _MainScreenState extends State<MainScreen> {
   List<Fatura> faturalar = [];
   List<Harcama> harcamalar = [];
   List<Malzeme> malzemeler = [];
+  List<MalzemeHareketi> malzemeHareketleri = [];
   List<PratikBilgi> customPratikBilgiler = [];
   List<String> ekipler = [];
 
@@ -617,6 +619,7 @@ class _MainScreenState extends State<MainScreen> {
     final loadedFaturalar = await _storageService.loadFaturalar();
     final loadedHarcamalar = await _storageService.loadHarcamalar();
     final loadedMalzemeler = await _storageService.loadMalzemeler();
+    final loadedHareketler = await _storageService.loadMalzemeHareketleri();
     final loadedPratikBilgiler = await _storageService.loadPratikBilgiler();
     final loadedEkipler = await _storageService.loadEkipler();
 
@@ -632,6 +635,7 @@ class _MainScreenState extends State<MainScreen> {
       faturalar = loadedFaturalar;
       harcamalar = loadedHarcamalar;
       malzemeler = loadedMalzemeler;
+      malzemeHareketleri = loadedHareketler;
       customPratikBilgiler = loadedPratikBilgiler;
       ekipler = loadedEkipler;
       
@@ -1070,6 +1074,31 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  // Malzeme hareketleri (gelen/giden). Kimlikle bulunur: liste ekranda
+  // süzülüp sıralandığı için sıra numarası güvenilmez.
+  void _hareketleriEkle(List<MalzemeHareketi> yeni) {
+    setState(() {
+      malzemeHareketleri.addAll(yeni);
+      _storageService.saveMalzemeHareketleri(malzemeHareketleri);
+    });
+  }
+
+  void _hareketGuncelle(MalzemeHareketi h) {
+    final i = malzemeHareketleri.indexWhere((x) => x.id == h.id);
+    if (i < 0) return;
+    setState(() {
+      malzemeHareketleri[i] = h;
+      _storageService.saveMalzemeHareketleri(malzemeHareketleri);
+    });
+  }
+
+  void _hareketSil(String id) {
+    setState(() {
+      malzemeHareketleri.removeWhere((x) => x.id == id);
+      _storageService.saveMalzemeHareketleri(malzemeHareketleri);
+    });
+  }
+
   final List<Map<String, dynamic>> _menuItems = [
     {'icon': Icons.home, 'title': 'Ana Sayfa', 'color': Colors.cyan},
     {'icon': Icons.folder, 'title': 'Projeler', 'color': Colors.blue},
@@ -1210,6 +1239,11 @@ class _MainScreenState extends State<MainScreen> {
         );
       case 9: // Malzemeler
         return MalzemelerSayfaPage(
+          projeler: projeler,
+          hareketler: malzemeHareketleri,
+          onHareketleriEkle: _hareketleriEkle,
+          onHareketGuncelle: _hareketGuncelle,
+          onHareketSil: _hareketSil,
           malzemeler: malzemeler,
           onMalzemeEkle: _malzemeEkle,
           onMalzemeGuncelle: _malzemeGuncelle,

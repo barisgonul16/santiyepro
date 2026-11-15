@@ -1,5 +1,5 @@
 import { test } from 'node:test';
-import { strictEqual, deepStrictEqual, rejects } from 'node:assert';
+import { strictEqual, deepStrictEqual, rejects, ok } from 'node:assert';
 import { sade, tam, tarih, vincSaat, aralik, Veri, ARACLAR } from '../src/araclar.js';
 import { turkiyeSaati } from '../src/firestore.js';
 
@@ -97,4 +97,70 @@ test('kayit_ekle: hatalı girişleri reddeder, hiçbir şey yazmaz', async () =>
   await rejects(dene({ santiye: 'gera', yevmiyeler: [{ ekip: 'a', miktar: 0 }] }), /0'dan büyük/);
   await rejects(kayitEkle(veri(), { kayitlar: [] }, ENV), /en az bir/);
   strictEqual(gonderilen.length, 0);
+});
+
+// ---------------------------------------------------------------- malzeme
+import { MALZEME_ARACLARI } from '../src/malzeme.js';
+
+const malzemeVerisi = () => new Veri(async (ad) => ({
+  projects: [{ id: 'p1', ad: 'Gera makina' }, { id: 'p2', ad: 'KA Otomotiv' }, { id: 'p3', ad: 'Su deposu', durum: 'Tamamlandı' }],
+  malzeme_hareketleri: [
+    { id: '1', tarih: '2026-11-01T00:00:00.000', malzeme: 'Trio pano', miktar: 100, birim: 'adet', hedefProjeId: 'p1', disYer: 'Yapı donanım', irsaliyeNo: '42' },
+    { id: '2', tarih: '2026-11-05T00:00:00.000', malzeme: 'trio  PANO', miktar: 30, birim: 'adet', kaynakProjeId: 'p1', hedefProjeId: 'p2' },
+    { id: '3', tarih: '2026-11-06T00:00:00.000', malzeme: 'Ø12 demir', miktar: 6.5, birim: 'ton', hedefProjeId: 'p1' },
+    { id: '4', tarih: '2026-11-07T00:00:00.000', malzeme: 'Ø12 demir', miktar: 6.5, birim: 'ton', kaynakProjeId: 'p1' },
+  ],
+})[ad] ?? null);
+const malzemeAraci = (ad) => MALZEME_ARACLARI.find((a) => a.name === ad).fonksiyon;
+
+test('malzeme_durumu: gelen − giden, aktarma iki şantiyeyi de etkiler', async () => {
+  const s = await malzemeAraci('malzeme_durumu')(malzemeVerisi(), {});
+  const gera = s.santiyeler.find((x) => x.santiye === 'Gera makina');
+  deepStrictEqual(gera.malzemeler.map((m) => [m.malzeme, m.kalan]), [['Trio pano', 70]]);
+  const ka = s.santiyeler.find((x) => x.santiye === 'KA Otomotiv');
+  deepStrictEqual(ka.malzemeler.map((m) => [m.kalan, m.birim]), [[30, 'adet']]);
+  const hepsi = await malzemeAraci('malzeme_durumu')(malzemeVerisi(), { santiye: 'gera', bitenler_dahil: true });
+  strictEqual(hepsi.santiyeler[0].malzemeler.length, 2);
+});
+
+test('malzeme_hareketleri: süzgeçler ve biçim', async () => {
+  const f = malzemeAraci('malzeme_hareketleri');
+  const s = await f(malzemeVerisi(), { santiye: 'ka' });
+  deepStrictEqual(s.hareketler.map((h) => [h.tur, h.nereden, h.nereye]), [['aktarma', 'Gera makina', 'KA Otomotiv']]);
+  const g = await f(malzemeVerisi(), { tur: 'geldi', malzeme: '42' });
+  deepStrictEqual(g.hareketler.map((h) => [h.nereden, h.irsaliye_no]), [['Yapı donanım', '42']]);
+  await rejects(f(malzemeVerisi(), { tur: 'bozuk' }), /tur/);
+});
+
+test('malzeme_ekle: ayrı klasöre uygulamanın biçiminde yazar, hatalıyı reddeder', async () => {
+  const gonderilen = [];
+  const adresler = [];
+  globalThis.fetch = async (url, secenek = {}) => {
+    if (String(url).includes('securetoken')) return new Response(JSON.stringify({ id_token: 'j', expires_in: 3600 }));
+    if (secenek.method === 'POST') {
+      adresler.push(String(url));
+      gonderilen.push(JSON.parse(secenek.body));
+      return new Response(JSON.stringify({ name: 'x/claude_gelen/malzeme_onerileri/m1' }));
+    }
+    return new Response('{}', { status: 404 });
+  };
+  const f = malzemeAraci('malzeme_ekle');
+  const s = await f(malzemeVerisi(), {
+    hareketler: [
+      { tur: 'geldi', santiye: 'gera', malzeme: 'Kontrplak 18 mm', miktar: '40', tarih: '2026-11-14', firma_yer: 'Yapı donanım', irsaliye_no: '7' },
+      { tur: 'aktarma', santiye: 'gera', hedef_santiye: 'ka', malzeme: 'Dikme', miktar: 20 },
+    ],
+  }, ENV);
+  strictEqual(s.oneri_id, 'm1');
+  ok(adresler[0].includes('/claude_gelen/malzeme_onerileri'));
+  const h = JSON.parse(gonderilen[0].fields.json.stringValue).hareketler;
+  deepStrictEqual([h[0].hedefProjeId, h[0].kaynakProjeId, h[0].miktar, h[0].birim, h[0].disYer], ['p1', '', 40, 'adet', 'Yapı donanım']);
+  deepStrictEqual([h[1].kaynakProjeId, h[1].hedefProjeId, h[1].disYer], ['p1', 'p2', '']);
+  const dene = (x) => f(malzemeVerisi(), { hareketler: [x] }, ENV);
+  await rejects(dene({ tur: 'geldi', santiye: 'gera', malzeme: 'x', miktar: 0 }), /miktar/);
+  await rejects(dene({ tur: 'aktarma', santiye: 'gera', malzeme: 'x', miktar: 1 }), /hedef_santiye/);
+  await rejects(dene({ tur: 'aktarma', santiye: 'gera', hedef_santiye: 'gera', malzeme: 'x', miktar: 1 }), /aynı şantiye/);
+  await rejects(dene({ tur: 'geldi', santiye: 'gera', malzeme: 'x', miktar: 1, tarih: '2099-01-01' }), /gelecekte/);
+  await rejects(dene({ tur: 'geldi', santiye: 'yok', malzeme: 'x', miktar: 1 }), /adlı şantiye yok/);
+  strictEqual(gonderilen.length, 1);
 });

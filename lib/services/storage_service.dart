@@ -15,6 +15,7 @@ import '../models/fatura.dart';
 import '../models/hakedis.dart';
 import '../models/harcama.dart';
 import '../models/malzeme.dart';
+import '../models/malzeme_hareketi.dart';
 import '../models/pratik_bilgi.dart';
 import '../main.dart' show firestoreDisabled;
 import 'app_log.dart';
@@ -33,6 +34,7 @@ class StorageService {
     'projects', 'tasks', 'notes', 'reminders', 'locations',
     'project_logs', 'sketches', 'faturalar', 'harcamalar',
     'malzemeler', 'pratik_bilgiler', 'ekipler', 'hakedisler',
+    'malzeme_hareketleri',
   ];
 
   /// Koleksiyon adlarının kullanıcıya gösterilecek karşılıkları.
@@ -50,6 +52,7 @@ class StorageService {
     'pratik_bilgiler': 'Pratik bilgiler',
     'ekipler': 'Ekipler',
     'hakedisler': 'Hakedişler',
+    'malzeme_hareketleri': 'Malzeme hareketleri',
   };
 
   /// Yüklenirken sorun çıkan koleksiyonlar.
@@ -656,6 +659,12 @@ class StorageService {
 
   Future<List<Malzeme>> loadMalzemeler() =>
       _readList('malzemeler', Malzeme.fromJson);
+
+  Future<void> saveMalzemeHareketleri(List<MalzemeHareketi> items) => _writeJson(
+      'malzeme_hareketleri', jsonEncode(items.map((i) => i.toJson()).toList()));
+
+  Future<List<MalzemeHareketi>> loadMalzemeHareketleri() =>
+      _readList('malzeme_hareketleri', MalzemeHareketi.fromJson);
 
   Future<void> savePratikBilgiler(List<PratikBilgi> items) => _writeJson(
       'pratik_bilgiler', jsonEncode(items.map((i) => i.toJson()).toList()));
