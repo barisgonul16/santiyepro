@@ -1,4 +1,4 @@
 {
-  "version": "2.8.2+17",
-  "notes": "v2.8.2 Güncellemesi:\n- Hakediş hatırlatma: Giriş sekmesindeki yeni kutuya yazılanlar, yan menüdeki Hakediş Hatırlatma sayfasında toplanır ve Excel'e aktarılır.\n- Sesle kayıt/görüşmede \"hakediş için not al ...\" dersen bu kutuya yazılır."
+  "version": "2.8.3+18",
+  "notes": "v2.8.3 Güncellemesi:\n- Claude'dan kayıt: claude.ai'deki ŞantiyePro bağlayıcısıyla Claude'a söylediğin kayıtlar ana sayfada onay kartında çıkar; kontrol edip kaydedersin.\n- Onay ekranında vinç düzenlenir: firma, saatler, mola ve açıklama değiştirilebilir, vinç eklenip kaldırılabilir."
 }
