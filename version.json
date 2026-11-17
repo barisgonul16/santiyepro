@@ -1,4 +1,4 @@
 {
-  "version": "2.9.0+20",
-  "notes": "v2.9.0 Güncellemesi:\n- Malzemeler: şantiyeye gelen/giden malzemeyi not al; her şantiyede şu an ne olduğunu gör.\n- Claude'a söylediğin malzemeler Malzemeler sayfasında onay kartında çıkar."
+  "version": "2.9.1+21",
+  "notes": "v2.9.1 Güncellemesi:\n- Malzemeler: tüm şantiyeler görünümü, kalıp/iskele/demir grupları, paylaşma.\n- Hareketler gün ve irsaliyeye göre gruplu; hızlı giriş (sık malzemeler, − / +, son girişi tekrarla).\n- Aletlere şantiye seçimi; yeni şantiye ekleme."
 }
