@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/malzeme.dart';
 import '../models/malzeme_hareketi.dart';
@@ -148,6 +149,45 @@ Future<Proje?> _yeniSantiyeSor(BuildContext context) async {
         ],
       ),
     ),
+  );
+}
+
+/// Şantiyeler sekmesindeki seçicide "Tüm şantiyeler" seçeneğinin değeri.
+const String _tumSantiyeler = '__tum_santiyeler__';
+
+const List<String> _aylar = [
+  'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+];
+const List<String> _gunler = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+
+/// Hareket listesindeki gün başlığı: "Bugün", "Dün", "14 Kasım Cumartesi".
+String _gunBasligi(DateTime t, DateTime bugun) {
+  final gun = DateTime(t.year, t.month, t.day);
+  final fark = DateTime(bugun.year, bugun.month, bugun.day).difference(gun).inDays;
+  if (fark == 0) return 'Bugün';
+  if (fark == 1) return 'Dün';
+  final yil = t.year == bugun.year ? '' : ' ${t.year}';
+  return '${t.day} ${_aylar[t.month - 1]}$yil ${_gunler[t.weekday - 1]}';
+}
+
+/// Alet durumu için renk (Çalışıyor yeşil, Tamirde kırmızı, Depoda mavi).
+Color _durumRengi(String durum) {
+  final d = durum.toLowerCase();
+  if (d.contains('tamir') || d.contains('bozuk') || d.contains('arıza')) return Colors.red;
+  if (d.contains('depo')) return Colors.blue;
+  return Colors.green;
+}
+
+Widget _durumEtiketi(String durum) {
+  final renk = _durumRengi(durum);
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      color: renk.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(6),
+      border: Border.all(color: renk.withValues(alpha: 0.5)),
+    ),
+    child: Text(durum, style: TextStyle(color: renk, fontSize: 12, fontWeight: FontWeight.w600)),
   );
 }
 
@@ -455,53 +495,127 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
 
   // ------------------------------------------------------------- Şantiyeler
 
+  Widget _santiyeSecici(List<Proje> santiyeler, String id) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey('santiye_${id}_$_secimSurumu'),
+      initialValue: id,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Şantiye',
+        border: OutlineInputBorder(),
+        isDense: true,
+        prefixIcon: Icon(Icons.apartment),
+      ),
+      items: [
+        const DropdownMenuItem(
+          value: _tumSantiyeler,
+          child: Text('Tüm şantiyeler', style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        for (final p in santiyeler)
+          DropdownMenuItem(
+            value: p.id,
+            child: Text(p.durum == 'Tamamlandı' ? '${p.ad} (bitti)' : p.ad, overflow: TextOverflow.ellipsis),
+          ),
+        _yeniSantiyeOgesi(_yeniSantiye),
+      ],
+      onChanged: (v) async {
+        if (v == _yeniSantiye) {
+          final yeni = await _santiyeEkle();
+          if (!mounted) return;
+          setState(() {
+            if (yeni != null) _seciliSantiye = yeni;
+            _secimSurumu++;
+          });
+        } else {
+          setState(() => _seciliSantiye = v);
+        }
+      },
+    );
+  }
+
+  Widget _ozetKutusu(String deger, String etiket) => Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: ThemeColors.cardBackground(context),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(children: [
+            Text(deger,
+                style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 17, fontWeight: FontWeight.bold)),
+            Text(etiket, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+          ]),
+        ),
+      );
+
+  Widget _ozetSeridi(List<(String, String)> kutular) => Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Row(children: [
+          for (final (i, k) in kutular.indexed) ...[
+            if (i > 0) const SizedBox(width: 8),
+            _ozetKutusu(k.$1, k.$2),
+          ],
+        ]),
+      );
+
+  /// Gruplar (Kalıp, İskele, Demir, Diğer) sırasıyla başlık + satırlar.
+  List<Widget> _grupluSatirlar<T>(List<T> liste, String Function(T) grup, Widget Function(T) satir) {
+    final cocuklar = <Widget>[];
+    final gruplar = {for (final g in malzemeGruplari) g: <T>[]};
+    for (final x in liste) {
+      (gruplar[grup(x)] ??= <T>[]).add(x);
+    }
+    final birden = gruplar.values.where((l) => l.isNotEmpty).length > 1;
+    gruplar.forEach((g, l) {
+      if (l.isEmpty) return;
+      if (birden) cocuklar.add(_grupBasligi(g));
+      cocuklar.addAll(l.map(satir));
+    });
+    return cocuklar;
+  }
+
+  Widget _grupBasligi(String g) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+        child: Text(g.toUpperCase(),
+            style: TextStyle(
+                color: Colors.orange.shade700, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+      );
+
   Widget _santiyelerSekmesi() {
     final santiyeler = _secilebilirSantiyeler;
     if (santiyeler.isEmpty) return _bosMesaj('Önce Projeler sayfasından bir şantiye ekle.');
-    if (_seciliSantiye == null || !santiyeler.any((p) => p.id == _seciliSantiye)) {
+    if (_seciliSantiye == null ||
+        (_seciliSantiye != _tumSantiyeler && !santiyeler.any((p) => p.id == _seciliSantiye))) {
       _seciliSantiye = santiyeler.first.id;
     }
     final id = _seciliSantiye!;
+    final ust = Row(children: [
+      Expanded(child: _santiyeSecici(santiyeler, id)),
+      IconButton(
+        tooltip: 'WhatsApp ile paylaş',
+        icon: const Icon(Icons.share),
+        onPressed: () => _paylas(id),
+      ),
+    ]);
+    if (id == _tumSantiyeler) return _tumSantiyelerGorunumu(ust);
+
     final stok = santiyeStoku(widget.hareketler, id);
     final mevcut = stok.where((s) => s.kalan.abs() > 0.0005).toList();
     final biten = stok.where((s) => s.kalan.abs() <= 0.0005).toList();
     final sonHareketler = widget.hareketler.where((h) => h.ilgili(id)).toList()
       ..sort((a, b) => b.tarih.compareTo(a.tarih));
+    final aletler = widget.malzemeler.where((a) => a.projeId == id).toList();
+    final malzemeHareketleri = sonHareketler.where((h) => h.aletId.isEmpty);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
       children: [
-        DropdownButtonFormField<String>(
-          key: ValueKey('santiye_${id}_$_secimSurumu'),
-          initialValue: id,
-          isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Şantiye',
-            border: OutlineInputBorder(),
-            isDense: true,
-            prefixIcon: Icon(Icons.apartment),
-          ),
-          items: [
-            for (final p in santiyeler)
-              DropdownMenuItem(
-                value: p.id,
-                child: Text(p.durum == 'Tamamlandı' ? '${p.ad} (bitti)' : p.ad, overflow: TextOverflow.ellipsis),
-              ),
-            _yeniSantiyeOgesi(_yeniSantiye),
-          ],
-          onChanged: (v) async {
-            if (v == _yeniSantiye) {
-              final yeni = await _santiyeEkle();
-              if (!mounted) return;
-              setState(() {
-                if (yeni != null) _seciliSantiye = yeni;
-                _secimSurumu++;
-              });
-            } else {
-              setState(() => _seciliSantiye = v);
-            }
-          },
-        ),
+        ust,
+        _ozetSeridi([
+          ('${mevcut.length}', 'çeşit malzeme'),
+          ('${aletler.length}', 'alet'),
+          (malzemeHareketleri.isEmpty ? '–' : _kisaTarih(malzemeHareketleri.first.tarih), 'son giriş'),
+        ]),
         _baslik('Şu an şantiyede'),
         if (mevcut.isEmpty)
           Padding(
@@ -513,10 +627,10 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
               style: TextStyle(color: ThemeColors.textTertiary(context)),
             ),
           ),
-        for (final s in mevcut) _stokSatiri(s),
-        if (widget.malzemeler.any((a) => a.projeId == id)) ...[
+        ..._grupluSatirlar<MalzemeStoku>(mevcut, (x) => x.grup, (x) => _stokSatiri(x)),
+        if (aletler.isNotEmpty) ...[
           _baslik('Aletler'),
-          for (final a in widget.malzemeler.where((a) => a.projeId == id))
+          for (final a in aletler)
             Card(
               color: ThemeColors.cardBackground(context),
               margin: const EdgeInsets.only(bottom: 6),
@@ -526,9 +640,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                 leading: Icon(Icons.build, color: ThemeColors.textTertiary(context)),
                 title: Text(a.ad,
                     style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
-                subtitle: a.durum.isEmpty
-                    ? null
-                    : Text(a.durum, style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+                trailing: a.durum.isEmpty ? null : _durumEtiketi(a.durum),
               ),
             ),
         ],
@@ -538,7 +650,7 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
         ],
         if (sonHareketler.isNotEmpty) ...[
           _baslik('Son hareketler'),
-          for (final h in sonHareketler.take(8)) _hareketSatiri(h),
+          for (final h in sonHareketler.take(8)) _hareketSatiri(h, kaydirarakSil: true),
           if (sonHareketler.length > 8)
             TextButton(
               onPressed: () => setState(() {
@@ -550,6 +662,103 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
         ],
       ],
     );
+  }
+
+  String _kisaTarih(DateTime t) => '${t.day.toString().padLeft(2, '0')}.${t.month.toString().padLeft(2, '0')}';
+
+  /// Her malzeme: toplam ve hangi şantiyede kaç tane.
+  Widget _tumSantiyelerGorunumu(Widget ust) {
+    final dagilim = santiyelerdekiMalzemeler(widget.hareketler, widget.projeler.map((p) => p.id));
+    final dolu = {for (final d in dagilim) ...d.santiyeler.keys};
+    final aletSayisi = widget.malzemeler.where((a) => a.projeId.isNotEmpty).length;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 90),
+      children: [
+        ust,
+        _ozetSeridi([
+          ('${dagilim.length}', 'çeşit malzeme'),
+          ('${dolu.length}', 'şantiyede'),
+          ('$aletSayisi', 'alet sahada'),
+        ]),
+        _baslik('Malzeme nerede'),
+        if (dagilim.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text('Şantiyelerde kayıtlı malzeme yok.', style: TextStyle(color: ThemeColors.textTertiary(context))),
+          ),
+        ..._grupluSatirlar<MalzemeDagilimi>(dagilim, (x) => x.grup, (d) {
+          final yerler = d.santiyeler.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+          return Card(
+            color: ThemeColors.cardBackground(context),
+            margin: const EdgeInsets.only(bottom: 6),
+            child: ListTile(
+              dense: true,
+              onTap: () => _malzemeGecmisi(d.malzeme),
+              title: Text(d.malzeme,
+                  style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
+              subtitle: Text(
+                [for (final y in yerler) '${_projeAdi(y.key)} ${miktarMetni(y.value)}'].join(' · '),
+                style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12),
+              ),
+              trailing: Text('${miktarMetni(d.toplam)} ${d.birim}',
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: d.toplam < 0 ? Colors.red : Colors.orange.shade700)),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  /// Şantiyedeki (ya da tüm şantiyelerdeki) malzemeleri düz yazı olarak
+  /// paylaşır (WhatsApp vb.).
+  Future<void> _paylas(String id) async {
+    final b = StringBuffer();
+    final bugun = _tarihMetni(DateTime.now());
+    if (id == _tumSantiyeler) {
+      b.writeln('*Tüm şantiyeler – malzeme ($bugun)*');
+      final dagilim = santiyelerdekiMalzemeler(widget.hareketler, widget.projeler.map((p) => p.id));
+      for (final g in malzemeGruplari) {
+        final l = dagilim.where((d) => d.grup == g).toList();
+        if (l.isEmpty) continue;
+        b.writeln('\n_${g}_');
+        for (final d in l) {
+          final yerler = d.santiyeler.entries.toList()..sort((a, c) => c.value.compareTo(a.value));
+          b.writeln('• ${d.malzeme}: ${miktarMetni(d.toplam)} ${d.birim} '
+              '(${[for (final y in yerler) '${_projeAdi(y.key)} ${miktarMetni(y.value)}'].join(', ')})');
+        }
+      }
+      if (dagilim.isEmpty) b.writeln('Kayıtlı malzeme yok.');
+    } else {
+      b.writeln('*${_projeAdi(id)} – malzeme ($bugun)*');
+      final mevcut = santiyeStoku(widget.hareketler, id).where((x) => x.kalan.abs() > 0.0005).toList();
+      for (final g in malzemeGruplari) {
+        final l = mevcut.where((x) => x.grup == g).toList();
+        if (l.isEmpty) continue;
+        b.writeln('\n_${g}_');
+        for (final x in l) {
+          b.writeln('• ${x.malzeme}: ${miktarMetni(x.kalan)} ${x.birim}');
+        }
+      }
+      if (mevcut.isEmpty) b.writeln('Kayıtlı malzeme yok.');
+      final aletler = widget.malzemeler.where((a) => a.projeId == id).toList();
+      if (aletler.isNotEmpty) {
+        b.writeln('\n_Aletler_');
+        for (final a in aletler) {
+          b.writeln('• ${a.ad}${a.durum.isEmpty ? '' : ' (${a.durum})'}');
+        }
+      }
+    }
+    try {
+      await SharePlus.instance.share(ShareParams(text: b.toString().trim()));
+    } catch (e) {
+      appLog('Malzeme listesi paylaşılamadı: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paylaşılamadı')));
+      }
+    }
   }
 
   Widget _stokSatiri(MalzemeStoku s, {bool soluk = false}) {
@@ -580,11 +789,15 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
     );
   }
 
-  /// Bir malzemenin tüm şantiyelerdeki yolculuğu.
+  /// Bir malzemenin tüm şantiyelerdeki yolculuğu; grubu da buradan
+  /// değiştirilir.
   void _malzemeGecmisi(String malzeme) {
     final anahtar = malzemeAnahtari(malzeme);
-    final liste = widget.hareketler.where((h) => malzemeAnahtari(h.malzeme) == anahtar).toList()
+    final liste = widget.hareketler
+        .where((h) => malzemeAnahtari(h.malzeme) == anahtar && h.aletId.isEmpty)
+        .toList()
       ..sort((a, b) => b.tarih.compareTo(a.tarih));
+    var grup = malzemeGrubu(malzeme, widget.hareketler);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -593,17 +806,34 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
         expand: false,
         initialChildSize: 0.6,
         maxChildSize: 0.95,
-        builder: (context, kaydirma) => ListView(
-          controller: kaydirma,
-          padding: const EdgeInsets.all(14),
-          children: [
-            Text(malzeme,
-                style: TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('Tüm şantiyelerdeki gelişi ve gidişi', style: TextStyle(color: ThemeColors.textSecondary(context))),
-            const SizedBox(height: 10),
-            for (final h in liste) _hareketSatiri(h),
-          ],
+        builder: (context, kaydirma) => StatefulBuilder(
+          builder: (context, setSheet) => ListView(
+            controller: kaydirma,
+            padding: const EdgeInsets.all(14),
+            children: [
+              Text(malzeme,
+                  style:
+                      TextStyle(color: ThemeColors.textPrimary(context), fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Row(children: [
+                Text('Grup: ', style: TextStyle(color: ThemeColors.textSecondary(context))),
+                DropdownButton<String>(
+                  value: grup,
+                  items: [for (final g in malzemeGruplari) DropdownMenuItem(value: g, child: Text(g))],
+                  onChanged: (g) {
+                    if (g == null || g == grup) return;
+                    setSheet(() => grup = g);
+                    for (final h in liste) {
+                      widget.onHareketGuncelle(h.kopya(grup: g));
+                    }
+                  },
+                ),
+              ]),
+              Text('Tüm şantiyelerdeki gelişi ve gidişi', style: TextStyle(color: ThemeColors.textSecondary(context))),
+              const SizedBox(height: 10),
+              for (final h in liste) _hareketSatiri(h),
+            ],
+          ),
         ),
       ),
     );
@@ -694,13 +924,87 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
               ? _bosMesaj(widget.hareketler.isEmpty
                   ? 'Henüz malzeme hareketi yok.\nŞantiyeye malzeme gelince "Malzeme girişi" ile not al.'
                   : 'Bu süzgece uyan hareket yok.')
-              : ListView.builder(
+              : ListView(
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 90),
-                  itemCount: liste.length,
-                  itemBuilder: (context, i) => _hareketSatiri(liste[i]),
+                  children: _gunlereGore(liste),
                 ),
         ),
       ],
+    );
+  }
+
+  /// Hareketleri gün başlıklarıyla dizer; aynı seferde (aynı irsaliye ya da
+  /// aynı formdan) girilen kalemleri tek kartta toplar.
+  List<Widget> _gunlereGore(List<MalzemeHareketi> liste) {
+    final bugun = DateTime.now();
+    final cocuklar = <Widget>[];
+    String? sonGun;
+    final gunler = <String, Map<String, List<MalzemeHareketi>>>{};
+    final gunTarihi = <String, DateTime>{};
+    for (final h in liste) {
+      final gun = '${h.tarih.year}-${h.tarih.month}-${h.tarih.day}';
+      gunTarihi[gun] = h.tarih;
+      final yol = '${h.kaynakProjeId}|${h.hedefProjeId}|${malzemeAnahtari(h.disYer)}';
+      final grup = h.irsaliyeNo.isNotEmpty ? 'irs|${h.irsaliyeNo}|$yol' : 'kok|${h.girisKoku}|$yol';
+      ((gunler[gun] ??= {})[grup] ??= []).add(h);
+    }
+    gunler.forEach((gun, gruplar) {
+      if (gun != sonGun) {
+        cocuklar.add(Padding(
+          padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+          child: Text(_gunBasligi(gunTarihi[gun]!, bugun),
+              style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 13, fontWeight: FontWeight.w700)),
+        ));
+        sonGun = gun;
+      }
+      for (final g in gruplar.values) {
+        cocuklar.add(g.length == 1 ? _hareketSatiri(g.single, kaydirarakSil: true, tarihsiz: true) : _girisKarti(g));
+      }
+    });
+    return cocuklar;
+  }
+
+  /// Sol kenarı hareket türünün renginde kart.
+  Widget _seritliKart({required Color renk, required Widget child}) => Card(
+        color: ThemeColors.cardBackground(context),
+        margin: const EdgeInsets.only(bottom: 6),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          decoration: BoxDecoration(border: Border(left: BorderSide(color: renk, width: 4))),
+          child: child,
+        ),
+      );
+
+  /// Aynı irsaliye / aynı girişteki kalemler tek kartta; dokununca açılır.
+  Widget _girisKarti(List<MalzemeHareketi> kalemler) {
+    final ilk = kalemler.first;
+    final renk = _turRengi(ilk.tur);
+    final baslik = ilk.irsaliyeNo.isNotEmpty
+        ? 'İrsaliye ${ilk.irsaliyeNo} · ${kalemler.length} kalem'
+        : '${kalemler.length} kalem';
+    final ozet = kalemler.take(3).map((h) => '${miktarMetni(h.miktar)} ${h.malzeme}').join(', ') +
+        (kalemler.length > 3 ? ' …' : '');
+    return _seritliKart(
+      renk: renk,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: PageStorageKey('giris_${ilk.id}'),
+          dense: true,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          leading: CircleAvatar(
+            radius: 18,
+            backgroundColor: renk.withValues(alpha: 0.15),
+            child: Icon(_turIkonu(ilk.tur), color: renk, size: 20),
+          ),
+          title: Text(baslik,
+              style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
+          subtitle: Text('${_turAdi(ilk.tur)} · ${_guzergah(ilk)}\n$ozet',
+              style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+          children: [for (final h in kalemler) _hareketSatiri(h, kaydirarakSil: true, ic: true)],
+        ),
+      ),
     );
   }
 
@@ -713,38 +1017,73 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
     };
   }
 
-  Widget _hareketSatiri(MalzemeHareketi h, {bool dokunulabilir = true}) {
+  /// Bir hareket satırı. [kaydirarakSil]: sola kaydırınca silme sorusu (yalnızca
+  /// silinince yeniden çizilen listelerde). [ic]: giriş kartının içindeki satır
+  /// (tarih ve güzergâh kartın başlığında yazdığı için kısa). [tarihsiz]: gün
+  /// başlığı altındaki satır (tarih tekrar yazılmaz).
+  Widget _hareketSatiri(MalzemeHareketi h,
+      {bool dokunulabilir = true, bool kaydirarakSil = false, bool ic = false, bool tarihsiz = false}) {
     final renk = _turRengi(h.tur);
     final alt = [
-      '${_turAdi(h.tur)} · ${_tarihMetni(h.tarih)}',
-      _guzergah(h),
-      if (h.irsaliyeNo.isNotEmpty) 'İrsaliye ${h.irsaliyeNo}',
+      if (!ic) tarihsiz ? _turAdi(h.tur) : '${_turAdi(h.tur)} · ${_tarihMetni(h.tarih)}',
+      if (!ic) _guzergah(h),
+      if (!ic && h.irsaliyeNo.isNotEmpty) 'İrsaliye ${h.irsaliyeNo}',
       if (h.not.isNotEmpty) h.not,
     ];
-    return Card(
-      color: ThemeColors.cardBackground(context),
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        dense: true,
-        onTap: dokunulabilir ? () => _hareketFormu(duzenlenen: h) : null,
-        onLongPress: dokunulabilir ? () => _hareketiSil(h) : null,
-        leading: CircleAvatar(
-          radius: 18,
-          backgroundColor: renk.withValues(alpha: 0.15),
-          child: Icon(_turIkonu(h.tur), color: renk, size: 20),
-        ),
-        title: Text('${miktarMetni(h.miktar)} ${h.birim} ${h.malzeme}',
-            style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
-        subtitle: Text(alt.join('\n'), style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
-        isThreeLine: alt.length > 2,
-        trailing: h.fotoYolu.isNotEmpty && File(h.fotoYolu).existsSync()
-            ? Icon(Icons.photo_camera, size: 18, color: ThemeColors.textTertiary(context))
-            : (h.kaynak == 'claude' ? const Icon(Icons.auto_awesome, size: 16, color: Colors.deepPurple) : null),
+    final ici = ListTile(
+      dense: true,
+      onTap: dokunulabilir ? () => _hareketFormu(duzenlenen: h) : null,
+      onLongPress: dokunulabilir ? () => _hareketiSil(h) : null,
+      leading: ic
+          ? null
+          : CircleAvatar(
+              radius: 18,
+              backgroundColor: renk.withValues(alpha: 0.15),
+              child: Icon(h.aletId.isNotEmpty ? Icons.build : _turIkonu(h.tur), color: renk, size: 20),
+            ),
+      title: Text('${miktarMetni(h.miktar)} ${h.birim} ${h.malzeme}',
+          style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
+      subtitle: alt.isEmpty
+          ? null
+          : Text(alt.join('\n'), style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+      isThreeLine: alt.length > 2,
+      trailing: h.fotoYolu.isNotEmpty && File(h.fotoYolu).existsSync()
+          ? Icon(Icons.photo_camera, size: 18, color: ThemeColors.textTertiary(context))
+          : (h.kaynak == 'claude' ? const Icon(Icons.auto_awesome, size: 16, color: Colors.deepPurple) : null),
+    );
+    final kart = ic
+        ? Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Material(
+              color: ThemeColors.border(context).withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(8),
+              clipBehavior: Clip.antiAlias,
+              child: ici,
+            ),
+          )
+        : _seritliKart(renk: renk, child: ici);
+    if (!kaydirarakSil || !dokunulabilir) return kart;
+    return Dismissible(
+      key: ValueKey('kaydir_${h.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: EdgeInsets.only(bottom: ic ? 4 : 6),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(color: Colors.red.shade700, borderRadius: BorderRadius.circular(10)),
+        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.delete, color: Colors.white),
+          SizedBox(width: 6),
+          Text('Sil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        ]),
       ),
+      confirmDismiss: (_) => _silmeOnayi(h),
+      onDismissed: (_) => widget.onHareketSil(h.id),
+      child: kart,
     );
   }
 
-  Future<void> _hareketiSil(MalzemeHareketi h) async {
+  Future<bool> _silmeOnayi(MalzemeHareketi h) async {
     final evet = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -762,7 +1101,11 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
         ],
       ),
     );
-    if (evet == true) widget.onHareketSil(h.id);
+    return evet == true;
+  }
+
+  Future<void> _hareketiSil(MalzemeHareketi h) async {
+    if (await _silmeOnayi(h)) widget.onHareketSil(h.id);
   }
 
   Future<void> _hareketFormu({MalzemeHareketi? duzenlenen}) async {
@@ -850,9 +1193,6 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                   itemCount: liste.length,
                   itemBuilder: (context, sira) {
                     final (index, alet) = liste[sira];
-                    Color durumRengi = Colors.green;
-                    if (alet.durum.toLowerCase().contains('tamir')) durumRengi = Colors.red;
-                    if (alet.durum.toLowerCase().contains('depo')) durumRengi = Colors.blue;
                     return Card(
                       color: ThemeColors.cardBackground(context),
                       margin: const EdgeInsets.only(bottom: 10),
@@ -880,7 +1220,8 @@ class _MalzemelerSayfaPageState extends State<MalzemelerSayfaPage> with SingleTi
                                     style: TextStyle(color: ThemeColors.textSecondary(context))),
                               ),
                             ]),
-                            if (alet.durum.isNotEmpty) Text(alet.durum, style: TextStyle(color: durumRengi)),
+                            if (alet.durum.isNotEmpty)
+                              Padding(padding: const EdgeInsets.only(top: 4), child: _durumEtiketi(alet.durum)),
                           ],
                         ),
                         trailing: IconButton(
@@ -1172,6 +1513,9 @@ class _Kalem {
   final TextEditingController malzeme;
   final TextEditingController miktar;
   String birim;
+  /// Malzeme adı dışarıdan (sık girilenler, son giriş) değişince öneri
+  /// kutusu yeniden kurulsun diye artırılır.
+  int surum = 0;
   _Kalem({String malzeme = '', String miktar = '', this.birim = 'adet'})
       : malzeme = TextEditingController(text: malzeme),
         miktar = TextEditingController(text: miktar);
@@ -1258,6 +1602,56 @@ class _HareketFormuState extends State<_HareketFormu> {
     }
     final liste = sayac.values.toList()..sort((a, b) => b.$2.compareTo(a.$2));
     return [for (final x in liste) x.$1];
+  }
+
+  /// "Sık girilenler" düğmesi: ilk boş satıra (yoksa yeni satıra) yazar.
+  void _malzemeSec(String m) {
+    setState(() {
+      var k = _kalemler.where((x) => x.malzeme.text.trim().isEmpty).firstOrNull;
+      if (k == null) {
+        k = _Kalem();
+        _kalemler.add(k);
+      }
+      k.malzeme.text = m;
+      final b = _sonBirim(m);
+      if (_birimler.contains(b)) k.birim = b;
+      k.surum++;
+    });
+  }
+
+  /// En son girilen hareketi (aynı seferdeki tüm kalemleriyle) bugünün
+  /// tarihiyle forma doldurur; irsaliye no ve not boş gelir.
+  void _sonGirisiTekrarla() {
+    final malzemeler = widget.hareketler.where((h) => h.aletId.isEmpty).toList();
+    if (malzemeler.isEmpty) return;
+    final son = malzemeler.last;
+    final grup = malzemeler.where((h) => h.girisKoku == son.girisKoku).toList();
+    final projeler = _projeler;
+    setState(() {
+      _tur = son.tur;
+      _santiye = son.tur == HareketTuru.geldi ? son.hedefProjeId : son.kaynakProjeId;
+      _hedef = son.tur == HareketTuru.aktarma ? son.hedefProjeId : null;
+      if (!projeler.any((p) => p.id == _santiye)) _santiye = null;
+      if (_hedef != null && !projeler.any((p) => p.id == _hedef)) _hedef = null;
+      _disYer.text = son.disYer;
+      _irsaliye.clear();
+      _not.clear();
+      final bugun = DateTime.now();
+      _tarih = DateTime(bugun.year, bugun.month, bugun.day);
+      _kalemler
+        ..clear()
+        ..addAll([
+          for (final h in grup)
+            _Kalem(malzeme: h.malzeme, miktar: miktarMetni(h.miktar), birim: _birimler.contains(h.birim) ? h.birim : 'adet'),
+        ]);
+      _seciciSurumu++;
+    });
+  }
+
+  void _miktarDegistir(_Kalem k, double fark) {
+    final simdi = double.tryParse(k.miktar.text.trim().replaceAll(',', '.')) ?? 0;
+    final yeni = (simdi + fark) < 0 ? 0.0 : simdi + fark;
+    setState(() => k.miktar.text = yeni == 0 ? '' : miktarMetni(yeni));
   }
 
   String _sonBirim(String malzeme) {
@@ -1359,6 +1753,14 @@ class _HareketFormuState extends State<_HareketFormu> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 40),
         children: [
+          if (!duzenleme && widget.hareketler.any((h) => h.aletId.isEmpty)) ...[
+            OutlinedButton.icon(
+              onPressed: _sonGirisiTekrarla,
+              icon: const Icon(Icons.repeat),
+              label: const Text('Son girişi tekrarla'),
+            ),
+            const SizedBox(height: 10),
+          ],
           SegmentedButton<HareketTuru>(
             segments: const [
               ButtonSegment(value: HareketTuru.geldi, label: Text('Geldi'), icon: Icon(Icons.south_west)),
@@ -1416,65 +1818,114 @@ class _HareketFormuState extends State<_HareketFormu> {
           Text(duzenleme ? 'Malzeme' : 'Malzemeler',
               style: TextStyle(color: ThemeColors.textPrimary(context), fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          for (final (i, k) in _kalemler.indexed) ...[
-            Row(
-              key: ObjectKey(k),
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (!duzenleme && bilinen.isNotEmpty) ...[
+            Text('Sık girilenler', style: TextStyle(color: ThemeColors.textSecondary(context), fontSize: 12)),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
               children: [
-                Expanded(
-                  flex: 4,
-                  child: Autocomplete<String>(
-                    initialValue: TextEditingValue(text: k.malzeme.text),
-                    optionsBuilder: (v) {
-                      final a = malzemeAnahtari(v.text);
-                      if (a.isEmpty) return bilinen.take(8);
-                      return bilinen.where((m) => malzemeAnahtari(m).contains(a)).take(8);
-                    },
-                    onSelected: (m) => setState(() {
-                      k.malzeme.text = m;
-                      final b = _sonBirim(m);
-                      if (_birimler.contains(b)) k.birim = b;
-                    }),
-                    fieldViewBuilder: (context, ctrl, odak, gonder) {
-                      return TextField(
-                        controller: ctrl,
-                        focusNode: odak,
-                        onChanged: (v) => setState(() => k.malzeme.text = v),
-                        decoration: InputDecoration(
-                          labelText: 'Malzeme',
-                          hintText: 'Trio pano 270×90',
-                          border: const OutlineInputBorder(),
-                          isDense: true,
-                          helperText: _kalanUyarisi(k),
-                          helperMaxLines: 2,
-                          helperStyle: TextStyle(color: Colors.orange.shade800),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: k.miktar,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(labelText: 'Miktar', border: OutlineInputBorder(), isDense: true),
-                  ),
-                ),
-                const SizedBox(width: 6),
-                DropdownButton<String>(
-                  value: _birimler.contains(k.birim) ? k.birim : 'adet',
-                  items: [for (final b in _birimler) DropdownMenuItem(value: b, child: Text(b))],
-                  onChanged: (v) => setState(() => k.birim = v ?? 'adet'),
-                ),
-                if (_kalemler.length > 1)
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: () => setState(() => _kalemler.removeAt(i)),
+                for (final m in bilinen.take(6))
+                  ActionChip(
+                    label: Text(m),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _malzemeSec(m),
                   ),
               ],
+            ),
+            const SizedBox(height: 8),
+          ],
+          for (final (i, k) in _kalemler.indexed) ...[
+            Container(
+              key: ObjectKey(k),
+              padding: const EdgeInsets.fromLTRB(10, 10, 4, 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: ThemeColors.border(context)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Autocomplete<String>(
+                          key: ValueKey('ac_${identityHashCode(k)}_${k.surum}'),
+                          initialValue: TextEditingValue(text: k.malzeme.text),
+                          optionsBuilder: (v) {
+                            final a = malzemeAnahtari(v.text);
+                            if (a.isEmpty) return bilinen.take(8);
+                            return bilinen.where((m) => malzemeAnahtari(m).contains(a)).take(8);
+                          },
+                          onSelected: (m) => setState(() {
+                            k.malzeme.text = m;
+                            final b = _sonBirim(m);
+                            if (_birimler.contains(b)) k.birim = b;
+                          }),
+                          fieldViewBuilder: (context, ctrl, odak, gonder) {
+                            return TextField(
+                              controller: ctrl,
+                              focusNode: odak,
+                              onChanged: (v) => setState(() => k.malzeme.text = v),
+                              decoration: InputDecoration(
+                                labelText: 'Malzeme',
+                                hintText: 'Trio pano 270×90',
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                                helperText: _kalanUyarisi(k),
+                                helperMaxLines: 2,
+                                helperStyle: TextStyle(color: Colors.orange.shade800),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      if (_kalemler.length > 1)
+                        IconButton(
+                          tooltip: 'Satırı kaldır',
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                          onPressed: () => setState(() => _kalemler.removeAt(i)),
+                        )
+                      else
+                        const SizedBox(width: 6),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      IconButton.filledTonal(
+                        tooltip: '1 azalt',
+                        icon: const Icon(Icons.remove),
+                        onPressed: () => _miktarDegistir(k, -1),
+                      ),
+                      SizedBox(
+                        width: 84,
+                        child: TextField(
+                          controller: k.miktar,
+                          textAlign: TextAlign.center,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => setState(() {}),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                          decoration: const InputDecoration(
+                              labelText: 'Miktar', border: OutlineInputBorder(), isDense: true),
+                        ),
+                      ),
+                      IconButton.filledTonal(
+                        tooltip: '1 artır',
+                        icon: const Icon(Icons.add),
+                        onPressed: () => _miktarDegistir(k, 1),
+                      ),
+                      const Spacer(),
+                      DropdownButton<String>(
+                        value: _birimler.contains(k.birim) ? k.birim : 'adet',
+                        items: [for (final b in _birimler) DropdownMenuItem(value: b, child: Text(b))],
+                        onChanged: (v) => setState(() => k.birim = v ?? 'adet'),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 8),
           ],

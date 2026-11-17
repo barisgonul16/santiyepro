@@ -76,4 +76,41 @@ void main() {
     expect(Malzeme.fromJson(a.toJson()).projeId, 'p1');
     expect(Malzeme.fromJson({'id': 'x', 'ad': 'Eski'}).projeId, '');
   });
+
+  test('grup tahmini ve kullanıcının seçtiği grup', () {
+    expect(grupTahmini('Trio pano 90/330'), 'Kalıp');
+    expect(grupTahmini('Kontrplak 18 mm'), 'Kalıp');
+    expect(grupTahmini('Dikme 3 m'), 'İskele');
+    expect(grupTahmini('Ø12 demir'), 'Demir');
+    expect(grupTahmini('Hasır çelik'), 'Demir');
+    expect(grupTahmini('Branda'), 'Diğer');
+    final liste = [
+      h('1', 'Branda', 5, hedef: 'p1', gun: 1),
+      h('2', 'branda', 2, hedef: 'p1', gun: 3).kopya(grup: 'İskele'),
+    ];
+    expect(malzemeGrubu('BRANDA', liste), 'İskele');
+    expect(santiyeStoku(liste, 'p1').single.grup, 'İskele');
+    expect(MalzemeHareketi.fromJson(liste[1].toJson()).grup, 'İskele');
+    expect(liste[0].toJson().containsKey('grup'), isFalse);
+  });
+
+  test('tüm şantiyeler: malzeme hangi şantiyede kaç tane', () {
+    final liste = [
+      h('1', 'Trio pano', 100, hedef: 'p1'),
+      h('2', 'trio pano', 30, kaynak: 'p1', hedef: 'p2'),
+      h('3', 'Dikme', 10, hedef: 'p2'),
+      h('4', 'Dikme', 10, kaynak: 'p2'),
+    ];
+    final d = santiyelerdekiMalzemeler(liste, ['p1', 'p2', 'p3']);
+    expect(d.map((x) => x.malzeme), ['Trio pano']);
+    expect(d.single.santiyeler, {'p1': 70.0, 'p2': 30.0});
+    expect(d.single.toplam, 100);
+  });
+
+  test('aynı seferde girilen kalemlerin ortak kökü', () {
+    expect(h('1731_0', 'x', 1).girisKoku, '1731');
+    expect(h('claude_abc_2', 'x', 1).girisKoku, 'claude_abc');
+    expect(h('1731_alet', 'x', 1).girisKoku, '1731_alet');
+    expect(h('99', 'x', 1).girisKoku, '99');
+  });
 }
