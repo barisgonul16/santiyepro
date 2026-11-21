@@ -7,12 +7,6 @@ import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/hakedis_hatirlatma_sayfa.dart';
 import 'package:santiyepro/screens/proje_detay_sayfa.dart';
-import 'package:santiyepro/services/hava_servisi.dart';
-
-class _Havasiz implements HavaServisi {
-  @override
-  Future<GunHavasi?> gunHavasi(DateTime gun) async => null;
-}
 
 Proje _proje(String id, String ad) =>
     Proje(id: id, ad: ad, aciklama: '', baslangicTarihi: DateTime(2026, 1, 1), toplamGun: 100);
@@ -136,7 +130,6 @@ void main() {
           projeGunlukKayitlari: const {},
           ekipler: const [],
           baslangicSekmesi: 1,
-          havaServisi: _Havasiz(),
         ),
       ));
       await tester.pumpAndSettle();

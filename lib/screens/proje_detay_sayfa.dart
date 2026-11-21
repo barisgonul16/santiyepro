@@ -74,8 +74,6 @@ class ProjeDetaySayfa extends StatefulWidget {
   final int baslangicSekmesi;
   /// Verilirse form bugünün yerine bu günün kaydıyla açılır (aramadan geliş).
   final DateTime? acilisTarihi;
-  /// Testlerde sahte servis vermek için.
-  final HavaServisi? havaServisi;
 
   const ProjeDetaySayfa({
     super.key,
@@ -87,7 +85,6 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.ekipler,
     this.baslangicSekmesi = 0,
     this.acilisTarihi,
-    this.havaServisi,
   });
 
   @override
@@ -97,8 +94,6 @@ class ProjeDetaySayfa extends StatefulWidget {
 class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     with SingleTickerProviderStateMixin {
   final _imageService = ImageService();
-  late final HavaServisi _havaServisi = widget.havaServisi ?? HavaServisi();
-
   // --- Genel Bakış State Değişkenleri ---
   DateTime secilenTarih = DateTime.now();
   // Takvimde gösterilen ay. Seçili günden ayrı tutulur: ay değiştirmek
@@ -282,39 +277,16 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     _kayitliImza = _formImzasi();
     if (mounted) setState(() {});
-    // Havası girilmemiş günün havası kendiliğinden alınır (yeni kayıt ya da
-    // eski kayıt); alınamazsa form olduğu gibi kalır.
-    if (_hava.isEmpty) unawaited(_havaOtomatikAl());
   }
 
   // --- Hava durumu ---
 
-  /// Seçili günün havasını internetten alıp forma yazar. Bu arada başka güne
-  /// geçildiyse ya da hava elle girildiyse dokunmaz ([zorla] hariç).
-  Future<bool> _havaOtomatikAl({bool zorla = false}) async {
-    final gun = DateUtils.dateOnly(secilenTarih);
-    if (!zorla && gun.isAfter(DateUtils.dateOnly(DateTime.now()))) return false;
-    final sonuc = await _havaServisi.gunHavasi(gun);
-    if (!mounted || sonuc == null) return false;
-    if (!DateUtils.isSameDay(gun, secilenTarih)) return false;
-    if (!zorla && _hava.isNotEmpty) return false;
-    final temizdi = !_kaydedilmemisDegisiklikVar;
-    setState(() {
-      _hava = sonuc.durum;
-      _havaMin = sonuc.enDusuk;
-      _havaMax = sonuc.enYuksek;
-    });
-    // Kendiliğinden gelen hava, kullanıcının yaptığı değişiklik sayılmaz.
-    if (temizdi) _kayitliImza = _formImzasi();
-    return true;
-  }
-
-  /// Hava ayrıntısı: durum seçimi, "çalışılamadı" işareti, yeniden alma.
+  /// Hava ayrıntısı: durum seçimi, en düşük/en yüksek sıcaklık ve
+  /// "çalışılamadı" işareti. Hava elle girilir.
   Future<void> _havaSec() async {
-    String? mesaj;
-    var aliniyor = false;
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: ThemeColors.cardBackground(context),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => StatefulBuilder(
@@ -324,48 +296,21 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
             sayfayiYenile(() {});
           }
 
-          final sicaklik = HavaGosterim.sicaklik(_havaMin, _havaMax);
           return SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 8 + MediaQuery.of(ctx).viewInsets.bottom),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          sicaklik.isEmpty ? 'Hava durumu' : 'Hava durumu · $sicaklik',
-                          style: TextStyle(
-                              color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      TextButton.icon(
-                        onPressed: aliniyor
-                            ? null
-                            : () async {
-                                sayfayiYenile(() {
-                                  aliniyor = true;
-                                  mesaj = null;
-                                });
-                                final alindi = await _havaOtomatikAl(zorla: true);
-                                if (!ctx.mounted) return;
-                                sayfayiYenile(() {
-                                  aliniyor = false;
-                                  if (!alindi) mesaj = 'Hava bilgisi alınamadı. İnternet bağlantısını kontrol et.';
-                                });
-                              },
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Otomatik al'),
-                      ),
-                    ],
-                  ),
-                  if (mesaj != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(mesaj!, style: TextStyle(color: ThemeColors.uyari(context), fontSize: 12)),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      'Hava durumu',
+                      style: TextStyle(
+                          color: ThemeColors.textPrimary(context), fontSize: 16, fontWeight: FontWeight.bold),
                     ),
+                  ),
                   Wrap(
                     spacing: 8,
                     runSpacing: 4,
@@ -376,15 +321,30 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
                           label: Text(HavaGosterim.ad(durum)),
                           showCheckmark: false,
                           selected: _hava == durum,
-                          onSelected: (secildi) => degistir(() {
-                            _hava = secildi ? durum : '';
-                            // Hava kaldırılınca otomatik gelen sıcaklık da gider.
-                            if (!secildi) {
-                              _havaMin = null;
-                              _havaMax = null;
-                            }
-                          }),
+                          onSelected: (secildi) => degistir(() => _hava = secildi ? durum : ''),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SicaklikKutusu(
+                          key: const Key('hava_min'),
+                          etiket: 'En düşük',
+                          ilkDeger: _havaMin,
+                          onChanged: (v) => setState(() => _havaMin = v),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SicaklikKutusu(
+                          key: const Key('hava_max'),
+                          etiket: 'En yüksek',
+                          ilkDeger: _havaMax,
+                          onChanged: (v) => setState(() => _havaMax = v),
+                        ),
+                      ),
                     ],
                   ),
                   SwitchListTile(
@@ -3800,4 +3760,37 @@ class _PuantajOzeti {
   /// Tam sayıysa ondalıksız, değilse tek ondalıkla yazar (5 / 5.5).
   static String sayi(double d) =>
       d == d.roundToDouble() ? d.toInt().toString() : d.toStringAsFixed(1);
+}
+
+/// Hava penceresindeki sıcaklık kutusu (°C, eksi olabilir). Boş bırakılırsa
+/// null verir. Denetleyicisini kendisi tutar: pencere kapanırken atılır.
+class _SicaklikKutusu extends StatefulWidget {
+  final String etiket;
+  final int? ilkDeger;
+  final ValueChanged<int?> onChanged;
+
+  const _SicaklikKutusu({super.key, required this.etiket, required this.ilkDeger, required this.onChanged});
+
+  @override
+  State<_SicaklikKutusu> createState() => _SicaklikKutusuState();
+}
+
+class _SicaklikKutusuState extends State<_SicaklikKutusu> {
+  late final _ctrl = TextEditingController(text: widget.ilkDeger?.toString() ?? '');
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+        controller: _ctrl,
+        keyboardType: const TextInputType.numberWithOptions(signed: true),
+        inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d{0,2}'))],
+        style: TextStyle(color: ThemeColors.textPrimary(context)),
+        decoration: InputDecoration(labelText: widget.etiket, suffixText: '°C', isDense: true),
+        onChanged: (v) => widget.onChanged(int.tryParse(v)),
+      );
 }

@@ -10,20 +10,6 @@ import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/sesli_kayit_sayfa.dart';
 import 'package:santiyepro/services/ai_kayit_service.dart';
-import 'package:santiyepro/services/hava_servisi.dart';
-
-/// Ağa çıkmadan hava veren sahte servis.
-class _SahteHava implements HavaServisi {
-  final GunHavasi? sonuc;
-  final List<DateTime> istekler = [];
-  _SahteHava(this.sonuc);
-
-  @override
-  Future<GunHavasi?> gunHavasi(DateTime gun) async {
-    istekler.add(gun);
-    return sonuc;
-  }
-}
 
 Proje _proje(String id, String ad) =>
     Proje(id: id, ad: ad, aciklama: '', baslangicTarihi: DateTime(2026, 1, 1), toplamGun: 100);
@@ -345,7 +331,7 @@ void main() {
 
     /// "gerada 5 kalıpçı 2 demirci yemek 10" konuşmasını çözümleyip onay ekranına
     /// gelir; yapay zekâ yemeği ekip ayırmadan tek sayı olarak verir.
-    Future<List<(String, GunlukKayit)>> onayEkraninaGel(WidgetTester tester, {HavaServisi? hava}) async {
+    Future<List<(String, GunlukKayit)>> onayEkraninaGel(WidgetTester tester) async {
       SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'deneme-anahtari'});
       tester.view.physicalSize = const Size(1080, 4200);
       tester.view.devicePixelRatio = 2.0;
@@ -392,7 +378,6 @@ void main() {
           onKayitEkle: (id, k) => eklenen.add((id, k)),
           onKayitGuncelle: (a, b, c) {},
           servis: AiKayitService(istemci: istemci),
-          havaServisi: hava,
         ),
       ));
       await tester.enterText(find.byType(TextField), 'gerada 5 kalıpçı 2 demirci yemek 10');
@@ -436,22 +421,8 @@ void main() {
       expect((k.yemekKalipci, k.yemekDemirci, k.yemekDiger), (7, 3, 0));
     });
 
-    testWidgets('sesle kaydedilen kayda o günün havası eklenir; hava alınamazsa kayıt yine kaydedilir',
-        (tester) async {
-      final sahte = _SahteHava(const GunHavasi('kar', -3, 2));
-      final eklenen = await onayEkraninaGel(tester, hava: sahte);
-      await tester.tap(find.widgetWithText(ActionChip, 'Kalıpçı'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('1 kaydı kaydet'));
-      await tester.pumpAndSettle();
-
-      expect(sahte.istekler.length, 1);
-      final k = eklenen.single.$2;
-      expect((k.hava, k.havaMin, k.havaMax, k.havaDurdu), ('kar', -3, 2, false));
-    });
-
-    testWidgets('hava alınamazsa sesle kayıt havasız kaydedilir', (tester) async {
-      final eklenen = await onayEkraninaGel(tester, hava: _SahteHava(null));
+    testWidgets('sesle kayda hava kendiliğinden eklenmez', (tester) async {
+      final eklenen = await onayEkraninaGel(tester);
       await tester.tap(find.widgetWithText(ActionChip, 'Kalıpçı'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('1 kaydı kaydet'));
@@ -656,7 +627,6 @@ void main() {
                   projeGunlukKayitlari: const {},
                   onKayitEkle: (id, k) => eklenen.add((id, k)),
                   onKayitGuncelle: (a, b, c) {},
-                  havaServisi: _SahteHava(null),
                   geriKapatir: true,
                   onayBasligi: "Claude'dan gelen kayıtlar",
                   baslangicTaslaklari: [

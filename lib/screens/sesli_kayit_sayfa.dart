@@ -5,7 +5,6 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import '../services/ai_kayit_service.dart';
-import '../services/hava_servisi.dart';
 import '../services/taslak_kaydi.dart';
 import '../services/ses_metni.dart';
 import '../theme/theme_colors.dart';
@@ -20,7 +19,6 @@ class SesliKayitSayfa extends StatefulWidget {
   final void Function(String projeId, int index, GunlukKayit kayit) onKayitGuncelle;
   /// Testlerde sahte servis vermek için.
   final AiKayitService? servis;
-  final HavaServisi? havaServisi;
   /// Verilirse sayfa doğrudan bu taslakların onay ekranıyla açılır (sesli
   /// görüşmede "hayır, düzelt" denince).
   final List<SesliKayitTaslagi>? baslangicTaslaklari;
@@ -40,7 +38,6 @@ class SesliKayitSayfa extends StatefulWidget {
     required this.onKayitEkle,
     required this.onKayitGuncelle,
     this.servis,
-    this.havaServisi,
     this.baslangicTaslaklari,
     this.baslangicAnlasilmayan = '',
     this.onayBasligi = '',
@@ -241,7 +238,6 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
       projeGunlukKayitlari: widget.projeGunlukKayitlari,
       onKayitEkle: widget.onKayitEkle,
       onKayitGuncelle: widget.onKayitGuncelle,
-      havaServisi: widget.havaServisi,
     );
     if (!mounted) return;
     Navigator.pop(context, ozet);

@@ -10,7 +10,6 @@ import '../services/ai_kayit_service.dart';
 import '../services/app_log.dart';
 import '../services/cihaz_sesi.dart';
 import '../services/gorusme_motoru.dart';
-import '../services/hava_servisi.dart';
 import '../services/taslak_kaydi.dart';
 import '../theme/theme_colors.dart';
 import 'sesli_kayit_sayfa.dart';
@@ -28,7 +27,6 @@ class SesliGorusmeSayfa extends StatefulWidget {
   /// Testlerde sahte ses/servis vermek için.
   final SesArayuzu? ses;
   final AiKayitService? servis;
-  final HavaServisi? havaServisi;
 
   const SesliGorusmeSayfa({
     super.key,
@@ -38,7 +36,6 @@ class SesliGorusmeSayfa extends StatefulWidget {
     required this.onKayitGuncelle,
     this.ses,
     this.servis,
-    this.havaServisi,
   });
 
   static const String _acilisAyari = 'gorusme_acilista';
@@ -67,7 +64,6 @@ class _SesliGorusmeSayfaState extends State<SesliGorusmeSayfa> {
       projeGunlukKayitlari: widget.projeGunlukKayitlari,
       onKayitEkle: widget.onKayitEkle,
       onKayitGuncelle: widget.onKayitGuncelle,
-      havaServisi: widget.havaServisi,
     ),
   );
 
@@ -167,7 +163,6 @@ class _SesliGorusmeSayfaState extends State<SesliGorusmeSayfa> {
           onKayitEkle: widget.onKayitEkle,
           onKayitGuncelle: widget.onKayitGuncelle,
           servis: widget.servis,
-          havaServisi: widget.havaServisi,
           baslangicTaslaklari: _motor.tabloTaslaklari,
           baslangicAnlasilmayan: _motor.anlasilmayan,
         ),
