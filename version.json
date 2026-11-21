@@ -1,4 +1,4 @@
 {
-  "version": "2.9.1+21",
-  "notes": "v2.9.1 Güncellemesi:\n- Malzemeler: tüm şantiyeler görünümü, kalıp/iskele/demir grupları, paylaşma.\n- Hareketler gün ve irsaliyeye göre gruplu; hızlı giriş (sık malzemeler, − / +, son girişi tekrarla).\n- Aletlere şantiye seçimi; yeni şantiye ekleme."
+  "version": "2.9.2+22",
+  "notes": "v2.9.2 Güncellemesi:\n- Hava: sıcaklık internetten kendiliğinden gelir, düzeltilebilir.\n- Hava durumu (açık, bulutlu, yağmurlu...) artık otomatik doldurulmaz, elle seçilir."
 }
