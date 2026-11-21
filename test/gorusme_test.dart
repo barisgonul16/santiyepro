@@ -9,6 +9,7 @@ import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/sesli_gorusme_sayfa.dart';
 import 'package:santiyepro/services/ai_kayit_service.dart';
 import 'package:santiyepro/services/gorusme_motoru.dart';
+import 'package:santiyepro/services/hava_servisi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Sırayla verilen cevapları "duyan", söylenenleri kaydeden sahte ses.
@@ -25,6 +26,11 @@ class _SahteSes extends SesArayuzu {
 
   @override
   Future<void> durdur() async {}
+}
+
+class _HavasizServis implements HavaServisi {
+  @override
+  Future<GunHavasi?> gunHavasi(DateTime gun) async => null;
 }
 
 Proje _proje(String id, String ad, {bool kahvalti = false}) => Proje(
@@ -350,6 +356,7 @@ void main() {
                     onKayitGuncelle: (a, b, c) {},
                     ses: ses,
                     servis: AiKayitService(istemci: istemci),
+                    havaServisi: _HavasizServis(),
                   ),
                 ),
               );

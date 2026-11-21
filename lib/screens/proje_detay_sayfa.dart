@@ -74,6 +74,8 @@ class ProjeDetaySayfa extends StatefulWidget {
   final int baslangicSekmesi;
   /// Verilirse form bugünün yerine bu günün kaydıyla açılır (aramadan geliş).
   final DateTime? acilisTarihi;
+  /// Testlerde sahte servis vermek için.
+  final HavaServisi? havaServisi;
 
   const ProjeDetaySayfa({
     super.key,
@@ -85,6 +87,7 @@ class ProjeDetaySayfa extends StatefulWidget {
     required this.ekipler,
     this.baslangicSekmesi = 0,
     this.acilisTarihi,
+    this.havaServisi,
   });
 
   @override
@@ -94,6 +97,7 @@ class ProjeDetaySayfa extends StatefulWidget {
 class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
     with SingleTickerProviderStateMixin {
   final _imageService = ImageService();
+  late final HavaServisi _havaServisi = widget.havaServisi ?? HavaServisi();
   // --- Genel Bakış State Değişkenleri ---
   DateTime secilenTarih = DateTime.now();
   // Takvimde gösterilen ay. Seçili günden ayrı tutulur: ay değiştirmek
@@ -277,12 +281,33 @@ class _ProjeDetaySayfaState extends State<ProjeDetaySayfa>
 
     _kayitliImza = _formImzasi();
     if (mounted) setState(() {});
+    // Sıcaklığı girilmemiş günün sıcaklıkları kendiliğinden alınır; hava
+    // durumu (yağmur, bulut...) elle seçilir.
+    if (_havaMin == null && _havaMax == null) unawaited(_sicaklikAl());
   }
 
   // --- Hava durumu ---
 
-  /// Hava ayrıntısı: durum seçimi, en düşük/en yüksek sıcaklık ve
-  /// "çalışılamadı" işareti. Hava elle girilir.
+  /// Seçili günün sıcaklıklarını internetten alıp forma yazar. Bu arada başka
+  /// güne geçildiyse ya da sıcaklık elle girildiyse dokunmaz.
+  Future<void> _sicaklikAl() async {
+    final gun = DateUtils.dateOnly(secilenTarih);
+    if (gun.isAfter(DateUtils.dateOnly(DateTime.now()))) return;
+    final sonuc = await _havaServisi.gunHavasi(gun);
+    if (!mounted || sonuc == null) return;
+    if (!DateUtils.isSameDay(gun, secilenTarih)) return;
+    if (_havaMin != null || _havaMax != null) return;
+    final temizdi = !_kaydedilmemisDegisiklikVar;
+    setState(() {
+      _havaMin = sonuc.enDusuk;
+      _havaMax = sonuc.enYuksek;
+    });
+    // Kendiliğinden gelen sıcaklık, kullanıcının yaptığı değişiklik sayılmaz.
+    if (temizdi) _kayitliImza = _formImzasi();
+  }
+
+  /// Hava ayrıntısı: durum seçimi (elle), en düşük/en yüksek sıcaklık
+  /// (internetten gelir, düzeltilebilir) ve "çalışılamadı" işareti.
   Future<void> _havaSec() async {
     await showModalBottomSheet<void>(
       context: context,

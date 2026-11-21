@@ -2,10 +2,25 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/proje_detay_sayfa.dart';
 import 'package:santiyepro/services/hava_servisi.dart';
+
+/// Ağa çıkmadan hava veren sahte servis; kaç kez sorulduğunu sayar.
+class _SahteHava implements HavaServisi {
+  final GunHavasi? sonuc;
+  final List<DateTime> istekler = [];
+  _SahteHava(this.sonuc);
+
+  @override
+  Future<GunHavasi?> gunHavasi(DateTime gun) async {
+    istekler.add(gun);
+    return sonuc;
+  }
+}
 
 final _proje = Proje(
   id: 'a',
@@ -16,6 +31,7 @@ final _proje = Proje(
 );
 
 Widget _sayfa({
+  HavaServisi? hava,
   List<GunlukKayit> kayitlar = const [],
   List<GunlukKayit>? kaydedilen,
   int sekme = 1,
@@ -29,10 +45,99 @@ Widget _sayfa({
         projeGunlukKayitlari: const {},
         ekipler: const [],
         baslangicSekmesi: sekme,
+        havaServisi: hava ?? _SahteHava(null),
       ),
     );
 
 void main() {
+  group('Hava servisi', () {
+    setUp(HavaServisi.konumOnbelleginiTemizle);
+
+    MockClient sunucu(List<Uri> istekler, {int durum = 200, Object? gunluk}) => MockClient((istek) async {
+          istekler.add(istek.url);
+          if (istek.url.host.startsWith('geocoding')) {
+            return http.Response(
+                jsonEncode({
+                  'results': [
+                    {'latitude': 40.2, 'longitude': 29.1},
+                  ]
+                }),
+                200);
+          }
+          return http.Response(
+              jsonEncode({
+                'daily': gunluk ??
+                    {
+                                            'temperature_2m_max': [14.4],
+                      'temperature_2m_min': [7.6],
+                    }
+              }),
+              durum);
+        });
+
+    String iso(DateTime g) =>
+        '${g.year}-${g.month.toString().padLeft(2, '0')}-${g.day.toString().padLeft(2, '0')}';
+
+    test('yakın gün tahmin servisinden alınır; sıcaklıklar yuvarlanır, hava kodu istenmez', () async {
+      final istekler = <Uri>[];
+      final servis = HavaServisi(istemci: sunucu(istekler), sehirOkuyucu: () async => 'Bursa');
+      final dun = DateTime.now().subtract(const Duration(days: 1));
+
+      final h = await servis.gunHavasi(dun);
+
+      expect((h!.enDusuk, h.enYuksek), (8, 14));
+      expect(istekler.last.queryParameters['daily'], isNot(contains('weather_code')));
+      expect(istekler.last.host, 'api.open-meteo.com');
+      expect(istekler.last.path, '/v1/forecast');
+      expect(istekler.last.queryParameters['start_date'], iso(dun));
+      expect(istekler.last.queryParameters['end_date'], iso(dun));
+    });
+
+    test('eski gün arşiv servisinden alınır', () async {
+      final istekler = <Uri>[];
+      final servis = HavaServisi(istemci: sunucu(istekler), sehirOkuyucu: () async => 'Bursa');
+
+      final h = await servis.gunHavasi(DateTime.now().subtract(const Duration(days: 200)));
+
+      expect(h, isNotNull);
+      expect(istekler.last.host, 'archive-api.open-meteo.com');
+      expect(istekler.last.path, '/v1/archive');
+    });
+
+    test('şehrin konumu bir kez sorulur', () async {
+      final istekler = <Uri>[];
+      final servis = HavaServisi(istemci: sunucu(istekler), sehirOkuyucu: () async => 'Bursa');
+      await servis.gunHavasi(DateTime.now());
+      await servis.gunHavasi(DateTime.now().subtract(const Duration(days: 3)));
+      expect(istekler.where((u) => u.host.startsWith('geocoding')).length, 1);
+    });
+
+    test('14 günden ileri tarih için hiç istek yapılmaz', () async {
+      final istekler = <Uri>[];
+      final servis = HavaServisi(istemci: sunucu(istekler), sehirOkuyucu: () async => 'Bursa');
+      expect(await servis.gunHavasi(DateTime.now().add(const Duration(days: 30))), isNull);
+      expect(istekler, isEmpty);
+    });
+
+    test('sunucu hatası, bozuk yanıt ve internetsizlik null döner; istisna fırlatmaz', () async {
+      final hatali = HavaServisi(istemci: sunucu([], durum: 500), sehirOkuyucu: () async => 'Bursa');
+      expect(await hatali.gunHavasi(DateTime.now()), isNull);
+
+      final bozuk = HavaServisi(istemci: sunucu([], gunluk: 'saçma'), sehirOkuyucu: () async => 'Bursa');
+      expect(await bozuk.gunHavasi(DateTime.now()), isNull);
+
+      final bos = HavaServisi(istemci: sunucu([], gunluk: {'temperature_2m_max': [], 'temperature_2m_min': []}), sehirOkuyucu: () async => 'Bursa');
+      expect(await bos.gunHavasi(DateTime.now()), isNull);
+
+      final internetsiz = HavaServisi(
+        istemci: MockClient((_) async => throw const FormatException('bağlantı yok')),
+        sehirOkuyucu: () async => 'Bursa',
+      );
+      expect(await internetsiz.gunHavasi(DateTime.now()), isNull);
+    });
+
+  });
+
   group('Kayıt modeli', () {
     test('hava alanları saklanır ve geri okunur', () {
       final k = GunlukKayit(
@@ -85,15 +190,16 @@ void main() {
       addTearDown(tester.view.reset);
     }
 
-    testWidgets('hava kendiliğinden gelmez; durum, sıcaklık ve "çalışılamadı" elle girilip kayda yazılır',
+    testWidgets('sıcaklık kendiliğinden gelir, durum gelmez; durum elle seçilir, sıcaklık düzeltilir',
         (tester) async {
       genisPencere(tester);
       final kaydedilen = <GunlukKayit>[];
-      await tester.pumpWidget(_sayfa(kaydedilen: kaydedilen));
+      final sahte = _SahteHava(const GunHavasi(8, 14));
+      await tester.pumpWidget(_sayfa(hava: sahte, kaydedilen: kaydedilen));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hava'), findsOneWidget); // boş, elle girilmeyi bekliyor
-      expect(find.text('Kaydedilmemiş değişiklik var'), findsNothing);
+      expect(sahte.istekler.length, 1);
+      expect(find.text('8°/14°'), findsOneWidget); // durum seçilmeden sıcaklık görünür
 
       await tester.tap(find.byKey(const Key('hava_satiri')));
       await tester.pumpAndSettle();
@@ -116,14 +222,53 @@ void main() {
       expect((k.hava, k.havaMin, k.havaMax, k.havaDurdu), ('yagmur', -3, 12, true));
     });
 
-    testWidgets('kayıtlı hava gösterilir; sıcaklık silinince kayıttan da kalkar', (tester) async {
+    testWidgets('kendiliğinden gelen sıcaklık "kaydedilmemiş değişiklik" sayılmaz', (tester) async {
+      genisPencere(tester);
+      final sahte = _SahteHava(const GunHavasi(10, 18));
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute<void>(
+                builder: (_) => ProjeDetaySayfa(
+                  proje: _proje,
+                  gunlukKayitlar: const [],
+                  onKayitEkle: (_) {},
+                  onKayitGuncelle: (_, _) {},
+                  projeGunlukKayitlari: const {},
+                  ekipler: const [],
+                  baslangicSekmesi: 1,
+                  havaServisi: sahte,
+                ),
+              ),
+            ),
+            child: const Text('ac'),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('ac'));
+      await tester.pumpAndSettle();
+      expect(find.text('10°/18°'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kaydedilmemiş değişiklik var'), findsNothing);
+      expect(find.text('ac'), findsOneWidget);
+    });
+
+    testWidgets('sıcaklığı kayıtlı günde yeniden sorulmaz; sıcaklık silinince kayıttan da kalkar', (tester) async {
       genisPencere(tester);
       final kaydedilen = <GunlukKayit>[];
+      final sahte = _SahteHava(const GunHavasi(-2, 1));
       await tester.pumpWidget(_sayfa(
+        hava: sahte,
         kaydedilen: kaydedilen,
         kayitlar: [GunlukKayit(tarih: DateTime.now(), kalipci: 3, hava: 'bulutlu', havaMin: 3, havaMax: 9)],
       ));
       await tester.pumpAndSettle();
+      expect(sahte.istekler, isEmpty);
       expect(find.text('3°/9°'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('hava_satiri')));
