@@ -1,4 +1,4 @@
 {
-  "version": "2.9.2+22",
-  "notes": "v2.9.2 Güncellemesi:\n- Hava: sıcaklık internetten kendiliğinden gelir, düzeltilebilir.\n- Hava durumu (açık, bulutlu, yağmurlu...) artık otomatik doldurulmaz, elle seçilir."
+  "version": "2.9.3+23",
+  "notes": "v2.9.3 Güncellemesi:\n- Hava sesle söylenebilir ve düzeltilebilir; sesli görüşmede okunur.\n- Günlük Rapor kartlarında hava görünür.\n- PDF rapor paylaşmadan önce önizlenir."
 }
