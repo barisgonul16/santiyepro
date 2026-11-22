@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import '../services/hava_servisi.dart';
 import '../services/rapor_pdf_service.dart';
 import '../models/proje.dart';
 import '../models/gunluk_kayit.dart';
@@ -136,43 +138,17 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
     }
 
     final dosyaAdi = 'Santiye_Raporu_${DateFormat('dd_MM_yyyy').format(_selectedDate)}.pdf';
-    final boyutMb = (pdf.length / 1024 / 1024).toStringAsFixed(1);
     final rapor = pdf;
 
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: ThemeColors.cardBackground(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
-              title: Text('Rapor hazır', style: TextStyle(color: ThemeColors.textPrimary(ctx), fontWeight: FontWeight.bold)),
-              subtitle: Text('$dosyaAdi · $boyutMb MB', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.share, color: Colors.lightBlueAccent),
-              title: Text('Paylaş', style: TextStyle(color: ThemeColors.textPrimary(ctx))),
-              subtitle: Text('WhatsApp, e-posta...', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _raporuPaylas(rapor, dosyaAdi);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.save_alt, color: Colors.greenAccent),
-              title: Text('Kaydet', style: TextStyle(color: ThemeColors.textPrimary(ctx))),
-              subtitle: Text('Cihazda bir klasöre', style: TextStyle(color: ThemeColors.textSecondary(ctx))),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _raporuKaydet(rapor, dosyaAdi);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+    // Rapor önce önizlenir; paylaşma ve kaydetme önizleme sayfasından yapılır.
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => RaporOnizlemeSayfa(
+          pdf: rapor,
+          dosyaAdi: dosyaAdi,
+          onPaylas: () => _raporuPaylas(rapor, dosyaAdi),
+          onKaydet: () => _raporuKaydet(rapor, dosyaAdi),
         ),
       ),
     );
@@ -380,6 +356,30 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
+                                    // Hava (girilmişse)
+                                    if (HavaGosterim.ozet(kayit).isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              kayit.hava.isNotEmpty ? HavaGosterim.simge(kayit.hava) : Icons.thermostat,
+                                              size: 15,
+                                              color: kayit.havaDurdu ? ThemeColors.uyari(context) : ThemeColors.textSecondary(context),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            Expanded(
+                                              child: Text(
+                                                HavaGosterim.ozet(kayit),
+                                                style: TextStyle(
+                                                  color: kayit.havaDurdu ? ThemeColors.uyari(context) : ThemeColors.textSecondary(context),
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
                                     Divider(height: 20, color: ThemeColors.border(context)),
 
                                     // Kalıpçı & Demirci & Beton Satırı
@@ -632,6 +632,84 @@ class _GunlukRaporSayfaPageState extends State<GunlukRaporSayfaPage> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// PDF raporun paylaşılmadan önce sayfa sayfa incelendiği ekran.
+class RaporOnizlemeSayfa extends StatelessWidget {
+  final Uint8List pdf;
+  final String dosyaAdi;
+  final Future<void> Function() onPaylas;
+  final Future<void> Function() onKaydet;
+
+  const RaporOnizlemeSayfa({
+    super.key,
+    required this.pdf,
+    required this.dosyaAdi,
+    required this.onPaylas,
+    required this.onKaydet,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final boyut = pdf.length < 1024 * 1024
+        ? '${(pdf.length / 1024).ceil()} KB'
+        : '${(pdf.length / 1024 / 1024).toStringAsFixed(1)} MB';
+    return Scaffold(
+      backgroundColor: ThemeColors.background(context),
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Rapor önizleme', style: TextStyle(fontSize: 17)),
+            Text('$dosyaAdi · $boyut',
+                style: TextStyle(fontSize: 11, color: ThemeColors.textSecondary(context))),
+          ],
+        ),
+      ),
+      body: PdfPreview(
+        build: (_) async => pdf,
+        pdfFileName: dosyaAdi,
+        useActions: false,
+        canChangePageFormat: false,
+        canChangeOrientation: false,
+        canDebug: false,
+        loadingWidget: const Center(child: CircularProgressIndicator()),
+        onError: (context, hata) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Önizleme gösterilemedi. Yine de paylaşabilir ya da kaydedebilirsin.',
+                textAlign: TextAlign.center, style: TextStyle(color: ThemeColors.textSecondary(context))),
+          ),
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onKaydet,
+                  icon: const Icon(Icons.save_alt),
+                  label: const Text('Kaydet'),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onPaylas,
+                  icon: const Icon(Icons.share),
+                  label: const Text('Paylaş'),
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

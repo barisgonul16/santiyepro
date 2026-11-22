@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:santiyepro/models/gunluk_kayit.dart';
 import 'package:santiyepro/models/proje.dart';
 import 'package:santiyepro/screens/proje_detay_sayfa.dart';
+import 'package:santiyepro/services/ai_kayit_service.dart';
 import 'package:santiyepro/services/hava_servisi.dart';
 
 /// Ağa çıkmadan hava veren sahte servis; kaç kez sorulduğunu sayar.
@@ -136,6 +137,55 @@ void main() {
       expect(await internetsiz.gunHavasi(DateTime.now()), isNull);
     });
 
+  });
+
+  group('Yapay zekâ ile hava', () {
+    final bugun = DateTime(2026, 11, 21);
+
+    test('söylenen hava, sıcaklık ve "çalışılamadı" taslağa okunur; tanınmayan durum atılır', () {
+      final (taslaklar, _) = AiKayitService.taslaklariCoz(
+        jsonEncode({
+          'kayitlar': [
+            {'projeId': 'a', 'tarih': '2026-11-21', 'hava': 'yagmur', 'havaMin': -2, 'havaMax': '7', 'havaDurdu': true},
+            {'projeId': 'a', 'tarih': '2026-11-20', 'kalipci': 3, 'hava': 'tropik', 'havaMin': null, 'havaMax': 300},
+          ],
+        }),
+        [_proje],
+        bugun,
+      );
+      final (t1, t2) = (taslaklar[0], taslaklar[1]);
+      expect((t1.hava, t1.havaMin, t1.havaMax, t1.havaDurdu), ('yagmur', -2, 7, true));
+      expect((t2.hava, t2.havaMin, t2.havaMax, t2.havaDurdu), ('', null, null, false));
+    });
+
+    test('yalnızca hava söylenen kayıt boş sayılmaz', () {
+      final (taslaklar, _) = AiKayitService.taslaklariCoz(
+        jsonEncode({
+          'kayitlar': [
+            {'projeId': 'a', 'tarih': '2026-11-21', 'hava': 'bulutlu'},
+          ],
+        }),
+        [_proje],
+        bugun,
+      );
+      expect(taslaklar.single.hava, 'bulutlu');
+    });
+
+    test('sesle söylenen hava mevcut kaydın havasını düzeltir; söylenmeyen kısım korunur', () {
+      final mevcut = GunlukKayit(tarih: bugun, kalipci: 4, hava: 'firtina', havaMin: 12, havaMax: 21);
+      final t = SesliKayitTaslagi(projeId: 'a', soylenenAd: 'Gera', tarih: bugun, hava: 'bulutlu');
+      final k = t.kayda(mevcut);
+      expect((k.hava, k.havaMin, k.havaMax, k.havaDurdu, k.kalipci), ('bulutlu', 12, 21, false, 4));
+
+      final hicbir = SesliKayitTaslagi(projeId: 'a', soylenenAd: 'Gera', tarih: bugun, kalipci: 5).kayda(mevcut);
+      expect((hicbir.hava, hicbir.havaMin, hicbir.havaMax), ('firtina', 12, 21));
+    });
+
+    test('yönergede hava alanları var, hava notlara yazılmaz', () {
+      final y = AiKayitService.yonerge('gerada yağmur yağdı', [_proje], bugun);
+      expect(y, contains('"havaDurdu"'));
+      expect(y, contains('Hava bilgisini "notlar" alanına yazma'));
+    });
   });
 
   group('Kayıt modeli', () {

@@ -147,7 +147,7 @@ void main() {
     testWidgets('metin taslaklara çevrilir; onaydan sonra yeni kayıt eklenir, mevcut kayıt güncellenir',
         (tester) async {
       SharedPreferences.setMockInitialValues({'gemini_api_anahtari': 'deneme-anahtari'});
-      tester.view.physicalSize = const Size(1080, 4200);
+      tester.view.physicalSize = const Size(1080, 6000);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.reset);
 

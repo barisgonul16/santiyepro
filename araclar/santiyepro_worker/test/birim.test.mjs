@@ -84,6 +84,20 @@ test('kayit_ekle: uygulamanın taslak biçiminde gelen kutusuna yazar', async ()
   strictEqual(gonderilen[0].fields.aciklama.stringValue, 'gera bugün');
 });
 
+test('kayit_ekle: hava, sıcaklık ve "çalışılamadı" uygulamanın taslak alanlarına yazılır', async () => {
+  const gonderilen = sahteBulut();
+  const s = await kayitEkle(veri(), {
+    kayitlar: [
+      { santiye: 'gera', tarih: '2026-10-21', hava: 'yagmur', en_dusuk_sicaklik: -2, en_yuksek_sicaklik: 7, hava_nedeniyle_calisilamadi: true },
+      { santiye: 'gera', tarih: '2026-10-20', en_yuksek_sicaklik: 0 },
+    ],
+  }, ENV);
+  const [k1, k2] = JSON.parse(gonderilen[0].fields.json.stringValue).kayitlar;
+  deepStrictEqual([k1.hava, k1.havaMin, k1.havaMax, k1.havaDurdu], ['yagmur', -2, 7, true]);
+  deepStrictEqual([k2.hava, k2.havaMin, k2.havaMax, k2.havaDurdu], ['', null, 0, false]);
+  strictEqual(s.kayitlar[0].ozet, 'hava: yağmurlu, -2°/7°, hava nedeniyle çalışılamadı');
+});
+
 test('kayit_ekle: hatalı girişleri reddeder, hiçbir şey yazmaz', async () => {
   const gonderilen = sahteBulut();
   const dene = (k) => kayitEkle(veri(), { kayitlar: [k] }, ENV);
@@ -95,6 +109,8 @@ test('kayit_ekle: hatalı girişleri reddeder, hiçbir şey yazmaz', async () =>
   await rejects(dene({ santiye: 'gera', vincler: [{ firma: 'x', baslangic: '25:00' }] }), /SS:DD/);
   await rejects(dene({ santiye: 'gera', ogle_yemegi: { kalipci: 3, toplam: 5 } }), /ya ekip ekip/);
   await rejects(dene({ santiye: 'gera', yevmiyeler: [{ ekip: 'a', miktar: 0 }] }), /0'dan büyük/);
+  await rejects(dene({ santiye: 'gera', hava: 'tropik' }), /şunlardan biri/);
+  await rejects(dene({ santiye: 'gera', en_yuksek_sicaklik: 99 }), /-60 ile 60/);
   await rejects(kayitEkle(veri(), { kayitlar: [] }, ENV), /en az bir/);
   strictEqual(gonderilen.length, 0);
 });

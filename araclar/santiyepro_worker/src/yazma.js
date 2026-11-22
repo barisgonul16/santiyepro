@@ -37,6 +37,23 @@ function saatAl(deger, ad) {
   return `${m[1].padStart(2, '0')}:${m[2]}`;
 }
 
+const HAVA_DURUMLARI = ['acik', 'bulutlu', 'sis', 'yagmur', 'kar', 'firtina'];
+const HAVA_ADLARI = { acik: 'açık', bulutlu: 'bulutlu', sis: 'sisli', yagmur: 'yağmurlu', kar: 'karlı', firtina: 'fırtınalı' };
+
+function havaAl(deger, ad) {
+  const y = yaziAl(deger, ad);
+  if (y && !HAVA_DURUMLARI.includes(y)) throw new KullaniciHatasi(`${ad} şunlardan biri olmalı: ${HAVA_DURUMLARI.join(', ')}`);
+  return y;
+}
+
+/** Sıcaklık (°C); verilmediyse null. Eksi olabilir. */
+function sicaklikAl(deger, ad) {
+  if (deger === undefined || deger === null || deger === '') return null;
+  const n = typeof deger === 'number' ? deger : Number(String(deger).replace(',', '.'));
+  if (!Number.isFinite(n) || n < -60 || n > 60) throw new KullaniciHatasi(`${ad} -60 ile 60 arasında bir sıcaklık (°C) olmalı`);
+  return Math.round(n);
+}
+
 function ogunAl(o, ad) {
   if (o === undefined || o === null) return { kalipci: 0, demirci: 0, diger: 0, toplam: 0 };
   if (typeof o !== 'object' || Array.isArray(o)) throw new KullaniciHatasi(`${ad} bir nesne olmalı`);
@@ -110,11 +127,16 @@ async function kayitHazirla(veri, k, sira, bugun) {
     yemek: ogle.toplam, yemekKalipci: ogle.kalipci, yemekDemirci: ogle.demirci, yemekDiger: ogle.diger,
     kahvalti: kahvalti.toplam, kahvaltiKalipci: kahvalti.kalipci, kahvaltiDemirci: kahvalti.demirci, kahvaltiDiger: kahvalti.diger,
     aksam: aksam.toplam, aksamKalipci: aksam.kalipci, aksamDemirci: aksam.demirci, aksamDiger: aksam.diger,
+    hava: havaAl(k.hava, `${yer}.hava`),
+    havaMin: sicaklikAl(k.en_dusuk_sicaklik, `${yer}.en_dusuk_sicaklik`),
+    havaMax: sicaklikAl(k.en_yuksek_sicaklik, `${yer}.en_yuksek_sicaklik`),
+    havaDurdu: k.hava_nedeniyle_calisilamadi === true,
     vincler,
     yevmiyeler,
   };
-  const dolu = Object.entries(taslak).some(([a, d]) => !['projeId', 'soylenenAd', 'tarih'].includes(a) && (Array.isArray(d) ? d.length : d));
-  if (!dolu) throw new KullaniciHatasi(`${yer}: yazılacak bir bilgi yok (çalışan sayısı, iş, beton, not, yemek, vinç ya da yevmiye)`);
+  const dolu = Object.entries(taslak).some(([a, d]) => !['projeId', 'soylenenAd', 'tarih'].includes(a)
+    && (Array.isArray(d) ? d.length : (typeof d === 'number' && ['havaMin', 'havaMax'].includes(a)) || d));
+  if (!dolu) throw new KullaniciHatasi(`${yer}: yazılacak bir bilgi yok (çalışan sayısı, iş, beton, not, hava, yemek, vinç ya da yevmiye)`);
   return taslak;
 }
 
@@ -128,6 +150,10 @@ function taslakOzeti(t) {
   if (t.beton) parca.push(`beton: ${t.beton}`);
   if (t.notlar) parca.push(`not: ${t.notlar}`);
   if (t.hakedis) parca.push(`hakediş notu: ${t.hakedis}`);
+  const sicaklik = t.havaMin !== null && t.havaMax !== null && t.havaMin !== t.havaMax
+    ? `${t.havaMin}°/${t.havaMax}°` : (t.havaMax ?? t.havaMin) !== null ? `${t.havaMax ?? t.havaMin}°` : '';
+  const hava = [HAVA_ADLARI[t.hava] ?? '', sicaklik, t.havaDurdu ? 'hava nedeniyle çalışılamadı' : ''].filter(Boolean).join(', ');
+  if (hava) parca.push(`hava: ${hava}`);
   const yemek = (on, ad, toplam) => {
     const s = (t[on + 'Kalipci'] || 0) + (t[on + 'Demirci'] || 0) + (t[on + 'Diger'] || 0) + (toplam || 0);
     if (s) parca.push(`${ad}: ${s}`);
@@ -190,7 +216,7 @@ const OGUN = (ad) => ({
 export const YAZMA_ARACLARI = [
   {
     name: 'kayit_ekle',
-    description: 'Günlük şantiye kaydı ÖNERİR (puantaj, yapılan iş, beton, not, hakediş notu, yemek, vinç, yevmiye). Kayıt '
+    description: 'Günlük şantiye kaydı ÖNERİR (puantaj, yapılan iş, beton, not, hakediş notu, hava, yemek, vinç, yevmiye). Kayıt '
       + 'hemen eklenmez: ŞantiyePro uygulamasında kullanıcının onayına düşer, kullanıcı kontrol edip kaydeder. '
       + 'Yalnızca kullanıcının açıkça söylediklerini yaz; söylenmeyen sayı ya da işi uydurma, boş bırak. Şantiye adı '
       + 'emin değilsen önce santiyeler aracına bak. O güne zaten kayıt varsa: verilen sayılar eskisinin yerine geçer, '
@@ -214,6 +240,15 @@ export const YAZMA_ARACLARI = [
               beton: { type: 'string', description: 'Dökülen beton (yeri, varsa miktarı)' },
               notlar: { type: 'string', description: 'Diğer önemli bilgiler (yemek sayısı buraya yazılmaz)' },
               hakedis_notu: { type: 'string', description: 'Hakedişte hatırlanacaklar: ek iş, bekleme, sözleşme dışı iş' },
+              hava: {
+                type: 'string',
+                enum: HAVA_DURUMLARI,
+                description: 'Hava durumu: acik (açık/güneşli), bulutlu (bulutlu/kapalı), sis, yagmur (yağmur/çise/sağanak), kar, '
+                  + 'firtina (fırtına/gök gürültülü). Yalnızca söylendiyse; o günün kayıtlı havasının yerine geçer (düzeltme için de kullanılır).',
+              },
+              en_dusuk_sicaklik: { type: 'integer', minimum: -60, maximum: 60, description: 'En düşük sıcaklık °C (yalnızca söylendiyse)' },
+              en_yuksek_sicaklik: { type: 'integer', minimum: -60, maximum: 60, description: 'En yüksek sıcaklık °C (yalnızca söylendiyse)' },
+              hava_nedeniyle_calisilamadi: { type: 'boolean', description: 'Hava yüzünden iş durduysa true' },
               ogle_yemegi: OGUN('Öğle yemeği'),
               kahvalti: OGUN('Kahvaltı'),
               aksam_yemegi: OGUN('Akşam yemeği'),

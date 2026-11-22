@@ -631,6 +631,7 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                 yazi('Beton', t.beton, (v) => t.beton = v),
                 yazi('Not', t.notlar, (v) => t.notlar = v),
                 yazi('Hakediş hatırlatma', t.hakedisNotu, (v) => t.hakedisNotu = v),
+                _buildHava(t, ikincil),
                 _buildVincler(t, kutu, metin, ikincil),
                 for (final y in List<YevmiyeBilgisi>.from(t.yevmiyeler))
                   _buildEkSatir(
@@ -788,6 +789,52 @@ class _SesliKayitSayfaState extends State<SesliKayitSayfa> {
                 ),
               ],
             ),
+          ),
+      ],
+    );
+  }
+
+  /// Hava: durum seçilir ya da kaldırılır, "çalışılamadı" işaretlenir;
+  /// söylenen sıcaklık varsa gösterilir (kaldırılabilir). Seçilmezse kayıttaki
+  /// hava değişmez.
+  Widget _buildHava(SesliKayitTaslagi t, TextStyle ikincil) {
+    final sicaklik = HavaGosterim.sicaklik(t.havaMin, t.havaMax);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          child: Text('Hava', style: ikincil),
+        ),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            for (final d in HavaGosterim.durumlar)
+              ChoiceChip(
+                key: ValueKey('${identityHashCode(t)}-hava-$d'),
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(HavaGosterim.simge(d), size: 16),
+                label: Text(HavaGosterim.ad(d)),
+                showCheckmark: false,
+                selected: t.hava == d,
+                onSelected: (s) => setState(() => t.hava = s ? d : ''),
+              ),
+            FilterChip(
+              visualDensity: VisualDensity.compact,
+              label: const Text('Hava nedeniyle çalışılamadı'),
+              selected: t.havaDurdu,
+              onSelected: (s) => setState(() => t.havaDurdu = s),
+            ),
+          ],
+        ),
+        if (sicaklik.isNotEmpty)
+          _buildEkSatir(
+            'Sıcaklık: $sicaklik',
+            () => setState(() {
+              t.havaMin = null;
+              t.havaMax = null;
+            }),
           ),
       ],
     );

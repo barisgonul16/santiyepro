@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/gunluk_kayit.dart';
 import '../models/proje.dart';
 import 'app_log.dart';
+import 'hava_servisi.dart';
 
 /// Yemek öğünleri. Öğle yemeği, eski kayıtlardaki "yemek" alanlarıdır.
 enum YemekOgunu { kahvalti, ogle, aksam }
@@ -52,6 +53,12 @@ class SesliKayitTaslagi {
   final Set<YemekOgunu> _yoksayilan = {};
   /// Yemek sayıları koddan değişince artar; onay ekranındaki kutuları tazelemek için.
   int yemekSurumu = 0;
+  /// Söylenen hava durumu ([HavaGosterim.durumlar] içinden; '' söylenmedi),
+  /// söylenen sıcaklıklar (null söylenmedi) ve "hava yüzünden çalışılamadı".
+  String hava;
+  int? havaMin;
+  int? havaMax;
+  bool havaDurdu;
   final List<VincBilgisi> vincler;
   final List<YevmiyeBilgisi> yevmiyeler;
 
@@ -79,6 +86,10 @@ class SesliKayitTaslagi {
     this.aksamDemirci = 0,
     this.aksamDiger = 0,
     this.aksamToplam = 0,
+    this.hava = '',
+    this.havaMin,
+    this.havaMax,
+    this.havaDurdu = false,
     List<VincBilgisi>? vincler,
     List<YevmiyeBilgisi>? yevmiyeler,
   })  : vincler = vincler ?? [],
@@ -105,6 +116,10 @@ class SesliKayitTaslagi {
       aksamDemirci == 0 &&
       aksamDiger == 0 &&
       aksamToplam == 0 &&
+      hava.isEmpty &&
+      havaMin == null &&
+      havaMax == null &&
+      !havaDurdu &&
       vincler.isEmpty &&
       yevmiyeler.isEmpty;
 
@@ -206,7 +221,8 @@ class SesliKayitTaslagi {
 
   /// Taslağı o günün kaydına işler. [mevcut] varsa üzerine eklenir: verilen
   /// sayılar eskisinin yerine geçer, metinler sona eklenir, vinç ve yevmiye
-  /// satırları listeye katılır. Fotoğraflar ve yemek sayıları korunur.
+  /// satırları listeye katılır. Söylenen hava eskisinin yerine geçer.
+  /// Fotoğraflar ve yemek sayıları korunur.
   GunlukKayit kayda(GunlukKayit? mevcut) {
     String ekle(String eski, String yeni) {
       final e = eski.trim(), y = yeni.trim();
@@ -230,10 +246,10 @@ class SesliKayitTaslagi {
       aksamKalipci: aksamKalipci > 0 ? aksamKalipci : temel.aksamKalipci,
       aksamDemirci: aksamDemirci > 0 ? aksamDemirci : temel.aksamDemirci,
       aksamDiger: aksamDiger > 0 ? aksamDiger : temel.aksamDiger,
-      hava: temel.hava,
-      havaMin: temel.havaMin,
-      havaMax: temel.havaMax,
-      havaDurdu: temel.havaDurdu,
+      hava: hava.isNotEmpty ? hava : temel.hava,
+      havaMin: havaMin ?? temel.havaMin,
+      havaMax: havaMax ?? temel.havaMax,
+      havaDurdu: havaDurdu || temel.havaDurdu,
       hakedisNotu: ekle(temel.hakedisNotu, hakedisNotu),
       kalipciYapilanIs: ekle(temel.kalipciYapilanIs, kalipciIs),
       demirciYapilanIs: ekle(temel.demirciYapilanIs, demirciIs),
@@ -534,11 +550,12 @@ Kurallar:
 - "yevmiyeler": yevmiyeli iş varsa ekip adı, miktar (yevmiye sayısı, yarım gün 0.5) ve açıklama.
 - Yemek: öğünlere göre ayır. "yemek" ve "öğle yemeği" öğle yemeğidir; "kahvaltı" kahvaltıdır; "akşam yemeği" ya da "akşam" akşam yemeğidir. Her öğün için yemek yiyen / yemek verilen kişi sayısını yaz. Yemek bilgisini ASLA "notlar" alanına yazma. Ekip ayrı ayrı söylendiyse (kalıpçı, demirci, diğer) öğle için "yemekKalipci", "yemekDemirci", "yemekDiger"; kahvaltı için "kahvaltiKalipci", "kahvaltiDemirci", "kahvaltiDiger"; akşam için "aksamKalipci", "aksamDemirci", "aksamDiger" alanlarına yaz. Ekip ayrımı yapmadan tek sayı söylendiyse ("yemek 12", "kahvaltı 8", "akşam yemeği 10", "12 kişilik yemek") yalnızca "yemek", "kahvalti" ya da "aksam" alanına yaz. Söylenmeyen her şey 0.
 - "hakedis": hakedişte hatırlanması gerekenler: "hakediş için not al", "hakedişe yaz", "hakedişte unutma" denen şeyler; sözleşme dışı ek iş, işverenden kaynaklı bekleme ya da yeniden yapılan iş gibi hakedişe yansıtılacak bilgiler. Kısa ve söylendiği gibi yaz. Bunları "notlar" alanına yazma.
-- "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, hava, ziyaret). Yemek sayısı notlara yazılmaz.
+- Hava: "hava" alanına söylenen hava durumunu şu anahtarlardan biriyle yaz: "acik" (açık, güneşli), "bulutlu" (bulutlu, kapalı), "sis" (sisli), "yagmur" (yağmurlu, çiseli, sağanak), "kar" (karlı), "firtina" (fırtına, gök gürültülü, şiddetli rüzgâr). Söylenmediyse boş. "havaMin" ve "havaMax": söylenen en düşük ve en yüksek sıcaklık (°C, eksi olabilir); tek sıcaklık söylendiyse onu "havaMax" alanına yaz; söylenmediyse null. "havaDurdu": hava yüzünden iş durduysa ya da çalışılamadıysa true, yoksa false. Hava bilgisini "notlar" alanına yazma.
+- "notlar": yukarıdakilere girmeyen önemli bilgiler (malzeme, gecikme, ziyaret). Yemek sayısı notlara yazılmaz.
 - "anlasilmayan": hiçbir kayda yerleştiremediğin kısım varsa kısaca yaz, yoksa boş bırak.
 
 Yalnızca şu biçimde JSON döndür:
-{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","hakedis":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"kahvalti":0,"kahvaltiKalipci":0,"kahvaltiDemirci":0,"kahvaltiDiger":0,"aksam":0,"aksamKalipci":0,"aksamDemirci":0,"aksamDiger":0,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
+{"kayitlar":[{"projeId":"","soylenenAd":"","tarih":"YYYY-MM-DD","kalipci":0,"demirci":0,"diger":0,"kalipciIs":"","demirciIs":"","beton":"","notlar":"","hakedis":"","yemek":0,"yemekKalipci":0,"yemekDemirci":0,"yemekDiger":0,"kahvalti":0,"kahvaltiKalipci":0,"kahvaltiDemirci":0,"kahvaltiDiger":0,"aksam":0,"aksamKalipci":0,"aksamDemirci":0,"aksamDiger":0,"hava":"","havaMin":null,"havaMax":null,"havaDurdu":false,"vincler":[{"firma":"","baslangic":"","bitis":"","mola":0,"aciklama":""}],"yevmiyeler":[{"ekip":"","miktar":0,"aciklama":""}]}],"anlasilmayan":""}
 
 Söylenen not:
 """
@@ -564,6 +581,12 @@ $metin
     int tam(dynamic v) => v is num ? v.round().clamp(0, 9999) : (int.tryParse('$v') ?? 0).clamp(0, 9999);
     double ondalik(dynamic v) => v is num ? v.toDouble() : (double.tryParse('$v'.replaceAll(',', '.')) ?? 0);
     String yazi(dynamic v) => v == null ? '' : '$v'.trim();
+    int? sicaklik(dynamic v) {
+      final n = v is num ? v : num.tryParse('$v'.replaceAll(',', '.').trim());
+      if (n == null || n < -60 || n > 60) return null;
+      return n.round();
+    }
+
     String saat(dynamic v) {
       final m = RegExp(r'^(\d{1,2})[:.](\d{2})$').firstMatch(yazi(v));
       if (m == null) return '';
@@ -605,6 +628,10 @@ $metin
         aksamDemirci: tam(k['aksamDemirci']),
         aksamDiger: tam(k['aksamDiger']),
         aksamToplam: tam(k['aksam']),
+        hava: HavaGosterim.durumlar.contains(yazi(k['hava'])) ? yazi(k['hava']) : '',
+        havaMin: sicaklik(k['havaMin']),
+        havaMax: sicaklik(k['havaMax']),
+        havaDurdu: k['havaDurdu'] == true || yazi(k['havaDurdu']) == 'true',
         vincler: [
           for (final v in (k['vincler'] is List ? k['vincler'] as List : const []))
             if (v is Map && (yazi(v['firma']).isNotEmpty || saat(v['baslangic']).isNotEmpty || yazi(v['aciklama']).isNotEmpty))
